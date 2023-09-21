@@ -11,7 +11,7 @@ use Spatie\Permission\Traits\HasRoles;
 
 class User extends Authenticatable
 {
-    use HasRoles; # from spatch
+    use HasRoles; # from spatie
     use HasApiTokens, HasFactory, Notifiable;
 
     /**

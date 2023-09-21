@@ -57,12 +57,20 @@ class LoginController extends Controller
             if ($request->hasSession()) {
                 $request->session()->put('auth.password_confirmed_at', time());
             }
+
             $auth_user =  auth()->user();
+            # Checking user role
             if($auth_user->hasRole('Admin')){
                 dd("This is from admin.");
+            }elseif($auth_user->hasRole('Patient')){
+                dd("This is from Patient.");
+            }elseif($auth_user->hasRole('Counselor')){
+                dd("This is from Counselor.");
+            }elseif($auth_user->hasRole('Doctor')){
+                dd("This is from Doctor.");
             }else{
+                dd('Other user');
                 return $this->sendLoginResponse($request);
-
             }
 
         }

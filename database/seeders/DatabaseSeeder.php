@@ -26,6 +26,42 @@ class DatabaseSeeder extends Seeder
 
         $admin->assignRole('Admin'); #assigning role
 
+        $patient = User::firstOrCreate(
+            ["email"=>'patient@email.com',],
+            [
+                "name"=>'Patient',
+                "email"=> 'patient@email.com',
+                "password"=> Hash::make('patient'),
+            ],
+        );
+
+        $patient->assignRole('Patient'); #assigning role
+
+        $counselor = User::firstOrCreate(
+            ["email"=>'counselor@email.com',],
+            [
+                "name"=>'Counselor',
+                "email"=> 'counselor@email.com',
+                "password"=> Hash::make('counselor'),
+            ],
+        );
+
+        $counselor->assignRole('Counselor'); #assigning role
+
+
+        $doctor = User::firstOrCreate(
+            ["email"=>'doctor@email.com',],
+            [
+                "name"=>'Doctor',
+                "email"=> 'doctor@email.com',
+                "password"=> Hash::make('doctor'),
+            ],
+        );
+
+        $doctor->assignRole('Doctor'); #assigning role
+
+
+
         \App\Models\User::factory(10)->create();
 
         // \App\Models\User::factory()->create([

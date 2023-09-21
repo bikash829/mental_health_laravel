@@ -1,8 +1,18 @@
 @extends('layouts.app')
 
+@section('title') {{__('User Login')}} @endsection
+
+@section('banner')
+    <div class="banner ">
+        <h1 class="banner__title">User Login</h1>
+        <img class="banner__img" src="{{asset('images/banner/banner3.jpg')}}" alt="{{__('Community Forum')}}">
+    </div>
+@endsection
+
+
 @section('content')
 <div class="container">
-    <div class="row justify-content-center">
+    <div class="row justify-content-center m-5">
         <div class="col-md-8">
             <div class="card">
                 <div class="card-header">{{ __('Login') }}</div>
@@ -70,4 +80,5 @@
         </div>
     </div>
 </div>
+
 @endsection

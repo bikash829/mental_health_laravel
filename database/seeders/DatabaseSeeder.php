@@ -4,6 +4,7 @@ namespace Database\Seeders;
 
 // use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use App\Models\User;
+use Faker\Core\Blood;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
 
@@ -12,14 +13,18 @@ class DatabaseSeeder extends Seeder
     /**
      * Seed the application's database.
      */
+
     public function run(): void
     {
+        // Call the manual seeder
+        $this->call(BloodGroupSeeder::class);
+
         $this->call([
             RoleSeeder::class,
         ]);
 
         $admin = User::firstOrCreate(["email"=> 'admin@email.com',],[
-                    "name"=>'Admin',
+//                    "first_name"=>'Admin',
                     "email"=> 'admin@email.com',
                     "password"=> Hash::make('admin'),
                 ]);
@@ -29,7 +34,7 @@ class DatabaseSeeder extends Seeder
         $patient = User::firstOrCreate(
             ["email"=>'patient@email.com',],
             [
-                "name"=>'Patient',
+//                "first_name"=>'Patient',
                 "email"=> 'patient@email.com',
                 "password"=> Hash::make('patient'),
             ],
@@ -40,7 +45,7 @@ class DatabaseSeeder extends Seeder
         $counselor = User::firstOrCreate(
             ["email"=>'counselor@email.com',],
             [
-                "name"=>'Counselor',
+//                "first_name"=>'Counselor',
                 "email"=> 'counselor@email.com',
                 "password"=> Hash::make('counselor'),
             ],
@@ -52,7 +57,7 @@ class DatabaseSeeder extends Seeder
         $doctor = User::firstOrCreate(
             ["email"=>'doctor@email.com',],
             [
-                "name"=>'Doctor',
+//                "first_name"=>'Doctor',
                 "email"=> 'doctor@email.com',
                 "password"=> Hash::make('doctor'),
             ],
@@ -62,7 +67,7 @@ class DatabaseSeeder extends Seeder
 
 
 
-        \App\Models\User::factory(10)->create();
+//        \App\Models\User::factory(10)->create();
 
         // \App\Models\User::factory()->create([
         //     'name' => 'Test User',

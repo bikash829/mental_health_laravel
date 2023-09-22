@@ -68,28 +68,44 @@
 
             <!-- user login registration  -->
             <div class="nav__user user">
-{{--                <div class="user__logged">--}}
-{{--                    <div class="dropdown">--}}
-{{--                        <li class="dropdown-toggle dropdown-toggle_custom" type="button" data-bs-toggle="dropdown" aria-expanded="false">--}}
-{{--                            <i class="fa-regular fa-face-smile"></i> name--}}
-{{--                        </li>--}}
-{{--                        <ul class="dropdown-menu">--}}
-{{--                            <li><a class="dropdown-item" href="./view_profile.php">View Profile</a></li>--}}
-{{--                            <li><a class="dropdown-item" href="./edit_user.php">Edit Profile</a></li>--}}
-{{--                            <li><a class="dropdown-item" href="./patient_appointments.php">My Appointments</a></li>--}}
-{{--                            <li>--}}
-{{--                                <hr class="dropdown-divider">--}}
-{{--                            </li>--}}
-{{--                            <li><a class="dropdown-item" href="{%url 'account_logout'%} ">Sign Out</a></li>--}}
-{{--                        </ul>--}}
-{{--                    </div>--}}
-{{--                </div>--}}
+                @guest
+                    <div class="user__unlogged">
+                        <a href="{{route('login')}}"  class="user__login  user__login--theme user__login--size button" {{--data-bs-toggle="modal" data-bs-target="#login"--}} >Login</a>
+                        <a href="{{ route('register') }}" class="user__register user__register--theme user__register--size button" {{--data-bs-toggle="modal" data-bs-target="#register_popup"--}} >Register</a>
+                    </div>
+                @else
+                    <div class="user__logged">
+                        <div class="dropdown">
+                            <li class="dropdown-toggle dropdown-toggle_custom" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                <i class="fa-regular fa-face-smile"></i> name
+                            </li>
+                            <ul class="dropdown-menu">
+                                <li><a class="dropdown-item" href="./view_profile.php">View Profile</a></li>
+                                <li><a class="dropdown-item" href="./edit_user.php">Edit Profile</a></li>
+                                <li><a class="dropdown-item" href="./patient_appointments.php">My Appointments</a></li>
+                                <li>
+                                    <hr class="dropdown-divider">
+                                </li>
+                                <form action="{{ route('logout') }}" method="POST">
+                                    @csrf
 
+                                </form>
+                                <li>
+                                    <a class="dropdown-item" href="{{ route('logout') }}"
+                                       onclick="event.preventDefault();
+                                             document.getElementById('logout-form').submit();">
+                                        {{ __('Sign Out') }}
+                                    </a>
+{{--                                    <a class="dropdown-item" href="{{ route('logout') }}">Sign Out</a>--}}
+                                </li>
+                            </ul>
+                            <form id="logout-form" action="{{ route('logout') }}" method="POST" class="d-none">
+                                @csrf
+                            </form>
+                        </div>
+                    </div>
+                @endguest
 
-                <div class="user__unlogged">
-                    <a href="{{route('login')}}"  class="user__login  user__login--theme user__login--size button" {{--data-bs-toggle="modal" data-bs-target="#login"--}} >Login</a>
-                    <a class="user__register user__register--theme user__register--size button" data-bs-toggle="modal" data-bs-target="#register_popup">Register</a>
-                </div>
 
             </div>
 
@@ -119,9 +135,9 @@
                 <h3 class="f-bdy__title">Quick Links</h3>
                 <ul class="f-bdy__contents">
                     <li class="f-bdy__content"><a href="./doctor_appointment.php" class="f-bdy__content-link">Get Help</a></li>
-                    <li class="f-bdy__content"><a href="./community.php" class="f-bdy__content-link">Community</a></li>
-                    <li class="f-bdy__content"><a href="contact_us.php" class="f-bdy__content-link">Contact Us</a></li>
-                    <li class="f-bdy__content"><a href="about.php" class="f-bdy__content-link">About</a></li>
+                    <li class="f-bdy__content"><a href="{{route('community')}}" class="f-bdy__content-link">Community</a></li>
+                    <li class="f-bdy__content"><a href="{{route('contact')}}" class="f-bdy__content-link">Contact Us</a></li>
+                    <li class="f-bdy__content"><a href="{{route('about')}}" class="f-bdy__content-link">About</a></li>
                 </ul>
             </div>
 

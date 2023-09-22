@@ -61,16 +61,19 @@ class LoginController extends Controller
             $auth_user =  auth()->user();
             # Checking user role
             if($auth_user->hasRole('Admin')){
-                dd("This is from admin.");
+                return view('admin.dashboard');
             }elseif($auth_user->hasRole('Patient')){
-                dd("This is from Patient.");
+//                    dd("This is from Patient.");
+//                return $this->sendLoginResponse($request);
+                return view('patient.profile');
+
             }elseif($auth_user->hasRole('Counselor')){
-                dd("This is from Counselor.");
+                return view('counselor.dashboard');
             }elseif($auth_user->hasRole('Doctor')){
-                dd("This is from Doctor.");
+                return view('doctor.dashboard');
             }else{
                 dd('Other user');
-                return $this->sendLoginResponse($request);
+//                return $this->sendLoginResponse($request);
             }
 
         }

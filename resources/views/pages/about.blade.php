@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title') @endsection
+@section('title') {{__('About Us')}} @endsection
 
 @section('banner')
     <div class="banner ">

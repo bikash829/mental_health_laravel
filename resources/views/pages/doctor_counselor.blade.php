@@ -11,10 +11,10 @@
 
 @section('content')
     <section class="specialist segment-margin-side">
-        <div class="d-grid gap-2 mb-4"><a href="./upcomming_appointment.php" class="btn btn-lg btn-primary">Upcomming Appointments</a></div>
+        <div class="d-grid gap-2 mb-4"><a href="./upcomming_appointment.php" class="btn btn-lg btn-primary">Upcoming Appointments</a></div>
         <div class="section-heading">
             <h3 class="section-heading__title">
-                Experts And Councilors
+                Experts And Counselors
             </h3>
         </div>
 
@@ -23,7 +23,7 @@
             <div class="accordion-item">
                 <h2 class="accordion-header " id="panelsStayOpen-headingTwo">
                     <button class="accordion-button collapsed accordion-button--custom" type="button" data-bs-toggle="collapse" data-bs-target="#panelsStayOpen-collapseTwo" aria-expanded="false" aria-controls="panelsStayOpen-collapseTwo">
-                        Councilors
+                        Counselors
                     </button>
                 </h2>
                 <div id="panelsStayOpen-collapseTwo" class="accordion-collapse collapse" aria-labelledby="panelsStayOpen-headingTwo">
@@ -43,7 +43,7 @@
                                     <p class="person__description">
                                         Bio
                                     </p>
-                                    {% comment %} social links  {% endcomment %}
+{{--                                    {% comment %} social links  {% endcomment %}--}}
                                     <div class="specialist__links">
                                         <a href="#" title="click here to visit my facebook wall" class="specialist__icon"><i class="fa-brands fa-facebook"></i></a>
                                         <a href="#" title="click to follow twitter" class="specialist__icon"><i class="fa-brands fa-square-twitter"></i></a>

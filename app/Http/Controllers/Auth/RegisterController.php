@@ -5,7 +5,10 @@ namespace App\Http\Controllers\Auth;
 use App\Http\Controllers\Controller;
 use App\Providers\RouteServiceProvider;
 use App\Models\User;
+use Illuminate\Auth\Events\Registered;
 use Illuminate\Foundation\Auth\RegistersUsers;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
 
@@ -50,7 +53,7 @@ class RegisterController extends Controller
     protected function validator(array $data)
     {
         return Validator::make($data, [
-//            'name' => [ 'string', 'max:255'],
+            'role' => ['required', 'string', 'max:10','in:Patient,Doctor,Counselor'],
             'email' => ['required', 'string', 'email', 'max:255', 'unique:users'],
             'password' => ['required', 'string', 'min:8', 'confirmed'],
         ]);
@@ -65,9 +68,34 @@ class RegisterController extends Controller
     protected function create(array $data)
     {
         return User::create([
-//            'name' => $data['name'],
             'email' => $data['email'],
             'password' => Hash::make($data['password']),
         ]);
+    }
+
+    public function register(Request $request)
+    {
+
+        $this->validator($request->all())->validate();
+        event(new Registered($user = $this->create($request->except('role'))));
+        $user->assignRole($request->role); #==============================assigning role
+
+        $this->guard()->login($user);
+
+
+        // ==============================================================redirect page condition will be here.
+        if($user->hasRole('Patient')){
+            return view('patient.profile');
+        }elseif($user->hasRole('Counselor')){
+            return view('counselor.dashboard');
+        }elseif($user->hasRole('Doctor')){
+            return redirect()->route('doctor.dashboard');
+        }
+
+
+
+        return $request->wantsJson()
+            ? new JsonResponse([], 201)
+            : redirect($this->redirectPath());
     }
 }

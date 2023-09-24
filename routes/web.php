@@ -1,6 +1,9 @@
 <?php
 
+use App\Http\Controllers\UserController;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
+
 
 /*
 |--------------------------------------------------------------------------
@@ -13,6 +16,13 @@ use Illuminate\Support\Facades\Route;
 |
 */
 
+Route::group(['middleware'=>'guest',],function (){
+//    Route::get('login/',function (){
+//        return view('auth.login');
+//    })->name('login');
+
+});
+
 Route::get('/', function () {
     return view('welcome');
 });
@@ -21,9 +31,6 @@ Auth::routes();
 
 //Route::get('/', [App\Http\Controllers\HomeController::class, 'index'])->name('home');
 
-Route::get('login/',function (){
-    return view('auth.login');
-})->name('login');
 
 //Route::get('test/', function () {
 //    return 'Test Route';
@@ -61,5 +68,17 @@ Route::get('contact-us/',function (){
 })->name('contact');
 
 
+//Route::get('user/',[UserController::class, 'index']);
+Route::post('user/',[UserController::class, 'store'])->name('userstore');
 
+
+Route::resource('user/',UserController::class)->names('user')->except('index');
+Route::delete('user/{id}',[UserController::class, 'delete'])->name('user.delete');
+// edit route access in view
+// {{route('user.edit',['id'=>$id])}}
+// {{route('user.delete',['id'=>$id])}}
+// {{route('user.update',['id'=>$id])}}
+
+// Doctor Routes
+require __DIR__.'/doctor.php';
 

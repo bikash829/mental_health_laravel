@@ -23,7 +23,7 @@ let pass = document.getElementById("password");
 
 
 
-// instraction 
+// instraction
 let helpBtn, chkbtn;
 
 chkbtn = document.querySelectorAll(".btn-help");
@@ -39,24 +39,24 @@ for (let i = 0; i < chkbtn.length; i++) {
 let passElement, confirm_passElement, passVal, conPassVal;
 
 passElement = document.querySelector("#password");
-confirm_passElement = document.querySelector('#confirm_pass');
+confirm_passElement = document.querySelector('#password-confirm');
 
-confirm_pass.setAttribute('minlength', 1111);
+confirm_passElement.setAttribute('minlength', 1111);
 
 confirm_passElement.addEventListener('input', (event) => {
     passVal = passElement.value;
     conPassVal = confirm_passElement.value;
 
 
-    if (passVal == conPassVal) {
+    if (passVal === conPassVal) {
         confirm_passElement.classList.remove("is-invalid");
         confirm_passElement.classList.add("is-valid");
-        confirm_pass.setAttribute('minlength', passVal.length);
+        confirm_passElement.setAttribute('minlength', passVal.length);
 
     } else {
         confirm_passElement.classList.add("is-invalid");
         confirm_passElement.classList.remove("is-valid");
-        confirm_pass.setAttribute('minlength', 1111);
+        confirm_passElement.setAttribute('minlength', 1111);
     }
 });
 // end password validation =================
@@ -106,7 +106,7 @@ for (value of patientEx) {
 
 }
 
-// role event 
+// role event
 let edu_qualification, work_info, certificates_doc;
 
 edu_qualification = document.getElementById('edu-qualification');

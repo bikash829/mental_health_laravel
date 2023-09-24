@@ -70,8 +70,8 @@
             <div class="nav__user user">
                 @guest
                     <div class="user__unlogged">
-                        <a href="{{route('login')}}"  class="user__login  user__login--theme user__login--size button" {{--data-bs-toggle="modal" data-bs-target="#login"--}} >Login</a>
-                        <a href="{{ route('register') }}" class="user__register user__register--theme user__register--size button" {{--data-bs-toggle="modal" data-bs-target="#register_popup"--}} >Register</a>
+                        <a href="{{route('login')}}"  class="user__login  btn btn-primary {{-- user__login--theme user__login--size button --}}" {{--data-bs-toggle="modal" data-bs-target="#login"--}} >Login</a>
+                        <a href="{{ route('register') }}" class="user__register btn btn-success {{-- user__register--theme user__register--size button --}} " {{--data-bs-toggle="modal" data-bs-target="#register_popup"--}} >Register</a>
                     </div>
                 @else
                     <div class="user__logged">

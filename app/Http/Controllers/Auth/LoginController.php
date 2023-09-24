@@ -60,6 +60,7 @@ class LoginController extends Controller
 
             $auth_user =  auth()->user();
             # Checking user role
+
             if($auth_user->hasRole('Admin')){
                 return view('admin.dashboard');
             }elseif($auth_user->hasRole('Patient')){
@@ -70,12 +71,11 @@ class LoginController extends Controller
             }elseif($auth_user->hasRole('Counselor')){
                 return view('counselor.dashboard');
             }elseif($auth_user->hasRole('Doctor')){
-                return view('doctor.dashboard');
+//                return route('doctor.dashboard');
+                return redirect()->route('doctor.dashboard');
             }else{
-                dd('Other user');
-//                return $this->sendLoginResponse($request);
+                dd('Unknown user ');
             }
-
         }
 
         // If the login attempt was unsuccessful we will increment the number of attempts
@@ -84,5 +84,9 @@ class LoginController extends Controller
         $this->incrementLoginAttempts($request);
 
         return $this->sendFailedLoginResponse($request);
+    }
+    public function showLoginForm()
+    {
+        return view('auth.login');
     }
 }

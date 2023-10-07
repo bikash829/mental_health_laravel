@@ -62,20 +62,18 @@ class LoginController extends Controller
             # Checking user role
 
             if($auth_user->hasRole('Admin')){
-                return view('admin.dashboard');
+                return  redirect()->route('admin.index');
             }elseif($auth_user->hasRole('Patient')){
-//                    dd("This is from Patient.");
-//                return $this->sendLoginResponse($request);
-                return view('patient.profile');
-
+                return redirect()->route('patient.profile.index');
             }elseif($auth_user->hasRole('Counselor')){
-                return view('counselor.dashboard');
+                return redirect()->route('counselor.index');
             }elseif($auth_user->hasRole('Doctor')){
-//                return route('doctor.dashboard');
-                return redirect()->route('doctor.dashboard');
+                return redirect()->route('doctor.index');
             }else{
-                dd('Unknown user ');
+                return redirect()->route('error404');
             }
+
+            // return $this->sendLoginResponse($request);
         }
 
         // If the login attempt was unsuccessful we will increment the number of attempts

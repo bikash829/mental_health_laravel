@@ -16,15 +16,14 @@ class BloodGroupSeeder extends Seeder
     {
         //
         DB::table('blood_groups')->insert([
-            ['group' => 'A+','created_at'=>now(),],
             ['group' => 'A+','created_at'=>now()],
-//            ['group' => 'A-'],
-//            ['group' => 'B+'],
-//            ['group' => 'B-'],
-//            ['group' => 'AB+'],
-//            ['group' => 'AB-'],
-//            ['group' => 'O+'],
-//            ['group' => 'O-'],
+            ['group' => 'A-','created_at'=>now(),],
+            ['group' => 'B+','created_at'=>now(),],
+            ['group' => 'B-','created_at'=>now(),],
+            ['group' => 'AB+','created_at'=>now(),],
+            ['group' => 'AB-','created_at'=>now(),],
+            ['group' => 'O+','created_at'=>now(),],
+            ['group' => 'O-','created_at'=>now(),],
         ]);
 //        BloodGroup::insert([
 //            ['group' => 'A+'],

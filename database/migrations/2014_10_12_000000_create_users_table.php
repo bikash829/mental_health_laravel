@@ -25,19 +25,26 @@ return new class extends Migration
             $table->date('date_of_birth')->nullable();
             $table->string('identity_no',100)->nullable();
             $table->string('identity_type',50)->nullable();
+            $table->string('pp_name')->nullable();
+            $table->string('pp_location')->nullable();
+            $table->string('religion')->nullable();
 
 
-            $table->unsignedBigInteger('blood_group_id')->nullable();
-            $table->foreign('blood_group_id')
-                ->references('id')
-                ->on('blood_groups')
-                ->onDelete('cascade');
+//            $table->unsignedBigInteger('blood_group_id')->nullable();
+//            $table->foreign('blood_group_id')
+//                ->references('id')
+//                ->on('blood_groups')
+//                ->onDelete('cascade');
+
+            $table->foreignId('blood_group_id')->nullable()->constrained();
+//            $table->foreignId('blood_group_id')->nullable()->constrained('table name');
 
 
 
 
             $table->rememberToken();
             $table->timestamps();
+            $table->softDeletes();
         });
     }
 
@@ -48,4 +55,5 @@ return new class extends Migration
     {
         Schema::dropIfExists('users');
     }
+
 };

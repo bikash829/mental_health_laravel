@@ -7,7 +7,7 @@ use App\Models\User;
 use Faker\Core\Blood;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
-
+use Carbon\Carbon;
 class DatabaseSeeder extends Seeder
 {
     /**
@@ -34,9 +34,15 @@ class DatabaseSeeder extends Seeder
         $patient = User::firstOrCreate(
             ["email"=>'patient@email.com',],
             [
-//                "first_name"=>'Patient',
+                "first_name"=>'Patient',
+                "last_name" => 'Chowdhury',
+                "religion"=>'Muslim',
+                'gender' => 'male',
+                "date_of_birth"=> Carbon::createFromDate(1990, 5, 15),
                 "email"=> 'patient@email.com',
+                'blood_group_id' => 5,
                 "password"=> Hash::make('patient'),
+
             ],
         );
 

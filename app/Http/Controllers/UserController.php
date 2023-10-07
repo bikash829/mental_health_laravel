@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 
 class UserController extends Controller
 {
@@ -13,6 +14,19 @@ class UserController extends Controller
     public function index()
     {
         //
+        $user = Auth::user();
+
+        if(Auth::user()->hasRole('Patient')){
+            return  view('patient.profile',compact('user'));
+        }elseif(Auth::user()->hasRole('Doctor')){
+            return view('doctor.dashboard',compact('user'));
+        }elseif(Auth::user()->hasRole('Counselor')){
+            return view('counselor.dashboard',compact('user'));
+        }elseif (Auth::user()->hasRole('Admin')){
+            return view('admin.dashboard',compact('user'));
+        }else{
+            return redirect()->route('error404');
+        }
     }
 
     /**
@@ -53,6 +67,9 @@ class UserController extends Controller
     public function update(Request $request, User $user)
     {
         //
+        $user->update($request->all());
+//        return back()->with('success','blah blah ');
+        return redirect(route('patient.profile.index'));
     }
 
     /**

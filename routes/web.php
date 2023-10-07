@@ -40,7 +40,7 @@ Route::get('test/',function (){
     return view('pages.test');
 })->name('test');
 
-// App routes
+//================================================ App routes
 
 Route::get('/',function (){
     $data = ['home'=>'active',];
@@ -68,17 +68,27 @@ Route::get('contact-us/',function (){
 })->name('contact');
 
 
+// error page route ..
+Route::get('error404/',function (){
+   return view('error.error.php');
+})->name('error404');
+//================================================ App routes
+
 //Route::get('user/',[UserController::class, 'index']);
 Route::post('user/',[UserController::class, 'store'])->name('userstore');
 
 
 Route::resource('user/',UserController::class)->names('user')->except('index');
-Route::delete('user/{id}',[UserController::class, 'delete'])->name('user.delete');
+//Route::delete('user/{id}',[UserController::class, 'delete'])->name('user.delete');
 // edit route access in view
 // {{route('user.edit',['id'=>$id])}}
 // {{route('user.delete',['id'=>$id])}}
 // {{route('user.update',['id'=>$id])}}
 
-// Doctor Routes
+
+// External Routes
 require __DIR__.'/doctor.php';
+require __DIR__.'/patient.php';
+require __DIR__.'/counselor.php';
+require __DIR__.'/admin.php';
 

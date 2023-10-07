@@ -68,19 +68,15 @@
 
             <!-- user login registration  -->
             <div class="nav__user user">
-                @guest
-                    <div class="user__unlogged">
-                        <a href="{{route('login')}}"  class="user__login  btn btn-primary {{-- user__login--theme user__login--size button --}}" {{--data-bs-toggle="modal" data-bs-target="#login"--}} >Login</a>
-                        <a href="{{ route('register') }}" class="user__register btn btn-success {{-- user__register--theme user__register--size button --}} " {{--data-bs-toggle="modal" data-bs-target="#register_popup"--}} >Register</a>
-                    </div>
-                @else
+
+                @auth
                     <div class="user__logged">
                         <div class="dropdown">
                             <li class="dropdown-toggle dropdown-toggle_custom" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-                                <i class="fa-regular fa-face-smile"></i> name
+                                <i class="fa-regular fa-face-smile"></i> {{--@if  (isset($user) && isset($user->full_name)) {{$user->full_name}} @else {{__('Assign Your Name')}} @endif--}}@isset($user->first_name) {{$user->first_name .' '. $user?->last_name}} @else Your Name @endisset
                             </li>
                             <ul class="dropdown-menu">
-                                <li><a class="dropdown-item" href="./view_profile.php">View Profile</a></li>
+                                <li><a class="dropdown-item" href="{{route('patient.profile.index')}}">View Profile</a></li>
                                 <li><a class="dropdown-item" href="./edit_user.php">Edit Profile</a></li>
                                 <li><a class="dropdown-item" href="./patient_appointments.php">My Appointments</a></li>
                                 <li>
@@ -103,6 +99,12 @@
                                 @csrf
                             </form>
                         </div>
+                    </div>
+                @endauth
+                @guest
+                    <div class="user__unlogged">
+                        <a href="{{route('login')}}"  class="user__login  btn btn-primary {{-- user__login--theme user__login--size button --}}" {{--data-bs-toggle="modal" data-bs-target="#login"--}} >Login</a>
+                        <a href="{{ route('register') }}" class="user__register btn btn-success {{-- user__register--theme user__register--size button --}} " {{--data-bs-toggle="modal" data-bs-target="#register_popup"--}} >Register</a>
                     </div>
                 @endguest
 

@@ -25,7 +25,7 @@
         <div class="contact__card">
             <h2 class="contact__icon"><i class="fa-solid fa-envelope"></i></h2>
             <h3 class="contact__title">E-mail </h3>
-            <p class="contact__info">mayeshafahmida@gmail.com</p>
+            <p class="contact__info">mental.health.support@email.com</p>
         </div>
     </section>
 
@@ -39,12 +39,12 @@
         <div class="contact-form ">
             <form action="#" method="POST">
                 <div class="contact-form__block c-block">
-                    <input class="input c-block__name" type="text" placeholder="First Name" name="first_name" required>
-                    <input class="input c-block__name" type="text" placeholder="Last Name" name="last_name" required>
+                    <input class="input c-block__name" type="text" placeholder="First Name" value="{{$user?->first_name}}" name="first_name" required>
+                    <input class="input c-block__name" type="text" placeholder="Last Name" value="{{$user?->last_name}}" name="last_name" required>
                 </div>
 
                 <div class="contact-form__block c-block">
-                    <input class="input c-block__email" type="email" placeholder="Email" name="contact_email" required>
+                    <input class="input c-block__email" type="email" value="{{$user?->email}}" placeholder="Email" name="contact_email" required>
                 </div>
                 <div class="contact-form__block c-block">
                     <textarea class="input c-block__comment" name="comment" required placeholder="Leave Your Comments"></textarea>

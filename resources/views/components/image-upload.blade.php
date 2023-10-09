@@ -9,7 +9,22 @@
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
-                    <form method="POST" action="{{route('patient.profile.update',[$slot,'form'=>'imageUpload'])}}"  id="frm_profile_picture" enctype="multipart/form-data">
+                    <form method="POST" action="
+                    @role('Admin')
+                        {{route('admin.profile.update',[$slot,'form'=>'imageUpload'])}}
+                    @endrole
+                    @role('Doctor')
+                        {{route('doctor.profile.update',[$slot,'form'=>'imageUpload'])}}
+                    @endrole
+                    @role('Counselor')
+                        {{route('counselor.profile.update',[$slot,'form'=>'imageUpload'])}}
+                    @endrole
+                    @role('Patient')
+                        {{route('patient.profile.update',[$slot,'form'=>'imageUpload'])}}
+                    @endrole
+
+
+                    "  id="frm_profile_picture" enctype="multipart/form-data">
                         @csrf
                         @method('PUT')
                         <div class="mb-3">
@@ -20,8 +35,6 @@
 
                             <input class="btn btn-primary" value="Upload" name="btn_profile_picture" type="submit">
                         </div>
-                        {{$slot}}
-
                     </form>
 
                 </div>

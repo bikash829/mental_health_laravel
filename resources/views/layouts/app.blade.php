@@ -73,10 +73,10 @@
                     <div class="user__logged">
                         <div class="dropdown">
                             <li class="dropdown-toggle dropdown-toggle_custom" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-                                <i class="fa-regular fa-face-smile"></i> {{--@if  (isset($user) && isset($user->full_name)) {{$user->full_name}} @else {{__('Assign Your Name')}} @endif--}}@isset($user->first_name) {{$user->first_name .' '. $user?->last_name}} @else Your Name @endisset
+                                <i class="fa-regular fa-face-smile"></i> {{--@if  (isset($user) && isset($user->full_name)) {{$user->full_name}} @else {{__('Assign Your Name')}} @endif--}}@isset(Auth::user()->first_name) {{Auth::user()->first_name .' '. Auth::user()?->last_name}} @else Your Name @endisset
                             </li>
                             <ul class="dropdown-menu">
-                                <li><a class="dropdown-item" href="{{route('patient.profile.index')}}">View Profile</a></li>
+                                <li><a class="dropdown-item" href="{{route('patient.profile')}}">View Profile</a></li>
                                 <li><a class="dropdown-item" href="./edit_user.php">Edit Profile</a></li>
                                 <li><a class="dropdown-item" href="./patient_appointments.php">My Appointments</a></li>
                                 <li>

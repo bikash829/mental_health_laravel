@@ -62,13 +62,13 @@ class LoginController extends Controller
             # Checking user role
 
             if($auth_user->hasRole('Admin')){
-                return  redirect()->route('admin.index');
+                return  redirect()->route('admin.dashboard');
             }elseif($auth_user->hasRole('Patient')){
-                return redirect()->route('patient.profile.index');
+                return redirect()->route('patient.profile');
             }elseif($auth_user->hasRole('Counselor')){
-                return redirect()->route('counselor.index');
+                return redirect()->route('counselor.dashboard');
             }elseif($auth_user->hasRole('Doctor')){
-                return redirect()->route('doctor.index');
+                return redirect()->route('doctor.dashboard');
             }else{
                 return redirect()->route('error404');
             }

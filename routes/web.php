@@ -5,6 +5,8 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 
 
+
+
 /*
 |--------------------------------------------------------------------------
 | Web Routes
@@ -16,25 +18,9 @@ use Illuminate\Support\Facades\Route;
 |
 */
 
-Route::group(['middleware'=>'guest',],function (){
-//    Route::get('login/',function (){
-//        return view('auth.login');
-//    })->name('login');
-
-});
-
-Route::get('/', function () {
-    return view('welcome');
-});
 
 Auth::routes();
 
-//Route::get('/', [App\Http\Controllers\HomeController::class, 'index'])->name('home');
-
-
-//Route::get('test/', function () {
-//    return 'Test Route';
-//})->name('test');
 
 Route::get('test/',function (){
     return view('pages.test');
@@ -67,28 +53,29 @@ Route::get('contact-us/',function (){
     return view('pages.contact',$data);
 })->name('contact');
 
+//===================================== Contact Us Page
+Route::post('message/',[\App\Http\Controllers\ContactUsController::class,'store'])->name('send_query');
 
-// error page route ..
+
+// ====================================error page route ..
 Route::get('error404/',function (){
    return view('error.error.php');
 })->name('error404');
-//================================================ App routes
-
-//Route::get('user/',[UserController::class, 'index']);
-Route::post('user/',[UserController::class, 'store'])->name('userstore');
 
 
-Route::resource('user/',UserController::class)->names('user')->except('index');
-//Route::delete('user/{id}',[UserController::class, 'delete'])->name('user.delete');
-// edit route access in view
-// {{route('user.edit',['id'=>$id])}}
-// {{route('user.delete',['id'=>$id])}}
-// {{route('user.update',['id'=>$id])}}
+//========================================external routes
 
 
-// External Routes
-require __DIR__.'/doctor.php';
-require __DIR__.'/patient.php';
-require __DIR__.'/counselor.php';
-require __DIR__.'/admin.php';
+// =========================patient
+
+
+//==========================doctor
+
+
+//==========================counselor
+
+
+
+//=========================admin
+
 

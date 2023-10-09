@@ -37,18 +37,44 @@
 
         </div>
         <div class="contact-form ">
-            <form action="#" method="POST">
+            @if ($errors->any())
+                <div class="alert alert-warning alert-dismissible fade show" role="alert">
+                    <strong>Warning!</strong>
+                    <ul>
+                        @foreach ($errors->all() as $error)
+                            <li>{{ $error }}</li>
+                        @endforeach
+                    </ul>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            @endif
+            @if (session('status'))
+                <div class="alert alert-success alert-dismissible fade show" role="alert">
+                    <strong>Success!</strong>
+                    {{session('status')}}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            @endif
+
+
+
+            <form action="{{route('send_query')}}"  method="POST">
+                @csrf
                 <div class="contact-form__block c-block">
-                    <input class="input c-block__name" type="text" placeholder="First Name" value="{{$user?->first_name}}" name="first_name" required>
-                    <input class="input c-block__name" type="text" placeholder="Last Name" value="{{$user?->last_name}}" name="last_name" required>
+                    <input class="input c-block__name" type="text" placeholder="First Name" value="{{Auth::user()?->first_name}}" name="first_name" required>
+
+                    <input class="input c-block__name" type="text" placeholder="Last Name" value="{{Auth::user()?->last_name}}" name="last_name" required>
                 </div>
 
                 <div class="contact-form__block c-block">
-                    <input class="input c-block__email" type="email" value="{{$user?->email}}" placeholder="Email" name="contact_email" required>
+                    <input class="input c-block__email" type="email" value="{{Auth::user()?->email}}" placeholder="Email" name="email" required>
+
                 </div>
                 <div class="contact-form__block c-block">
-                    <textarea class="input c-block__comment" name="comment" required placeholder="Leave Your Comments"></textarea>
+                    <textarea class="input c-block__comment" name="message" required placeholder="Leave Your Comments"></textarea>
+
                 </div>
+
 
                 <div class="contact-form__block c-block">
                     <input name="btn-contact" type="submit" class="button c-block__button" value="Send">
@@ -59,4 +85,11 @@
     </section>
 @endsection
 
-@section('scripts')@endsection
+@section('scripts')
+    <script src="{{asset('js/form_validation.js')}}"></script>
+
+    <script type="text/javascript">
+
+    </script>
+@endsection
+

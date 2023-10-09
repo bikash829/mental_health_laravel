@@ -32,8 +32,8 @@
                         </h2>
                         <div id="panelsStayOpen-collapseOne" class="accordion-collapse collapse show">
                             <div class="accordion-body">
-                                <form method="POST" id="basicInfo" action="{{--route('patient.edit',['user'=>$user->id])--}}">
-                                    @csrf
+
+
 {{--                                <strong>This is the first item's accordion body.</strong> It is shown by default, until the collapse plugin adds the appropriate classes that we use to style each element. These classes control the overall appearance, as well as the showing and hiding via CSS transitions. You can modify any of this with custom CSS or overriding our default variables. It's also worth noting that just about any HTML can go within the <code>.accordion-body</code>, though the transition does limit overflow.--}}
                                     <div class="row g-3">
                                         <div class="col-12">
@@ -73,10 +73,9 @@
 
                                     </div>
                                     <div class="d-grid pt-2 col-6 mx-auto">
-{{--                                        <button id="btnBasicInfo" class="btn btn-primary" type="button" >Edit</button>--}}
-                                        <a href="{{route('patient.profile.edit',$user->id)}}" class="btn btn-primary">Edit</a>
+                                        <a href="{{route('patient.profile.edit',[$user,'data'=>'basic_info'])}}" class="btn btn-primary">Edit</a>
                                     </div>
-                                </form>
+
                             </div>
 
                         </div>
@@ -126,7 +125,7 @@
                                 </div>
 
                                 <div class="d-grid pt-2 col-6 mx-auto">
-                                    <button onclick="window.location.href='{{route('patient.profile.edit',[$user->id,'btn'=>'address'])}}'"   class="btn btn-primary" type="button">Edit</button>
+                                    <button onclick="window.location.href='{{route('patient.profile.edit',[$user,'data'=>'address_info'])}}'"   class="btn btn-primary" type="button">Edit</button>
                                 </div>
 
 
@@ -185,7 +184,7 @@
 
                                 </div>
                                 <div class="d-grid pt-2 col-6 mx-auto">
-                                    <button class="btn btn-primary" type="button">Edit</button>
+                                    <button onclick="window.location.href='{{route('patient.profile.edit',[$user->id,'data'=>'contact_info'])}}'" class="btn btn-primary" href="">Edit</button>
                                 </div>
                             </div>
                         </div>
@@ -206,7 +205,7 @@
 
                                 </div>
                                 <div class="d-grid pt-2 g-3 col-6 mx-auto">
-                                    <button class="btn btn-primary" type="button">Edit</button>
+                                    <button class="btn btn-primary" onclick="window.location.href='{{route('patient.profile.edit',[$user->id,'data'=>'medical_info'])}}'" type="button">Edit</button>
                                 </div>
                             </div>
                         </div>

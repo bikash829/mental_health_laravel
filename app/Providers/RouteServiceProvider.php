@@ -8,6 +8,9 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Route;
 
+use Spatie\Permission\Models\Role;
+use Spatie\Permission\Models\Permission;
+
 class RouteServiceProvider extends ServiceProvider
 {
     /**
@@ -35,6 +38,20 @@ class RouteServiceProvider extends ServiceProvider
 
             Route::middleware('web')
                 ->group(base_path('routes/web.php'));
+
+            Route::middleware(['auth','role:Admin','web'])
+                ->group(base_path('routes/admin.php'));
+
+            Route::middleware(['auth','role:Patient','web'])
+                ->group(base_path('routes/patient.php'));
+
+            Route::middleware(['web','auth','role:Counselor'])
+                ->group(base_path('routes/counselor.php'));
+
+            Route::middleware(['auth','role:Doctor','web'])
+                ->group(base_path('routes/doctor.php'));
+
+
         });
     }
 }

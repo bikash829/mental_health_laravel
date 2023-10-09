@@ -16,7 +16,7 @@
 
             <div class="row  justify-content-center">
                 <div class="col-md-8 col-lg-8">
-                    <form method="POST" action="{{route('patient.profile.update',$user)}}" class="row g-3 needs-validation" novalidate>
+                    <form method="POST" action="{{route('patient.profile.update',[$user,'form'=>'basic_info'])}}" class="row g-3 needs-validation" novalidate>
                         @csrf
                         @method('PUT')
                         <div class="col-md-6 col-lg-6">
@@ -71,6 +71,7 @@
 
                             <label for="date_of_birth" class="form-label">Date Of Birth</label>
                             <input type="date" name="date_of_birth" class="form-control" id="date_of_birth" value="{{$user->date_of_birth}}" required>
+
                             <div class="invalid-feedback">
                                 @error('date_of_birth')
                                 {{ $message }}

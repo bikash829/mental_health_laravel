@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Address;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -14,19 +15,6 @@ class UserController extends Controller
     public function index()
     {
         //
-        $user = Auth::user();
-
-        if(Auth::user()->hasRole('Patient')){
-            return  view('patient.profile',compact('user'));
-        }elseif(Auth::user()->hasRole('Doctor')){
-            return view('doctor.dashboard',compact('user'));
-        }elseif(Auth::user()->hasRole('Counselor')){
-            return view('counselor.dashboard',compact('user'));
-        }elseif (Auth::user()->hasRole('Admin')){
-            return view('admin.dashboard',compact('user'));
-        }else{
-            return redirect()->route('error404');
-        }
     }
 
     /**
@@ -56,9 +44,17 @@ class UserController extends Controller
     /**
      * Show the form for editing the specified resource.
      */
-    public function edit(User $user)
+
+
+    public function edit(Request $request,User $user)
     {
-        //
+        return match ($request->data) {
+            'basic_info' => redirect()->route('patient.edit_basic_info'),
+            'address_info' => redirect()->route('patient.edit_address'),
+            default => redirect()->back(),
+        };
+
+
     }
 
     /**
@@ -67,9 +63,82 @@ class UserController extends Controller
     public function update(Request $request, User $user)
     {
         //
-        $user->update($request->all());
-//        return back()->with('success','blah blah ');
-        return redirect(route('patient.profile.index'));
+        $user = Auth::user();
+//        dd($user->address()->updateOrCreate([],$request->all()));
+
+        switch ($request->form) {
+            case 'basic_info':
+                $request->validate([
+                    'first_name' => 'required',
+                    'last_name' => 'required',
+                ]);
+
+                if($user->update($request->all())){
+                    return redirect(route('patient.profile'));
+                }else{
+                    return redirect(route('error404'));
+                }
+
+            case 'address':
+                $request->validate([
+                    'address' => 'required',
+                    'zip_code' => 'required',
+                    'city' => 'required',
+                    'state' => 'required',
+                    'user_id' => 'required'
+                ]);
+                if($user->address()->updateOrCreate([],$request->all())){
+                    return redirect(route('patient.profile'));
+                }else{
+                    return redirect(route('error404'));
+                }
+                break;
+            case 'imageUpload':
+//                $validated =  $request->validate([
+//                                    'profile_picture' => 'required|image'|'size:2048',
+//                                ]);
+                $file = $request->file('profile_picture');
+                $fileName = time().'.'.$file->extension();
+                $fileLocation = 'images/uploads/pp';
+                $file->move(public_path($fileLocation), $fileName);
+                if(
+                    $user->update([
+                        'pp_name' => $fileName,
+                        'pp_location' => $fileLocation,
+                    ])
+                ){
+                    return redirect(route('patient.profile'));
+                }else{
+                    return redirect(route('error404'));
+                }
+                break;
+
+
+
+
+//                dd($file->extension());
+//                $hash_name = $file->hashName();
+//                $file_extension = $file->getClientOriginalExtension();
+//                $original_file_name = $file->getClientOriginalName();
+//                dd($file->getClientOriginalName());
+                break;
+//            case 'contact_info':
+//
+//                break;
+//            case 'medical_info':
+//                continue;
+//                break;
+
+            default:
+                return redirect(route('error404'));
+                break;
+        }
+
+
+
+
+
+        dd($request);
     }
 
     /**
@@ -79,8 +148,6 @@ class UserController extends Controller
     {
         //
     }
-    public function delete(User $user)
-    {
-        //
-    }
+
+
 }

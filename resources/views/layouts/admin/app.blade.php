@@ -15,9 +15,9 @@
         href="https://fonts.googleapis.com/css?family=Nunito:200,200i,300,300i,400,400i,600,600i,700,700i,800,800i,900,900i"
         rel="stylesheet">
 
+    @yield('link')
     <!-- Custom styles for this template-->
     <link href="{{asset('admin/css/sb-admin-2.min.css')}}" rel="stylesheet">
-    @yield('link')
 
     <!-- jquery js  -->
     <script src="{{asset('vendor/jquery/jquery-3.6.3.min.js')}}"></script>
@@ -57,14 +57,15 @@
             <!-- Topbar -->
             <nav class="navbar navbar-expand navbar-light bg-white topbar mb-4 static-top shadow">
 
+
                 <!-- Sidebar Toggle (Topbar) -->
                 <button id="sidebarToggleTop" class="btn btn-link d-md-none rounded-circle mr-3">
                     <i class="fa fa-bars"></i>
                 </button>
 
                 <!-- Topbar Search -->
-{{--                <form--}}
-{{--                    class="d-none d-sm-inline-block form-inline mr-auto ml-md-3 my-2 my-md-0 mw-100 navbar-search">--}}
+                <form
+                    class="d-none d-sm-inline-block form-inline mr-auto ml-md-3 my-2 my-md-0 mw-100 navbar-search">
 {{--                    <div class="input-group">--}}
 {{--                        <input type="text" class="form-control bg-light border-0 small" placeholder="Search for..."--}}
 {{--                               aria-label="Search" aria-describedby="basic-addon2">--}}
@@ -74,7 +75,19 @@
 {{--                            </button>--}}
 {{--                        </div>--}}
 {{--                    </div>--}}
-{{--                </form>--}}
+{{--                    <a href="#" class="btn btn-primary">Update Profile</a>--}}
+{{--                    <div class="col-12">--}}
+{{--                        <h4 class="small font-weight-bold">Account Setup <span--}}
+{{--                                class="float-right">50.43%</span></h4>--}}
+{{--                        <div class="progress">--}}
+{{--                            <div class="progress-bar bg-success" role="progressbar" style="width: 50.43%"--}}
+{{--                                 aria-valuenow="100" aria-valuemin="0" aria-valuemax="100"></div>--}}
+{{--                        </div>--}}
+{{--                    </div>--}}
+{{--                    <a href="#" class="btn btn-primary btn-icon-split">--}}
+{{--                        <span class="text">Update Profile</span>--}}
+{{--                    </a>--}}
+                </form>
 
                 <!-- Topbar Navbar -->
                 <ul class="navbar-nav ml-auto">

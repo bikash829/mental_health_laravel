@@ -6,9 +6,12 @@ use App\Models\Address;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Foundation\Auth\AuthenticatesUsers;
 
 class UserController extends Controller
 {
+    use AuthenticatesUsers;
+
     /**
      * Display a listing of the resource.
      */
@@ -62,7 +65,6 @@ class UserController extends Controller
      */
     public function update(Request $request, User $user)
     {
-        //
         $user = Auth::user();
 //        dd($user->address()->updateOrCreate([],$request->all()));
 
@@ -97,6 +99,7 @@ class UserController extends Controller
 //                $validated =  $request->validate([
 //                                    'profile_picture' => 'required|image'|'size:2048',
 //                                ]);
+
                 $file = $request->file('profile_picture');
                 $fileName = time().'.'.$file->extension();
                 $fileLocation = 'images/uploads/pp';
@@ -107,15 +110,22 @@ class UserController extends Controller
                         'pp_location' => $fileLocation,
                     ])
                 ){
-                    return redirect(route('patient.profile'));
+                    if($user->hasRole('Admin')){
+                        return redirect(route('admin.profile'));
+                    }elseif($user->hasRole('Doctor')){
+                        return redirect(route('doctor.profile'));
+                    }elseif($user->hasRole('Counselor')){
+                        return redirect(route('counselor.profile'));
+                    }elseif($user->hasRole('Patient')){
+                        return redirect(route('patient.profile'));
+                    }else{
+                        return redirect(route('error404'));
+                    }
+
                 }else{
                     return redirect(route('error404'));
                 }
                 break;
-
-
-
-
 //                dd($file->extension());
 //                $hash_name = $file->hashName();
 //                $file_extension = $file->getClientOriginalExtension();
@@ -134,11 +144,6 @@ class UserController extends Controller
                 break;
         }
 
-
-
-
-
-        dd($request);
     }
 
     /**

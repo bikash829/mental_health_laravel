@@ -70,4 +70,9 @@ class CounselorController extends Controller
         $user = Auth::user();
         return view('counselor.profile',compact('user'));
     }
+
+    public function counselor_profile_wizard_step(){
+        $user = Auth::user();
+        return view('wizard_step_form.counselor_form',compact('user'));
+    }
 }

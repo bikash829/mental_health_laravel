@@ -5,12 +5,8 @@
 {{--@endsection--}}
 @section('content')
     <div class="container-fluid">
-        <h4 class="small font-weight-bold">Account Setup <span
-                class="float-right">Complete!</span></h4>
-        <div class="progress">
-            <div class="progress-bar bg-success" role="progressbar" style="width: 100%"
-                 aria-valuenow="100" aria-valuemin="0" aria-valuemax="100"></div>
-        </div>
+
+        <x-admin.progress.account_progress/>
 
         <!-- Page Heading -->
         <div class="d-sm-flex align-items-center justify-content-between my-4">

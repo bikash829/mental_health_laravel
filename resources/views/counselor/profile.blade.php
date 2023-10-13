@@ -7,12 +7,7 @@
 @section('content')
 <section class="profile segment-margin">
     <div class="col-12 m-auto pb-4">
-        <h4 class="small font-weight-bold">Account Setup <span
-                class="float-right">Complete!</span></h4>
-        <div class="progress">
-            <div class="progress-bar bg-success" role="progressbar" style="width: 100%"
-                 aria-valuenow="100" aria-valuemin="0" aria-valuemax="100"></div>
-        </div>
+        <x-admin.progress.account_progress/>
     </div>
 
     <div class="row justify-content-center">
@@ -78,10 +73,10 @@
                                 </div>
 
                             </div>
-                            <div class="d-grid pt-2 col-6 mx-auto">
-                                {{--                                        <button id="btnBasicInfo" class="btn btn-primary" type="button" >Edit</button>--}}
-                                <a href="{{--route('patient.profile.edit',$user->id)--}}" class="btn btn-primary">Edit</a>
-                            </div>
+{{--                            <div class="d-grid pt-2 col-6 mx-auto">--}}
+{{--                                --}}{{--                                        <button id="btnBasicInfo" class="btn btn-primary" type="button" >Edit</button>--}}
+{{--                                <a href="--}}{{--route('patient.profile.edit',$user->id)--}}{{--" class="btn btn-primary">Edit</a>--}}
+{{--                            </div>--}}
                         </form>
                     </div>
 
@@ -131,9 +126,9 @@
                             </div>
                         </div>
 
-                        <div class="d-grid pt-2 col-6 mx-auto">
-                            <button onclick="window.location.href='{{route('patient.profile.edit',[$user->id,'btn'=>'address'])}}'"   class="btn btn-primary" type="button">Edit</button>
-                        </div>
+{{--                        <div class="d-grid pt-2 col-6 mx-auto">--}}
+{{--                            <button onclick="window.location.href='{{route('patient.profile.edit',[$user->id,'btn'=>'address'])}}'"   class="btn btn-primary" type="button">Edit</button>--}}
+{{--                        </div>--}}
 
 
                         <div class="d-grid pt-2 col-6 mx-auto">

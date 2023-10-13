@@ -74,4 +74,9 @@ class DoctorController extends Controller
         $user = Auth::user();
         return view('doctor.profile',compact('user'));
     }
+
+    public function doctor_profile_wizard_step(){
+        $user = Auth::user();
+        return view('wizard_step_form.doctor_form',compact('user'));
+    }
 }

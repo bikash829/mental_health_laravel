@@ -1,8 +1,8 @@
 class CloneFields{
     constructor(formFields,btnAdd,heading){
         /*
-        (required parameter 
-        - form-field class every field 
+        (required parameter
+        - form-field class every field
         - add button
         - parameter name
         )
@@ -15,19 +15,19 @@ class CloneFields{
         this.counter = 0;
     }
 
-    //method for field clone 
+    //method for field clone
     fieldClone(counter){
         const formInput = this.formFields.clone();
 
         for (let i = 0; i < formInput.find('.form-field').length; i++) {
             if(formInput.find('.form-field')[i].type == 'checkbox') {
                 let inputField, inputLabel, generatedId;
-                
+
                 inputField = formInput.find('.form-field')[i];
                 inputLabel = $(formInput.find('.form-field')[i]).siblings(`[for="${formInput.find('.form-field')[i].id}"]`)[0];
                 generatedId = `${inputField.id}${counter}`;
 
-                
+
                 $(inputField).attr("id", generatedId);
                 $(inputLabel).attr("for", generatedId);
 
@@ -38,7 +38,7 @@ class CloneFields{
                $(formInput.find('.form-field')[i]).attr('required','');
 
             }else{
-                
+
                 formInput.find('.form-field')[i].value = '';
             }
         }
@@ -57,7 +57,7 @@ class CloneFields{
         `);
         $(newBlock).prepend('<hr class="my-5">');
     }
-}// class end 
+}// class end
 
 
 
@@ -70,10 +70,10 @@ class FormOperation{
         4. repackedData method inputed data from user in a map object
         5. formDataPack property to get 3,4 both in a object
         6. formSlider form slider for save and continue
-    
+
     */
 
-    // constructor 
+    // constructor
     constructor(formArg,formContainer){
         this.formContainer  = formContainer;
         this.formElements = this.filteredElements(formArg);
@@ -143,13 +143,12 @@ class FormOperation{
                 }
             });
         }
-        
 
         return isEmpty;
     }
 
 
-    //form elements list 
+    //form elements list
     formElementList(){
         const data = new Map();
         const dataArray = [];
@@ -158,7 +157,7 @@ class FormOperation{
 
         this.formElements.forEach(element =>{
             if(element.type == 'radio' && !element.checked){
-                return; 
+                return;
             }
             if(data.has(element.name)){
                 dataArray.push(new Map(data));
@@ -182,11 +181,11 @@ class FormOperation{
         const data = new Map();
         const dataArray = [];
 
-        
+
         this.formElements.forEach(element => {
-            //radio button cheker   
+            //radio button cheker
             if(element.type == 'radio' && !element.checked){
-                return; 
+                return;
             }
             if(data.has(element.name)){
                 dataArray.push(new Map(data));
@@ -195,14 +194,14 @@ class FormOperation{
             if(element.type == "file"){
                 element.files["file_path"] = element.value;
                 data.set(element.name,element.files);
-                
+
             }else{
                 if(element.type == 'checkbox'){
                     data.set(element.name,element.checked);
                 }else{
-                    
+
                     data.set(element.name,element.value);
-                    
+
                 }
             }
         })
@@ -217,7 +216,7 @@ class FormOperation{
         // return data;
     }
 
-    //data pack 
+    //data pack
     get formDataPack() {
         const data = {
             "repackedData": this.repackedData(),
@@ -227,7 +226,7 @@ class FormOperation{
         return data;
     }
 
-    //show hide from 
+    //show hide from
     formSlider(show){
         this.formContainer.hide(0,()=>show.show());
     }

@@ -9,7 +9,7 @@
 
 @section('content')
       <div class="" >
-        <!-- personal information step  -->
+
         <div class="row justify-content-center " id="doctor_register_container">
             <!-- tab area  -->
           <div class="col-12 col-lg-10 col-xxl-8 col-xl-10 my-4">
@@ -21,9 +21,11 @@
             </div>
           </div>
           <div class="col-12 col-lg-10 col-xxl-8 col-xl-10 form-container" id="personal_info_container">
-            <!-- <h3 class="mb-2 text-center">Personal Information</h3> -->
-            <form id="form_personal_info" class="row g-3 needs-validation" novalidate>
-              <div class="col-12">
+              <!-- personal information step  -->
+            <form id="form_personal_info" method="POST" class="row g-3 needs-validation" enctype="multipart/form-data" novalidate>
+                @csrf
+                @method('POST')
+                <div class="col-12">
                 <label for="doc_title" class="form-label">Title</label>
                 <select id="doc_title" name="doc_title" required class="form-select" aria-label="Default select example">
                   <option value="" disabled selected>Select title</option>
@@ -210,7 +212,7 @@
 
         <!-- educational information step   -->
           <div class="col-12 col-lg-8 col-xl-8 col-xxl-8 form-container" id="education_info_container">
-          <!-- <h3 class="mb-2 text-center">Educational Information</h3> -->
+          <!-- Educational Information-->
           <form id="form_education" class="needs-validation" enctype="multipart/form-data" novalidate>
 
             <div class="input-edu-container row  gy-3 ">
@@ -269,7 +271,7 @@
 
         <!-- Training information step   -->
           <div class="col-12 col-lg-8 col-xl-8 col-xxl-8 form-container"  id="training_info_container">
-            <form id="form_training" class="needs-validation" novalidate>
+            <form id="form_training" enctype="multipart/form-data" class="needs-validation" novalidate>
 
               <div class="input-train-container row g-3">
                 <div class="col-12">
@@ -325,7 +327,7 @@
 
         <!-- Experience information step   -->
           <div class="col-12 col-lg-8 col-xl-8 col-xxl-8 form-container" id="experience_container">
-            <form id="form_experience" class="needs-validation" data-form="experience" novalidate>
+            <form id="form_experience" enctype="multipart/form-data" class="needs-validation" data-form="experience" novalidate>
 
 
               <div class="input-xp-container row g-3">
@@ -392,8 +394,9 @@
 
 @endsection
 
-
       @section('scripts')
+          <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+          <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
           <x-vendor.bootstrap_bundle_js/>
           <script type="text/javascript">
 
@@ -448,10 +451,8 @@
                   experienceContainer.hide();
 
 
-
-
                   // form data container
-                  const formData = {}; //form data container
+                  const formData = {};
 
 
                   // =====================tab function===========================
@@ -502,9 +503,8 @@
                   let tabActive = `rgb(13, 110, 253)`;
                   let tabVisited = `rgb(13, 201, 239)`;
                   let tabFontActive = `rgb(255,255,255)`;
-
-
                   // =====================end tab function===========================
+
 
                   //==========================job validation function=================
                   function jobStatusValidation(arg){
@@ -570,12 +570,37 @@
 
                   //personal info ===========================================
                   (personalInfoContainer.find("[name='btnSavePersonalInfo']")).click(e =>{
-                      const rawPersoalInfo = new FormOperation(e,personalInfoContainer);
+                      const rawPersonalInfo = new FormOperation(e,personalInfoContainer); //rawPersoalInfo
 
-                      if(rawPersoalInfo.isEmpty){
+                      if(rawPersonalInfo.isEmpty){
                           frmPersonalInfo.addClass('was-validated');
                       }else{
-                          formData["personalInfo"] = rawPersoalInfo.formDataPack;
+                          formData["personalInfo"] = rawPersonalInfo.formDataPack;
+
+                          // axios post request to controller
+                          // let data = "";
+                          // for (const x of formData.personalInfo['repackedData'].entries()) {
+                          //     data += x;
+                          // }
+                          let data = {};
+                          formData.personalInfo['repackedData'].forEach (function(value, key) {
+                              data[key] = value;
+                          });
+                            // console.log(formData.personalInfo['repackedData']);
+                            console.log(data);
+
+
+                          axios.post('{{route('doctor.profile.store')}}',data)
+                            .then(function (response) {
+                                console.log(response);
+                                console.log('Hola');
+                            })
+                            .catch(function (error) {
+                                console.log(error);
+                                console.log("Opps");
+                            });
+
+
 
                           personalInfoContainer.hide(0,e=>{
                               educationInfoContainer.show();

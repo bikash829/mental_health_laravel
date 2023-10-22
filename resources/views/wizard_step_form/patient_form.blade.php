@@ -13,7 +13,7 @@
 
   <!-- fontawesome  -->
   <link rel="stylesheet" href="vendor/fontawesome-free-6.2.1-web/css/all.css">
-  
+
 
   <!-- custom css  -->
   <link rel="stylesheet" href="css/style.css">
@@ -27,7 +27,7 @@
 
 
 <body>
-  
+
     <nav class="navbar navbar-expand-lg bg-body-tertiary">
       <div class="container-fluid">
         <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarTogglerDemo01" aria-controls="navbarTogglerDemo01" aria-expanded="false" aria-label="Toggle navigation">
@@ -70,7 +70,7 @@
               <div class="col-12 col-lg-6 col-xl-6 col-xxl-6">
                 <label for="first_name" class="form-label">First Name</label>
                 <input type="text" class="form-control" name="first_name" id="first_name" placeholder="First Name" required>
-                
+
               </div>
 
 
@@ -78,7 +78,7 @@
                 <label for="last_name" class="form-label">Last Name</label>
                 <input type="text" class="form-control" name="last_name" id="last_name" placeholder="Last Name" required>
               </div>
-              
+
               <!-- gender  -->
               <div class="col-12 col-lg-6 col-xl-6 col-xxl-6">
                 <label for="" class="form-label">Gender</label>
@@ -113,7 +113,7 @@
                   <option value="2">Marid</option>
                   <option value="3">Devorced</option>
                 </select>
-                
+
               </div>
 
               <div class="col-12 col-lg-6 col-xl-6 col-xxl-6">
@@ -130,28 +130,28 @@
               <div class="col-12 ">
                 <label for="address_line_1" class="form-label">Address Line 1</label>
                 <input type="text" class="form-control" name="address_line_1" id="address_line_1" placeholder="Street address" required>
-                
+
               </div>
               <div class="col-12 ">
                 <label for="address_line_2" class="form-label">Address Line 2</label>
                 <input type="text" class="form-control" name="address_line_2" id="address_line_2" placeholder="Appartment, Unit, Building, Floor etc" required>
-                
+
               </div>
               <div class="col-12 col-lg-6 col-xl-6 col-xxl-6">
                 <label for="city" class="form-label">City</label>
                 <input type="text" class="form-control" name="city" id="city" placeholder="City" required>
-                
+
               </div>
               <div class="col-12 col-lg-6 col-xl-6 col-xxl-6">
                 <label for="state" class="form-label">State</label>
                 <input type="text" class="form-control" name="state" id="state" placeholder="District/Region/Province" required>
-                
+
               </div>
 
               <div class="col-12 col-lg-6 col-xl-6 col-xxl-6">
                 <label for="zip_code" class="form-label">Zip Code</label>
                 <input type="text" class="form-control" name="zip_code" id="zip_code" placeholder="Postal/Zip Code" required>
-                
+
               </div>
 
               <div class="col-12 col-lg-6 col-xl-6 col-xxl-6">
@@ -220,7 +220,7 @@
           <div class="col-12 col-lg-10 col-xxl-8 col-xl-10">
           <h3 class="mb-3 text-center">Physical Information</h3>
           <form id="frm_physical_info" class="row g-3 needs-validation" enctype="multipart/form-data" novalidate>
-            
+
             <div class="col-12 col-lg-4 col-xl-4 col-xxl-4">
               <label class="form-label" for="height">Height</label>
               <input class="form-control" type="number" name="height" id="height" minlength="30" placeholder="In CM">
@@ -272,7 +272,7 @@
               <label for="heart_rate" class="form-label">Heart Rate</label>
               <input type="number" class="form-control" name="heart_rate" id="heart_rate" placeholder="00 bpm" required>
             </div>
-            
+
             <div class="col-12 col-lg-6 col-xl-6 col-xxl-6">
               <label for="respiratory" class="form-label">Respiratory Rate</label>
               <input type="number" class="form-control" name="respiratory" id="respiratory" placeholder="00" required>
@@ -287,7 +287,7 @@
           </form>
           </div>
         </div>
-        
+
         <!-- Previous Diagonosis Report step   -->
         <div class="row justify-content-center" id="diagonosis_report_container">
           <div class="col-10">
@@ -304,19 +304,19 @@
                   <label for="test_name" class="form-label">Test Name</label>
                   <input type="text" class="form-control" name="test_name" id="test_name" placeholder="Test Name" required>
                 </div>
-  
+
                 <div class="col-12 col-lg-4 col-xl-4 col-xxl-4">
                   <label for="test_attachment" class="form-label">Upload Test Copy(image/pdf)</label>
                   <input type="file" class="form-control" name="test_attachment" id="test_attachment" placeholder="" required>
                 </div>
-  
+
                 <div class="col-12 col-lg-4 col-xl-4 col-xxl-4">
                   <label for="test_date" class="form-label">Test Date</label>
                   <input type="date" class="form-control" name="test_date" id="test_date" placeholder="" required>
                 </div>
 
               </div>
-              
+
               <div class="col-12 mt-4">
                 <div class="text-center">
                   <button class="btn btn-outline-info" type="button" name="back">Previous</button>
@@ -328,10 +328,10 @@
           </div>
         </div>
 
-       
+
         </div>
     </main>
-    
+
     <!-- =============footer section ============== -->
     <footer class="footer ">
       <div class="footer__body f-bdy">
@@ -373,17 +373,17 @@
     <!-- modal area  -->
   </div>
 
-  
+
 
   <!-- script area  -->
   <script src="vendor/fontawesome-free-6.2.1-web/js/all.js"></script>
-  
+
 
   <script type="text/javascript">
-    // tooltip code 
+    // tooltip code
     const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]');
     const tooltipList = [...tooltipTriggerList].map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl));
-  
+
     // Example starter JavaScript for disabling form submissions if there are invalid fields
     (() => {
       'use strict'
@@ -403,7 +403,7 @@
         }, false)
       })
     })();
-      
+
   </script>
 
   <!-- <script src="js/main.js"></script> -->
@@ -412,43 +412,43 @@
 
   <script type="text/javascript">
     $(document).ready(function () {
-      // form container 
+      // form container
       const personalInfoContainer = $("#personal_info_container");
       const physicalInfoContainer= $("#physical_info_container");
       const diagonosisReportContainer= $("#diagonosis_report_container");
 
-      // form 
+      // form
       const frmPersonalInfo = $("#form_personal_info");
       const frmPhysicalInfo = $("#frm_physical_info");
       const frmDiagonosisReport = $("#frm_diagonosis_report");
 
-      // hiding content 
+      // hiding content
       physicalInfoContainer.hide();
       diagonosisReportContainer.hide();
 
-      // form data container 
-      const formData = {}; //form data container  
+      // form data container
+      const formData = {}; //form data container
 
 
-      //personal info 
+      //personal info
       (personalInfoContainer.find("[name='btnSavePersonalInfo']")).click(e =>{
-          const rawPersoalInfo = new FormOperation(e,personalInfoContainer);
+          const rawPersonalInfo = new FormOperation(e,personalInfoContainer);
 
-          if(rawPersoalInfo.isEmpty){
+          if(rawPersonalInfo.isEmpty){
               frmPersonalInfo.addClass('was-validated');
           }else{
-              formData["personalInfo"] = rawPersoalInfo.formDataPack;
+              formData["personalInfo"] = rawPersonalInfo.formDataPack;
               // personalInfoContainer.hide(e=>educationInfoContainer.show());
-              rawPersoalInfo.formSlider(physicalInfoContainer);
+              rawPersonalInfo.formSlider(physicalInfoContainer);
           }
 
-      });//end personal info 
+      });//end personal info
 
       // physical info container
       (physicalInfoContainer.find("[name='btnPysicalInfo']")).click(e =>{
           const rawPhysicalInfo = new FormOperation(e,physicalInfoContainer);
 
-          
+
           if(rawPhysicalInfo.isEmpty){
               frmPhysicalInfo.addClass('was-validated');
           }else{
@@ -474,8 +474,8 @@
 
           //object creation
           const rawDiagonosisReport = new FormOperation(e);
-          
-          
+
+
           if (rawDiagonosisReport.isEmpty) {
               frmDiagonosisReport.addClass('was-validated');
           }else {
@@ -484,15 +484,15 @@
 
           console.log(formData);
       });
-      
+
       //backstep
       (diagonosisReportContainer.find("[name='back']")).click(e => {
           diagonosisReportContainer.hide(0,()=>physicalInfoContainer.show());
       });
       //end diagonosis report
 
-    })//main loader 
+    })//main loader
   </script>
-  
+
 </body>
 </html>

@@ -19,15 +19,23 @@ return new class extends Migration
             $table->string('email',100)->unique();
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password');
+            $table->integer('marital_status')->nullable()->comment('1=Unmarried, 2=Married, 3=Divorced');
+
 
             $table->string('gender',10)->nullable();
+            $table->string('phone_code',30)->nullable();
             $table->string('phone',30)->nullable();
+            $table->string('additional_phone_code',30)->nullable();
+            $table->string('additional_phone',30)->nullable();
             $table->date('date_of_birth')->nullable();
+            $table->integer('identity_type',)->nullable()->comment('1=passport,2=NID');
             $table->string('identity_no',100)->nullable();
-            $table->string('identity_type',50)->nullable();
+            $table->string('identity_proof',)->nullable();
+            $table->string('identity_location',)->nullable();
             $table->string('pp_name')->nullable();
             $table->string('pp_location')->nullable();
             $table->string('religion')->nullable();
+
 
 
 //            $table->unsignedBigInteger('blood_group_id')->nullable();

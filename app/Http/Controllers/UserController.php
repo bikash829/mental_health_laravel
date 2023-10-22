@@ -33,8 +33,31 @@ class UserController extends Controller
      */
     public function store(Request $request)
     {
-        //
-       return $request;
+        $request->validate([
+            'first_name' => ['required','string','max:20'],
+            'last_name' => ['required','string','max:20'],
+            'marital_status' => ['integer','max:3'],
+            'gender'=>['required','max:10'],
+            'phone_code' =>['max:6',],
+            'phone'=>['max:20',],
+            'additional_phone_code' =>['max:6',],
+            'additional_phone'=>['max:20',],
+            'date_of_birth'=> ['required','date',],
+            'identity_type' => ['required','integer','max:3'],
+            'identity_no' => ['required','max:50'],
+//            'identity_proof' => ['required',],
+//            'identity_location' => ['required',],
+            'religion' => ['string','max:10'],
+        ]);
+
+        $user = Auth::user();
+
+        $user->update($request->all());
+        $user->address()->updateOrCreate([],$request->all());
+        $user->expert()->updateOrCreate([],$request->all());
+
+        return response()->json(['message' => 'Data updated successfully']);
+
     }
 
     /**
@@ -72,8 +95,8 @@ class UserController extends Controller
         switch ($request->form) {
             case 'basic_info':
                 $request->validate([
-                    'first_name' => 'required',
-                    'last_name' => 'required',
+                    'first_name' => ['required','string','max:50'],
+                    'last_name' => ['required','string','max:50'],
                 ]);
 
                 if($user->update($request->all())){
@@ -84,11 +107,11 @@ class UserController extends Controller
 
             case 'address':
                 $request->validate([
-                    'address' => 'required',
-                    'zip_code' => 'required',
-                    'city' => 'required',
-                    'state' => 'required',
-                    'user_id' => 'required'
+                    'address' => ['required','string','max:100'],
+                    'zip_code' => ['required','string','max:20'],
+                    'city' => ['required','string','max:50'],
+                    'state' => ['required','string','max:50'],
+                    'user_id' => ['required','max:20']
                 ]);
                 if($user->address()->updateOrCreate([],$request->all())){
                     return redirect(route('patient.profile'));
@@ -97,9 +120,12 @@ class UserController extends Controller
                 }
                 break;
             case 'imageUpload':
-//                $validated =  $request->validate([
-//                                    'profile_picture' => 'required|image'|'size:2048',
-//                                ]);
+
+
+
+                $request->validate([
+                    'profile_picture' => ['required','image','mimes:jpeg,png,gif','max:2048'],
+                ]);
 
                 $file = $request->file('profile_picture');
                 $fileName = time().'.'.$file->extension();

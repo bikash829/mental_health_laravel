@@ -4,49 +4,74 @@
     <link rel="stylesheet" href="{{asset('wizard_form/css/style.css')}} ">
     <link rel="stylesheet" href="{{asset('wizard_form/css/responsive.css')}}">
     <link rel="stylesheet" href="{{asset('vendor/fontawesome-free-6.2.1-web/css/all.css')}}">
+{{--    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN" crossorigin="anonymous">--}}
     <x-vendor.bootstrap_css/>
 @endsection
 
 @section('content')
+
       <div class="" >
 
         <div class="row justify-content-center " id="doctor_register_container">
+            <div class="toast align-items-center" role="alert" aria-live="assertive" aria-atomic="true">
+                <div class="d-flex">
+                    <div class="toast-body">
+                        Hello, world! This is a toast message.
+                    </div>
+                    <button type="button" class="btn-close me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+                </div>
+            </div>
             <!-- tab area  -->
           <div class="col-12 col-lg-10 col-xxl-8 col-xl-10 my-4">
             <div class="tab_container">
-              <div class="tab_list" for="personal_info_container" id="tab_personal_info"><span>Personal Info</span></div>
-              <div class="tab_list" for="education_info_container" id="tab_education"><span>Education</span></div>
-              <div class="tab_list" id="tab_training"><span>Training</span></div>
-              <div class="tab_list" id="tab_xp"><span>Experience</span></div>
+              <div class="tab_list"  id="tab_personal_info"><span>Personal Info</span></div>
+              <div class="tab_list"  id="tab_education"><span>Education</span></div>
+              <div class="tab_list"  id="tab_training"><span>Training</span></div>
+              <div class="tab_list"  id="tab_xp"><span>Experience</span></div>
             </div>
           </div>
+            <!-- personal information step  -->
           <div class="col-12 col-lg-10 col-xxl-8 col-xl-10 form-container" id="personal_info_container">
-              <!-- personal information step  -->
             <form id="form_personal_info" method="POST" class="row g-3 needs-validation" enctype="multipart/form-data" novalidate>
                 @csrf
                 @method('POST')
                 <div class="col-12">
                 <label for="doc_title" class="form-label">Title</label>
+
                 <select id="doc_title" name="doc_title" required class="form-select" aria-label="Default select example">
-                  <option value="" disabled selected>Select title</option>
-                  <option value="2">Prof. Dr.</option>
-                  <option value="3">Asso. Prof. Dr.</option>
-                  <option value="4">Assis. Prof. Dr.</option>
+
+                  <option value="" disabled @selected($user?->expert?->doc_title == null)>Select title</option>
+                  <option @selected($user?->expert?->doc_title == 1) value="1">Prof. Dr.</option>
+                  <option @selected($user?->expert?->doc_title == 2) value="2">Asso. Prof. Dr.</option>
+                  <option @selected($user?->expert?->doc_title == 3) value="3">Assis. Prof. Dr.</option>
                 </select>
               </div>
 
               <!-- name  -->
               <div class="col-12 col-lg-6 col-xl-6 col-xxl-6">
                 <label for="first_name" class="form-label">First Name</label>
-                <input type="text" class="form-control" name="first_name" id="first_name" placeholder="First Name" required>
+                <input type="text" class="form-control" value="{{$user->first_name}}" name="first_name" id="first_name" placeholder="First Name" required maxlength="2" >
+                  <div class="invalid-feedback">
+                      @error('first_name')
+                      {{ $message }}
+                      @else
+                          Please enter your first name
+                      @enderror
+                  </div>
 
               </div>
 
 
               <div class="col-12 col-lg-6 col-xl-6 col-xxl-6">
                 <label for="last_name" class="form-label">Last Name</label>
-                <input type="text" class="form-control" name="last_name" id="last_name" placeholder="Last Name" required>
-
+                <input type="text" class="form-control"  pattern="[A-Za-z]{3}" value="{{$user->last_name}}" name="last_name" id="last_name" placeholder="Last Name" required>
+                  <div class="invalid-feedback">
+                      @error('last_name')
+                      {{ $message }}
+                      @else
+                          Please enter your first name
+                          @enderror
+                  </div>
               </div>
 
               <!-- gender  -->
@@ -54,33 +79,48 @@
                 <label for="" class="form-label">Gender</label>
                 <div class="input-group">
                   <div class="form-check form-check-inline">
-                    <input class="form-check-input" type="radio" name="gender" id="male" value="male"  required>
+                    <input class="form-check-input" type="radio" @checked($user->gender=='male') name="gender" id="male" value="male"  required>
                     <label class="form-check-label" for="male">Male</label>
                   </div>
                   <div class="form-check form-check-inline">
-                    <input class="form-check-input" type="radio" name="gender" id="female" value="female"  required>
+                    <input class="form-check-input" type="radio" @checked($user->gender=='female') name="gender" id="female" value="female"  required>
                     <label class="form-check-label" for="female">Female</label>
                   </div>
                   <div class="form-check form-check-inline">
-                    <input class="form-check-input" type="radio" name="gender" id="other" value="other"  required>
+                    <input class="form-check-input" type="radio" @checked($user->gender=='other')  name="gender" id="other" value="other"  required>
                     <label class="form-check-label" for="other">Other</label>
                   </div>
+                    <div class="invalid-feedback">
+                        @error('gender')
+                        {{ $message }}
+                        @else
+                            Please choose your gender
+                        @enderror
+
+                    </div>
                 </div>
               </div>
 
               <!-- end gender -->
               <div class="col-12 col-lg-6 col-xl-6 col-xxl-6">
                 <label for="date_of_birth" class="form-label">Date Of Birth</label>
-                <input type="date" class="form-control" name="date_of_birth" id="date_of_birth" placeholder="" required>
+                <input type="date" class="form-control" name="date_of_birth" value="{{$user->date_of_birth}}" id="date_of_birth"  placeholder="" required>
+                  <div class="invalid-feedback">
+                      @error('date_of_birth')
+                      {{ $message }}
+                      @else
+                          Please provide your date of birth
+                      @enderror
+                  </div>
               </div>
 
               <div class="col-12 col-lg-6 col-xl-6 col-xxl-6">
                 <label for="marital_status" class="form-label">Martial Status(Optional)</label>
                 <select name="marital_status" id="marital_status" required  class="form-select" aria-label="Default select example">
-                  <option disabled selected>Select One</option>
-                  <option value="1">Unmarried</option>
-                  <option value="2">Married</option>
-                  <option value="3">Divorced</option>
+                  <option disabled @selected($user->expert->doc_title == null)>Select One</option>
+                  <option @selected($user->expert->doc_title == 1) value="1">Unmarried</option>
+                  <option @selected($user->expert->doc_title == 2) value="2">Married</option>
+                  <option @selected($user->expert->doc_title == 3) value="3">Divorced</option>
                 </select>
 
               </div>
@@ -88,7 +128,7 @@
               <div class="col-12 col-lg-6 col-xl-6 col-xxl-6">
                 <label for="nationality" class="form-label">Nationality</label>
                 <select name="nationality" id="nationality" required  class="form-select" aria-label="Default select example">
-                  <option value="0" disabled selected>Select One</option>
+                  <option value="" disabled selected>Select One</option>
                   <option value="1">Bangladeshi</option>
                   <option value="2">Indian</option>
                   <option value="3">British</option>
@@ -98,29 +138,60 @@
               <!-- address  -->
               <div class="col-12 ">
                 <label for="address_line_1" class="form-label">Address Line 1</label>
-                <input type="text" class="form-control" name="address_line_1" id="address_line_1" placeholder="Street address" required>
+                <input type="text" class="form-control"  value='{{$user?->address?->address}}' name="address" id="address_line_1" placeholder="Street address" required>
+                  <div class="invalid-feedback">
+                      @error('address')
+                      {{ $message }}
+                      @else
+                          Please provide your address
+                      @enderror
+                  </div>
 
               </div>
               <div class="col-12 ">
                 <label for="address_line_2" class="form-label">Address Line 2</label>
-                <input type="text" class="form-control" name="address_line_2" id="address_line_2" placeholder="Appartment, Unit, Building, Floor etc">
-
+                <input type="text" class="form-control" name="address2" value="{{$user?->address?->address2}}"  id="address_line_2" placeholder="Appartment, Unit, Building, Floor etc">
+                  <div class="invalid-feedback">
+                      @error('address2')
+                      {{ $message }}
+                      @else
+                          Enter your address.
+                          @enderror
+                  </div>
               </div>
               <div class="col-12 col-lg-6 col-xl-6 col-xxl-6">
                 <label for="city" class="form-label">City</label>
-                <input type="text" class="form-control" name="city" id="city" placeholder="City" required>
-
+                <input type="text" class="form-control" value="{{$user?->address?->city}}" name="city" id="city" placeholder="City" required>
+                  <div class="invalid-feedback">
+                      @error('city')
+                      {{ $message }}
+                      @else
+                          Please enter your city name
+                          @enderror
+                  </div>
               </div>
               <div class="col-12 col-lg-6 col-xl-6 col-xxl-6">
                 <label for="state" class="form-label">State</label>
-                <input type="text" class="form-control" name="state" id="state" placeholder="District/Region/Province" required>
-
+                <input type="text" class="form-control" value="{{$user?->address?->state}}" name="state" id="state" placeholder="District/Region/Province" required>
+                  <div class="invalid-feedback">
+                      @error('state')
+                      {{ $message }}
+                      @else
+                          Please enter you state
+                          @enderror
+                  </div>
               </div>
 
               <div class="col-12 col-lg-6 col-xl-6 col-xxl-6">
                 <label for="zip_code" class="form-label">Zip Code</label>
-                <input type="text" class="form-control" name="zip_code" id="zip_code" placeholder="Postal/Zip Code" required>
-
+                <input type="text" class="form-control" value="{{$user?->address?->zip_code}}"  name="zip_code" id="zip_code" placeholder="Postal/Zip Code" required>
+                  <div class="invalid-feedback">
+                      @error('zip_code')
+                      {{ $message }}
+                      @else
+                          Please provide your zipcode
+                          @enderror
+                  </div>
               </div>
 
               <div class="col-12 col-lg-6 col-xl-6 col-xxl-6">
@@ -145,12 +216,26 @@
                 </select>
               </div>
               <div class="col-12 col-lg-5 col-xl-5 col-xxl-5">
-                <label for="contact"  class="form-label">Contact No.</label>
-                <input type="number" class="form-control" minlength="6" name="contact" id="contact" data-contact="contact1" placeholder="01XXXXXXXXX" required>
+                <label for="phone"  class="form-label">Contact No.</label>
+                <input type="number" class="form-control" value="{{$user->phone}}"  minlength="6" name="phone" id="phone" data-contact="phone" placeholder="01XXXXXXXXX" required>
+                  <div class="invalid-feedback">
+                      @error('zip_code')
+                      {{ $message }}
+                      @else
+                          Please provide your phone number
+                          @enderror
+                  </div>
               </div>
               <div class="col-12 col-lg-5 col-xl-5 col-xxl-5">
-                <label for="contact2"  class="form-label">Additional Number</label>
-                <input type="number" class="form-control" name="contact2" id="contact2" data-contact="contact2" placeholder="01XXXXXXXXX">
+                <label for="additional_phone"  class="form-label">Additional Number</label>
+                <input type="number" class="form-control" value="{{$user->additional_phone}}"  name="additional_phone" id="additional_phone" data-contact="additional_phone" placeholder="01XXXXXXXXX">
+                  <div class="invalid-feedback">
+                      @error('additional_phone')
+                      {{ $message }}
+                      @else
+                          Enter your additional phone number if any.
+                          @enderror
+                  </div>
               </div>
 
 
@@ -158,35 +243,60 @@
               <div class="col-12 col-lg-3 col-xl-3 col-xxl-3">
                 <label for="identity" class="form-label">Identity</label>
                 <select name="identity_type" id="" required class="form-select">
-                  <option value="" disabled selected>Select Type</option>
-                  <option value="1">Passport</option>
-                  <option value="2">Residential Card</option>
+                  <option @selected($user->identity_type == null) value="" disabled>Select Type</option>
+                  <option @selected($user->identity_type == 1) value="1">Passport</option>
+                  <option @selected($user->identity_type == 2) value="2">Residential Card</option>
                 </select>
               </div>
 
               <div class="col-12 col-lg-5 col-xl-5 col-xxl-5">
                 <label for="identity" class="form-label">Identity no.</label>
-                <input type="text" class="form-control" name="identity_no" id="identity" placeholder="854XXXXXXXXXXXXXXXX" required >
+                <input type="text" class="form-control" value="{{$user->identity_no}}"  name="identity_no" id="identity" placeholder="854XXXXXXXXXXXXXXXX" required >
+                  <div class="invalid-feedback">
+                      @error('identity_no')
+                      {{ $message }}
+                      @else
+                          Please provide your address
+                          @enderror
+                  </div>
               </div>
 
               <div class="col-12 col-lg-4 col-xl-4 col-xxl-4">
                 <label for="identity_proof" class="form-label">Identity Proof(img,pdf)</label>
                 <input class="form-control" type="file" name="identity_proof" id="identity_prof" required>
-
+                  <div class="invalid-feedback">
+                      @error('identity_proof')
+                      {{ $message }}
+                      @else
+                          Please upload an attachment of your identity
+                          @enderror
+                  </div>
               </div>
 
-              <!-- lisence  -->
+              <!-- license  -->
 
               <div class="col-12 col-lg-6 col-xl-6 col-xxl-6">
                 <label for="license_no" class="form-label">License Number</label>
-                <input type="text" class="form-control" name="license_no" id="license_no" placeholder="1245XXXXXX" required>
-
+                <input type="text" class="form-control" value="{{$user?->expert?->license_no}}" name="license_no" id="license_no" placeholder="1245XXXXXX" required>
+                  <div class="invalid-feedback">
+                      @error('license_no')
+                      {{ $message }}
+                      @else
+                        Please enter your license number
+                      @enderror
+                  </div>
               </div>
 
               <div class="col-12 col-lg-6 col-xl-6 col-xxl-6">
                 <label for="license_attachment" class="form-label">License Attachment</label>
                 <input type="file" class="form-control" name="license_attachment" id="license_attachment" placeholder="" required>
-
+                  <div class="invalid-feedback">
+                      @error('license_attachment')
+                      {{ $message }}
+                      @else
+                          Please upload you license attachment
+                      @enderror
+                  </div>
               </div>
 
               <div class="col-12">
@@ -204,7 +314,7 @@
 
               <div class="col-12 my-4">
                 <div class="text-center">
-                  <button class="btn btn-outline-primary" name="btnSavePersonalInfo" type="button">Continue</button>
+                  <button class="btn btn-outline-primary" id="btnPersonalInfo" name="btnSavePersonalInfo" type="submit">Continue</button>
                 </div>
               </div>
             </form>
@@ -212,60 +322,59 @@
 
         <!-- educational information step   -->
           <div class="col-12 col-lg-8 col-xl-8 col-xxl-8 form-container" id="education_info_container">
-          <!-- Educational Information-->
-          <form id="form_education" class="needs-validation" enctype="multipart/form-data" novalidate>
+              <!-- Educational Information-->
+              <form id="form_education" class="needs-validation" enctype="multipart/form-data" novalidate>
+                  @csrf
+                  @method('POST')
+                <div class="input-edu-container row  gy-3 ">
+                  <div class="col-12 group-input">
+                    <label for="institute" class="form-label">Institute</label>
+                    <input type="text" class="form-control form-field" name="institute" id="institute" placeholder="Institute Name" required>
+                  </div>
 
-            <div class="input-edu-container row  gy-3 ">
-              <div class="col-12 group-input">
-                <label for="institute" class="form-label">Institute</label>
-                <input type="text" class="form-control form-field" name="institute" id="institute" placeholder="Institute Name" required>
-              </div>
+                  <div class="col-12 group-input">
+                    <label for="specialization" class="form-label">Specialization</label>
+                    <select id="specialization" name="specialization" required class="form-select form-field" aria-label="Default select example">
+                      <option value="" disabled selected>Select One</option>
+                      <option value="1">Subject 1</option>
+                      <option value="2">Subject 2</option>
+                      <option value="3">Subject 3</option>
+                      <option value="4">Subject 4</option>
+                    </select>
+                  </div>
 
-              <div class="col-12 group-input">
-                <label for="specialization" class="form-label">Specialization</label>
-                <select id="specialization" name="specialization" required class="form-select form-field" aria-label="Default select example">
-                  <option value="" disabled selected>Select One</option>
-                  <option value="1">Subject 1</option>
-                  <option value="2">Subject 2</option>
-                  <option value="3">Subject 3</option>
-                  <option value="4">Subject 4</option>
-                </select>
-              </div>
+                  <div class="col-12 col-lg-6 col-xl-6 col-xxl-6 group-input">
+                    <label for="duration" class="form-label">Duration</label>
+                    <input type="number" class="form-control form-field" name="duration" id="duration" min="1" placeholder="Total Month" required>
+                  </div>
 
-              <div class="col-12 col-lg-6 col-xl-6 col-xxl-6 group-input">
-                <label for="duration" class="form-label">Duration</label>
-                <input type="number" class="form-control form-field" name="duration" id="duration" min="1" placeholder="Total Month" required>
-              </div>
+                  <div class="col-12 col-lg-6 col-xl-6 col-xxl-6 group-input">
+                    <label for="passing_year" class="form-label">Passing Year</label>
+                    <input type="date" class="form-control form-field" name="passing_year" id="passing_year" placeholder="" required>
+                  </div>
 
-              <div class="col-12 col-lg-6 col-xl-6 col-xxl-6 group-input">
-                <label for="passing_year" class="form-label">Passing Year</label>
-                <input type="date" class="form-control form-field" name="passing_year" id="passing_year" placeholder="" required>
-              </div>
+                  <div class="col-12 col-lg-6 col-xl-6 col-xxl-6 group-input">
+                    <label for="education_certificate" class="form-label">Upload certificate(image/pdf)</label>
+                    <input type="file" class="form-control form-field" name="education_certificate" id="education_certificate" placeholder="" required>
+                  </div>
+                  <div class="col-12 col-lg-6 col-xl-6 col-xxl-6 group-input">
+                    <label for="edu_doc_title" class="form-label">Certificate Title</label>
+                    <input type="text" class="form-control form-field" name="edu_doc_title" id="edu_doc_title" placeholder="" required>
+                  </div>
+                </div>
 
-              <div class="col-12 col-lg-6 col-xl-6 col-xxl-6 group-input">
-                <label for="education_certificate" class="form-label">Upload certificate(image/pdf)</label>
-                <input type="file" class="form-control form-field" name="education_certificate" id="education_certificate" placeholder="" required>
-              </div>
-              <div class="col-12 col-lg-6 col-xl-6 col-xxl-6 group-input">
-                <label for="edu_doc_titile" class="form-label">Certificate Title</label>
-                <input type="text" class="form-control form-field" name="edu_doc_titile" id="edu_doc_titile" placeholder="" required>
-              </div>
-            </div>
+                <div class="col-6 my-3 d-grid mx-auto">
+                  <button type="submit" id="btnAddMoreEdu" class="btn btn-outline-secondary"><span><i class="fa-solid fa-plus"></i> Add More</span></button>
+                </div>
 
-            <div class="col-6 my-3 d-grid mx-auto">
-              <button type="button" id="btnAddMoreEdu" class="btn btn-outline-secondary"><span><i class="fa-solid fa-plus"></i> Add More</span></button>
-            </div>
+                <div class="col-12 mt-4">
+                  <div class="text-center">
+                    <button class="btn btn-outline-info" type="button" name="back">Previous</button>
+                    <button class="btn btn-outline-primary" name="btnSaveEducationInfo" type="submit">Continue</button>
+                  </div>
+                </div>
 
-
-            <div class="col-12 mt-4">
-              <div class="text-center">
-                <button class="btn btn-outline-info" type="button" name="back">Previous</button>
-                <button class="btn btn-outline-primary" name="btnSaveEducationInfo" type="button">Continue</button>
-              </div>
-            </div>
-
-
-          </form>
+              </form>
           </div>
 
 
@@ -305,8 +414,8 @@
                   <input type="file" class="form-control form-field" name="training_certificate" id="training_certificate" placeholder="" required>
                 </div>
                 <div class="col-12 col-lg-6 col-xl-6 col-xxl-6">
-                  <label for="edu_doc_titile" class="form-label">Certificate Title</label>
-                  <input type="text" class="form-control form-field" name="edu_doc_titile" id="edu_doc_titile" placeholder="" required>
+                  <label for="training_title" class="form-label">Certificate Title</label>
+                  <input type="text" class="form-control form-field" name="training_title" id="training_title" placeholder="" required>
                 </div>
               </div>
 
@@ -317,7 +426,7 @@
               <div class="col-12 mt-4">
                 <div class="text-center">
                   <button class="btn btn-outline-info" type="button" name="back">Previous</button>
-                  <button class="btn btn-outline-primary" name="btnSaveTraining" type="button">Continue</button>
+                  <button class="btn btn-outline-primary" name="btnSaveTraining" type="submit">Continue</button>
 
                 </div>
               </div>
@@ -382,7 +491,7 @@
               <div class="col-12 mt-4">
                 <div class="text-center">
                 <button class="btn btn-outline-info" type="button" name="back">Previous</button>
-                  <button class="btn btn-outline-primary" name="btnSaveExperience" type="button">Submit</button>
+                  <button class="btn btn-outline-primary" name="btnSaveExperience" type="submit">Submit</button>
 
                 </div>
               </div>
@@ -394,364 +503,294 @@
 
 @endsection
 
-      @section('scripts')
-          <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
-          <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
-          <x-vendor.bootstrap_bundle_js/>
-          <script type="text/javascript">
+@section('scripts')
+{{--          <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>--}}
+{{--          <script src="https://unpkg.com/axios/dist/axios.min.js"></script>--}}
+    <x-vendor.bootstrap_bundle_js/>
 
-              // Example starter JavaScript for disabling form submissions if there are invalid fields
-              (() => {
-                  'use strict'
+    <script src="{{asset('wizard_form/js/wizard_step.js')}}"></script>
 
-                  // Fetch all the forms we want to apply custom Bootstrap validation styles to
-                  const forms = document.querySelectorAll('.needs-validation')
+    <script type="text/javascript">
+        $(document).ready(function (){
+          // form container
+          const personalInfoContainer = $("#personal_info_container");
+          const educationInfoContainer= $("#education_info_container");
+          const trainingInfoContainer= $("#training_info_container");
+          const experienceContainer= $("#experience_container");
 
-                  // Loop over them and prevent submission
-                  Array.from(forms).forEach(form => {
-                      form.addEventListener('submit', event => {
-                          if (!form.checkValidity()) {
-                              event.preventDefault()
-                              event.stopPropagation()
-                          }
-
-                          form.classList.add('was-validated')
-                      }, false)
-                  })
-              })();
-
-          </script>
-
-          <script src="{{asset('wizard_form/js/wizard_step.js')}}"></script>
-
-          <script type="text/javascript">
-              $(document).ready(function () {
-                  // form container
-                  const personalInfoContainer = $("#personal_info_container");
-                  const educationInfoContainer= $("#education_info_container");
-                  const trainingInfoContainer= $("#training_info_container");
-                  const experienceContainer= $("#experience_container");
-
-                  // form
-                  const frmPersonalInfo = $("#form_personal_info");
-                  const frmEducation = $("#form_education");
-                  const frmTraining = $("#form_training");
-                  const frmExperience = $("#form_experience");
+          // form
+          const frmPersonalInfo = $("#form_personal_info");
+          const frmEducation = $("#form_education");
+          const frmTraining = $("#form_training");
+          const frmExperience = $("#form_experience");
 
 
-                  // tab switching
-                  const tabPersonalInfo = $("#tab_personal_info");
-                  const tabEducation = $("#tab_education");
-                  const tabTraining = $("#tab_training");
-                  const tabExperience = $("#tab_xp");
+          // tab switching
+          const tabPersonalInfo = $("#tab_personal_info");
+          const tabEducation = $("#tab_education");
+          const tabTraining = $("#tab_training");
+          const tabExperience = $("#tab_xp");
 
-                  // hiding content
-                  educationInfoContainer.hide();
-                  trainingInfoContainer.hide();
-                  experienceContainer.hide();
+          // add more field button
+          const btnAddEdu = $('#btnAddMoreEdu');
+          const btnAddTraining = $('#btnAddMoreTrain');
+          const btnAddExp = $('#btnAddMoreExperience');
 
-
-                  // form data container
-                  const formData = {};
-
-
-                  // =====================tab function===========================
-                  // tab visibility
-                  function tabVisibility(){
-                      switch(true) {
-                          case personalInfoContainer.is(":visible"):
-                              tabPersonalInfo.css('background-color', tabActive);
-
-                              break;
-                          case educationInfoContainer.is(":visible"):
-                              tabEducation.css('background-color', tabActive);
-                              // code block
-                              break;
-                          case trainingInfoContainer.is(":visible"):
-                              tabTraining.css('background-color', tabActive);
-                              break;
-
-                          case experienceContainer.is(":visible"):
-                              tabExperience.css('background-color', tabActive);
-                              break;
-                          default:
-                              console.log("Unknown");
-                          // code block
-                      }
-                  }
-
-                  function tabActivated(tabList){
-                      tabList.forEach(element => {
-                          element.css('background-color', tabVisited);
-                          element.css('cursor', 'pointer');
-                          element.css('color',tabFontActive);
-                      });
-                  }
-
-                  function switchTab(elementHide,elementShow){
-                      elementHide.forEach(element => {
-                          element.hide()
-                      });
-                      elementShow.show();
-                  }
-
-                  // tab activity
-                  const formActive = new Map();
-                  const tabActiveList = new Map();
-
-                  //tab  color
-                  let tabActive = `rgb(13, 110, 253)`;
-                  let tabVisited = `rgb(13, 201, 239)`;
-                  let tabFontActive = `rgb(255,255,255)`;
-                  // =====================end tab function===========================
+          // hiding content
+          personalInfoContainer.show();
+          educationInfoContainer.hide();
+          trainingInfoContainer.hide();
+          experienceContainer.hide();
 
 
-                  //==========================job validation function=================
-                  function jobStatusValidation(arg){
-                      let checkbox, formContainer, currentDatebox;
-
-                      checkbox = arg.currentTarget;
-                      formContainer = $(checkbox).parentsUntil($('.input-xp-container')).parent();
-                      currentDatebox = $(formContainer).find($(`[data-job-condition="resign_date"]`));
-
-                      if(checkbox.checked){
-                          currentDatebox.attr('disabled','');
-                          currentDatebox.removeAttr('required','');
-                          currentDatebox[0].value = '';
-                      }else{
-                          currentDatebox.removeAttr('disabled','');
-                          currentDatebox.attr('required','');
-                      }
-
-                  }
+          // colors
+          let tabActive = `rgb(13, 110, 253)`;
+          let tabVisited = `rgb(13, 201, 239)`;
+          let tabFontActive = `rgb(255,255,255)`;
 
 
+          // data container
+          // tab activity
+          const formData = {}; //form data container
+          let formActive = new Map();
+          const tabActiveList = new Map();
 
-                  // add more field +++++++++++++++++++++++
-                  // for education info
-                  const addMoreEdu = new CloneFields($('#form_education .input-edu-container'),$('#btnAddMoreEdu'),'<p class="my-0 "><strong class="h3">More Academic Info</strong></p>');
+          //==========================job validation function=================
+          function jobStatusValidation(arg){
+              let checkbox, formContainer, currentDatebox;
 
-                  $('#btnAddMoreEdu').click(e=>{
-                      addMoreEdu.formClone();
-                      $('#form_education .btn-close').click(e=>{
-                          $(e.currentTarget).parent().parent().remove();
-                      })
-                  });
+              checkbox = arg.currentTarget;
+              formContainer = $(checkbox).parentsUntil($('.input-xp-container')).parent();
+              currentDatebox = $(formContainer).find($(`[data-job-condition="resign_date"]`));
 
+              if(checkbox.checked){
+                  currentDatebox.attr('disabled','');
+                  currentDatebox.removeAttr('required','');
+                  currentDatebox[0].value = '';
+              }else{
+                  currentDatebox.removeAttr('disabled','');
+                  currentDatebox.attr('required','');
+              }
 
-                  // for training info
-                  const addMoreTrain = new CloneFields($('#training_info_container .input-train-container'),$('#btnAddMoreTrain'),'<p class="my-0 "><strong class="h3">More Training Info</strong></p>');
+          }
 
-                  $('#btnAddMoreTrain').click(e=>{
-                      addMoreTrain.formClone();
-                      $('#training_info_container .btn-close').click(e=>{
-                          $(e.currentTarget).parent().parent().remove();
-                      })
-                  });
+          // =====================tab function===========================
+          function tabVisibility(){
+              switch(true) {
+                  case personalInfoContainer.is(":visible"):
+                      tabPersonalInfo.css('background-color', tabActive);
 
-                  // add more experience info
-                  const addMoreExperience = new CloneFields($('#form_experience .input-xp-container'),$('#btnAddMoreExperience'),'<p class="my-0 "><strong class="h3">More Experience Info</strong></p>');
+                      break;
+                  case educationInfoContainer.is(":visible"):
+                      tabEducation.css('background-color', tabActive);
+                      // code block
+                      break;
+                  case trainingInfoContainer.is(":visible"):
+                      tabTraining.css('background-color', tabActive);
+                      break;
 
-                  $('#btnAddMoreExperience').click(e=>{
-                      addMoreExperience.formClone(addMoreExperience.counter);
-                      addMoreExperience.counter++;
+                  case experienceContainer.is(":visible"):
+                      tabExperience.css('background-color', tabActive);
+                      break;
+                  default:
+                      console.log("Unknown");
+                  // code block
+              }
+          }
 
-                      //job validation
-                      $(`[data-job-condition="present"]`).click(e=>{
-                          jobStatusValidation(e);
-                      });
+          function tabActivated(tabList){
+              tabList.forEach(element => {
+                  element.css('background-color', tabVisited);
+                  element.css('cursor', 'pointer');
+                  element.css('color', tabFontActive);
 
-                      $('#form_experience .btn-close').click(e=>{
-                          $(e.currentTarget).parent().parent().remove();
-                      })
-                  });
-                  // add more field end ++++++++++++++++++++++
+              });
+          }
 
+          function switchTab(elementHide,elementShow){
+              elementHide.forEach(element => {
+                  element.hide()
+              });
+              elementShow.show();
+          }
 
-                  //personal info ===========================================
-                  (personalInfoContainer.find("[name='btnSavePersonalInfo']")).click(e =>{
-                      const rawPersonalInfo = new FormOperation(e,personalInfoContainer); //rawPersoalInfo
+          //=============================form validation
+          (() => {
+              'use strict'
+              // Fetch all the forms we want to apply custom Bootstrap validation styles to
+              const forms = document.querySelectorAll('.needs-validation')
 
-                      if(rawPersonalInfo.isEmpty){
-                          frmPersonalInfo.addClass('was-validated');
-                      }else{
-                          formData["personalInfo"] = rawPersonalInfo.formDataPack;
-
-                          // axios post request to controller
-                          // let data = "";
-                          // for (const x of formData.personalInfo['repackedData'].entries()) {
-                          //     data += x;
-                          // }
-                          let data = {};
-                          formData.personalInfo['repackedData'].forEach (function(value, key) {
-                              data[key] = value;
-                          });
-                            // console.log(formData.personalInfo['repackedData']);
-                            console.log(data);
-
-
-                          axios.post('{{route('doctor.profile.store')}}',data)
-                            .then(function (response) {
-                                console.log(response);
-                                console.log('Hola');
-                            })
-                            .catch(function (error) {
-                                console.log(error);
-                                console.log("Opps");
-                            });
-
-
-
-                          personalInfoContainer.hide(0,e=>{
-                              educationInfoContainer.show();
-
-                              if(!formActive.get('personalInfo')){
-                                  formActive.set('personalInfo',personalInfoContainer);
-                                  formActive.set('educationInfo',educationInfoContainer);
+              // Loop over them and prevent submission
+              Array.from(forms).forEach(form => {
+                  form.addEventListener('submit', event => {
+                      if (!form.checkValidity()) {
+                          event.preventDefault()
+                          event.stopPropagation()
+                      }else{ // ============ validated
+                          event.preventDefault();
+                          if(event.currentTarget.id === 'form_personal_info'){// ==========================personal information
+                              console.log('you are here in personal info');
+                              const rawPersonalInfo = new FormOperation(event.target.elements,personalInfoContainer);
+                              formData["personalInfo"] = rawPersonalInfo.formDataPack;
+                              personalInfoContainer.hide(0,e=>{
+                                  educationInfoContainer.show();
                                   tabActiveList.set('tabPersonal',tabPersonalInfo);
                                   tabActiveList.set('tabEdu',tabEducation);
-                              }
 
-                          })
-
-                      }
-                      console.log(formData);
-                  });//end personal info -----------------------------------
-
-
-
-                  // education info -----------------------------------
-                  (educationInfoContainer.find("[name='btnSaveEducationInfo']")).click(e =>{
-                      const rawEducationInfo = new FormOperation(e,educationInfoContainer);
-
-                      if(rawEducationInfo.isEmpty){
-                          frmEducation.addClass('was-validated');
-                      }else{
-
-                          formData["educationInfo"] = rawEducationInfo.formDataPack;
-                          educationInfoContainer.hide(0,e=>{
-                              trainingInfoContainer.show();
-
-                              if(!formActive.get('trainingInfo')){
-                                  formActive.set('trainingInfo',trainingInfoContainer);
-                                  tabActiveList.set('tabTraining',tabTraining);
-                              }
-
-                          })
-                      }
-                      // console.log(rawEducationInfo.formElements);
-                      console.log(formData);
-                  });
-
-                  //backstep
-                  (educationInfoContainer.find("[name='back']")).click(e => {
-                      educationInfoContainer.hide(0,()=>personalInfoContainer.show());
-                  });
-                  //end education info -----------------------------------
-
-
-                  //training info ================================================
-                  let countTraining = 0;
-                  (trainingInfoContainer.find("[name='btnSaveTraining']")).click(e =>{
-                      frmTraining.submit(e => e.preventDefault());
-
-                      //object creation
-                      const rawTrainingInfo = new FormOperation(e,trainingInfoContainer);
-
-
-                      if(rawTrainingInfo.isEmpty){
-                          frmTraining.addClass('was-validated');
-                      }else{
-                          formData["trainingInfo"] = rawTrainingInfo.formDataPack;
-                          trainingInfoContainer.hide(0,e=>{
-                              experienceContainer.show(0,e=>{
-
-                                  // job date validation
-                                  if(countTraining < 1){
-                                      $(`[data-job-condition="present"]`)[0].checked = false
+                                  if(!formActive.get('personalInfo')){
+                                      formActive.set('personalInfo',personalInfoContainer);
+                                      formActive.set('educationInfo',educationInfoContainer);
+                                      tabActiveList.set('tabPersonal',tabPersonalInfo);
+                                      tabActiveList.set('tabEdu',tabEducation);
                                   }
-                                  countTraining++;
-                                  $(`[data-job-condition="present"]`).click(e=>{
-                                      jobStatusValidation(e);
-                                  });
                               })
-                              if(!formActive.get('experienceInfo')){
-                                  formActive.set('expInfo',experienceContainer);
-                                  tabActiveList.set('tabExp',tabExperience);
-                              }
+                          }else if(event.currentTarget.id === 'form_education'){  //======================= education information
+                              const rawEducationInfo = new FormOperation(event.target.elements,educationInfoContainer);
 
-                          });
+                                  formData["educationInfo"] = rawEducationInfo.formDataPack;
+                                  educationInfoContainer.hide(0,e=>{
+                                      trainingInfoContainer.show();
+
+                                      if(!formActive.get('trainingInfo')){
+                                          formActive.set('trainingInfo',trainingInfoContainer);
+                                          tabActiveList.set('tabTraining',tabTraining);
+                                      }
+
+                                  })
+                              // console.log(rawEducationInfo.formElements);
+                              console.log(formData);
+                          }else if(event.currentTarget.id === 'form_training'){  //===================== training information
+                              console.log('you are here in training info');
+                                //object creation
+                                  const rawTrainingInfo = new FormOperation(event.target.elements,trainingInfoContainer);
+
+                                      formData["trainingInfo"] = rawTrainingInfo.formDataPack;
+                                      trainingInfoContainer.hide(0,e=>{
+                                          experienceContainer.show(0,()=>{
+                                              //job validation
+                                              $(`[data-job-condition="present"]`).click(e=>{
+                                                  jobStatusValidation(e);
+                                              });
+
+                                              $('#form_experience .btn-close').click(e=>{
+                                                  $(e.currentTarget).parent().parent().remove();
+                                              })
+                                          })
+                                          if(!formActive.get('experienceInfo')){
+                                              formActive.set('expInfo',experienceContainer);
+                                              tabActiveList.set('tabExp',tabExperience);
+                                          }
+                                      });
+                                  console.log(formData);
+
+                          }else if(event.currentTarget.id === 'form_experience'){ // ==================  experience info
+                              //object creation
+                              const rawExperienceInfo = new FormOperation(event.target.elements);
+                                  formData["experienceInfo"] = rawExperienceInfo.formDataPack;
+                                  alert("Form data submitted successfully")
+                              console.log(formData);
+                          }
                       }
 
-                      console.log(formData);
-                  });
-
-                  //backstep
-                  (trainingInfoContainer.find("[name='back']")).click(e => {
-                      trainingInfoContainer.hide(0,()=>educationInfoContainer.show());
-                  });
-                  //end training info
+                      form.classList.add('was-validated')
+                  }, false)
+              })
+          })();
 
 
-                  //experience info ==========================================
-                  (experienceContainer.find("[name='btnSaveExperience']")).click(e =>{
-                      frmExperience.submit(e => e.preventDefault());
+          // ===========================back to the previous page
+          // education
+          (educationInfoContainer.find("[name='back']")).click(()=> educationInfoContainer.hide(0,()=>personalInfoContainer.show()));
 
-                      //object creation
-                      const rawExperienceInfo = new FormOperation(e);
+          // training
+          (trainingInfoContainer.find("[name='back']")).click(()=> trainingInfoContainer.hide(0,()=>educationInfoContainer.show()));
 
-                      if (rawExperienceInfo.isEmpty) {
-                          frmExperience.addClass('was-validated');
-                          alert("Please fill the form gentally");
-                      }else {
-                          formData["experienceInfo"] = rawExperienceInfo.formDataPack;
-                          alert("Form data submitted successfully")
-
-                      }
-
-                      console.log(formData);
-                  });
-
-                  //backstep
-                  (experienceContainer.find("[name='back']")).click(e => {
-                      experienceContainer.hide(0,()=>trainingInfoContainer.show());
-                  });
-                  //end experience info ------------------------------------
+          //experience
+          (experienceContainer.find("[name='back']")).click(() => experienceContainer.hide(0,()=>trainingInfoContainer.show()));
 
 
-                  // form tab ------------------------------------------------
-                  $(document).click(e=>{
-                      tabActivated(tabActiveList);
-                      tabVisibility();
-                      // tab button
-                      if(formActive.get('personalInfo')){
-                          tabPersonalInfo.click(e=>{
-                              switchTab(formActive,personalInfoContainer);
-                          })
-                      }
+          // ================================tab handler
+          $('form').submit(()=>tabActivate())
+          $(document).click(()=>tabActivate())
+          function tabActivate(){
+                  // jQuery methods go here...
+                  tabActivated(tabActiveList);
+                  tabVisibility();
+                  // tab button
+                  console.log('here you are');
+                  console.log(formActive);
+
+                  if(formActive.get('personalInfo')){
+
+                      tabPersonalInfo.click(e=>{
+                          switchTab(formActive,personalInfoContainer);
+                      })
+                  }
 
 
-                      if(formActive.get('educationInfo')){
-                          tabEducation.click(e=>{
-                              switchTab(formActive,educationInfoContainer);
-                          })
-                      }
+                  if(formActive.get('educationInfo')){
+                      tabEducation.click(e=>{
+                          switchTab(formActive,educationInfoContainer);
+                      })
+                  }
 
-                      if(formActive.get('trainingInfo')){
-                          tabTraining.click(e=>{
-                              switchTab(formActive,trainingInfoContainer);
-                          })
-                      }
+                  if(formActive.get('trainingInfo')){
+                      tabTraining.click(e=>{
+                          switchTab(formActive,trainingInfoContainer);
+                      })
+                  }
 
-                      if(formActive.get('expInfo')){
-                          tabExperience.click(e=>{
-                              switchTab(formActive,experienceContainer);
-                          })
-                      }
+                  if(formActive.get('expInfo')){
+                      tabExperience.click(e=>{
+                          switchTab(formActive,experienceContainer);
+                      })
+                  }
+              }
 
-                  })
 
 
-              })//main loader
-          </script>
-      @endsection
+          // ++++++++++++++++++++++++++   add more field
+          // for education info
+          const addMoreEdu = new CloneFields($('#form_education .input-edu-container'),btnAddEdu,'<p class="my-0 "><strong class="h3">More Academic Info</strong></p>');
+
+          btnAddEdu.click(e=>{
+            addMoreEdu.formClone();
+            $('#form_education .btn-close').click(e=>{
+              $(e.currentTarget).parent().parent().remove();
+            })
+          })
+
+          // for training info
+          const addMoreTrain = new CloneFields($('#training_info_container .input-train-container'),btnAddTraining,'<p class="my-0 "><strong class="h3">More Training Info</strong></p>');
+
+          btnAddTraining.click(e=>{
+              addMoreTrain.formClone();
+              $('#training_info_container .btn-close').click(e=>{
+                  $(e.currentTarget).parent().parent().remove();
+              })
+          });
+
+          // add more experience info
+          const addMoreExperience = new CloneFields($('#form_experience .input-xp-container'),btnAddExp,'<p class="my-0 "><strong class="h3">More Experience Info</strong></p>');
+
+          btnAddExp.click(e=>{
+              addMoreExperience.formClone(addMoreExperience.counter);
+              addMoreExperience.counter++;
+
+              //job validation
+              $(`[data-job-condition="present"]`).click(e=>{
+                  jobStatusValidation(e);
+              });
+
+              $('#form_experience .btn-close').click(e=>{
+                  $(e.currentTarget).parent().parent().remove();
+              })
+          });
+
+
+
+          })// main loader ending tag
+    </script>
+
+
+@endsection

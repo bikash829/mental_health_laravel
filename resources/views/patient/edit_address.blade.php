@@ -24,7 +24,7 @@
                             <input type="text" name="address" class="form-control" id="validationCustom01" value="{{$user?->address?->address}}" required>
 
                             <div class="invalid-feedback">
-                                @error('password')
+                                @error('address')
                                 {{ $message }}
                                 @else
                                     Please enter address here

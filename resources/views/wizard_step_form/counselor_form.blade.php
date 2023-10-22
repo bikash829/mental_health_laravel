@@ -570,12 +570,12 @@
 
           //personal info ===========================================
           (personalInfoContainer.find("[name='btnSavePersonalInfo']")).click(e =>{
-              const rawPersoalInfo = new FormOperation(e,personalInfoContainer);
+              const rawPersonalInfo = new FormOperation(e,personalInfoContainer);
 
-              if(rawPersoalInfo.isEmpty){
+              if(rawPersonalInfo.isEmpty){
                   frmPersonalInfo.addClass('was-validated');
               }else{
-                  formData["personalInfo"] = rawPersoalInfo.formDataPack;
+                  formData["personalInfo"] = rawPersonalInfo.formDataPack;
 
                   personalInfoContainer.hide(0,e=>{
                       educationInfoContainer.show();

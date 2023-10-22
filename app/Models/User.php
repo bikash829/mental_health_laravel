@@ -13,10 +13,6 @@ use Spatie\Permission\Traits\HasRoles;
 
 class User extends Authenticatable
 {
-    use HasRoles; # from spatie
-    use HasApiTokens, HasFactory, Notifiable, SoftDeletes;
-
-
     /**
      * The attributes that are mass assignable.
      *
@@ -27,13 +23,27 @@ class User extends Authenticatable
         'last_name',
         'email',
         'password',
-        'religion',
+        'marital_status',
         'gender',
+        'phone_code',
+        'phone',
+        'additional_phone_code',
+        'additional_phone',
         'date_of_birth',
+        'identity_type',
+        'identity_no',
+        'identity_proof',
+        'identity_location',
+        'religion',
         'blood_group_id',
         'pp_name',
         'pp_location',
+
     ];
+    use HasRoles; # from spatie
+
+
+    use HasApiTokens, HasFactory, Notifiable, SoftDeletes;
 
     /**
      * The attributes that should be hidden for serialization.
@@ -60,5 +70,21 @@ class User extends Authenticatable
     }
     public function address(){
         return $this->hasOne(Address::class);
+    }
+
+    public function expert(){
+        return $this->hasOne(Expert::class);
+    }
+
+    public function training(){
+        return $this->hasMany(TrainingInfo::class);
+    }
+
+    public function education(){
+        return $this->hasMany(Education::class);
+    }
+
+    public function experience(){
+        return $this->hasMany(ExperienceInfo::class);
     }
 }

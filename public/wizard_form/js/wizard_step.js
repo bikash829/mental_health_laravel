@@ -83,7 +83,8 @@ class FormOperation{
 
     //filter data
     filteredElements(data){
-        let rawData = data.target.form.elements;
+        let rawData = data;
+
         const filterdItems =  [];
 
         [...rawData].forEach(item => {

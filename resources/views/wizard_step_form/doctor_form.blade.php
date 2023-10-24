@@ -68,7 +68,7 @@
               <!-- name  -->
               <div class="col-12 col-lg-6 col-xl-6 col-xxl-6">
                 <label for="first_name" class="form-label">First Name</label>
-                <input type="text" class="form-control" value="{{$user->first_name}}" name="first_name" id="first_name" placeholder="First Name" required max="50" >
+                <input type="text" class="form-control" value="{{$user->first_name}}" name="first_name" id="first_name" placeholder="First Name" required min="1" max="50" >
                   <div class="invalid-feedback">
                       @error('first_name')
                       {{ $message }}
@@ -82,7 +82,7 @@
 
               <div class="col-12 col-lg-6 col-xl-6 col-xxl-6">
                 <label for="last_name" class="form-label">Last Name</label>
-                <input type="text" class="form-control"  value="{{$user->last_name}}" name="last_name" id="last_name" placeholder="Last Name" required>
+                <input type="text" class="form-control"  value="{{$user->last_name}}" name="last_name" id="last_name" placeholder="Last Name" min="1" max="50" required>
                   <div class="invalid-feedback">
                       @error('last_name')
                       {{ $message }}
@@ -156,7 +156,7 @@
               <!-- address  -->
               <div class="col-12 ">
                 <label for="address_line_1" class="form-label">Address Line 1</label>
-                <input type="text" class="form-control"  value='{{$user?->address?->address}}' name="address" id="address_line_1" placeholder="Street address" required>
+                <input type="text" class="form-control"  value='{{$user?->address?->address}}' name="address" id="address_line_1" placeholder="Street address" max="255" required>
                   <div class="invalid-feedback">
                       @error('address')
                       {{ $message }}
@@ -168,7 +168,7 @@
               </div>
               <div class="col-12 ">
                 <label for="address_line_2" class="form-label">Address Line 2</label>
-                <input type="text" class="form-control" name="address2" value="{{$user?->address?->address2}}"  id="address_line_2" placeholder="Appartment, Unit, Building, Floor etc">
+                <input type="text" class="form-control" name="address2" value="{{$user?->address?->address2}}"  id="address_line_2" max="255" placeholder="Appartment, Unit, Building, Floor etc">
                   <div class="invalid-feedback">
                       @error('address2')
                       {{ $message }}
@@ -179,7 +179,7 @@
               </div>
               <div class="col-12 col-lg-6 col-xl-6 col-xxl-6">
                 <label for="city" class="form-label">City</label>
-                <input type="text" class="form-control" value="{{$user?->address?->city}}" name="city" id="city" placeholder="City" required>
+                <input type="text" class="form-control" value="{{$user?->address?->city}}" name="city" id="city" placeholder="City" max="50" required>
                   <div class="invalid-feedback">
                       @error('city')
                       {{ $message }}
@@ -190,7 +190,7 @@
               </div>
               <div class="col-12 col-lg-6 col-xl-6 col-xxl-6">
                 <label for="state" class="form-label">State</label>
-                <input type="text" class="form-control" value="{{$user?->address?->state}}" name="state" id="state" placeholder="District/Region/Province" required>
+                <input type="text" class="form-control" value="{{$user?->address?->state}}" name="state" id="state" placeholder="District/Region/Province" max="50" required>
                   <div class="invalid-feedback">
                       @error('state')
                       {{ $message }}
@@ -202,7 +202,7 @@
 
               <div class="col-12 col-lg-6 col-xl-6 col-xxl-6">
                 <label for="zip_code" class="form-label">Zip Code</label>
-                <input type="text" class="form-control" value="{{$user?->address?->zip_code}}"  name="zip_code" id="zip_code" placeholder="Postal/Zip Code" required>
+                <input type="text" class="form-control" value="{{$user?->address?->zip_code}}"  name="zip_code" id="zip_code" placeholder="Postal/Zip Code" max="20" required>
                   <div class="invalid-feedback">
                       @error('zip_code')
                       {{ $message }}
@@ -235,7 +235,7 @@
               </div>
               <div class="col-12 col-lg-5 col-xl-5 col-xxl-5">
                 <label for="phone"  class="form-label">Contact No.</label>
-                <input type="number" class="form-control" value="{{$user->phone}}"  minlength="6" name="phone" id="phone" data-contact="phone" placeholder="01XXXXXXXXX" required>
+                <input type="number" class="form-control" value="{{$user->phone}}"  min="8" name="phone" id="phone" data-contact="phone" placeholder="01XXXXXXXXX" required>
                   <div class="invalid-feedback">
                       @error('zip_code')
                       {{ $message }}
@@ -269,7 +269,7 @@
 
               <div class="col-12 col-lg-5 col-xl-5 col-xxl-5">
                 <label for="identity" class="form-label">Identity no.</label>
-                <input type="text" class="form-control" value="{{$user->identity_no}}"  name="identity_no" id="identity" placeholder="854XXXXXXXXXXXXXXXX" required >
+                <input type="text" class="form-control" value="{{$user->identity_no}}"  name="identity_no" id="identity" placeholder="854XXXXXXXXXXXXXXXX" max="20" min="6" required >
                   <div class="invalid-feedback">
                       @error('identity_no')
                       {{ $message }}
@@ -281,7 +281,7 @@
 
               <div class="col-12 col-lg-4 col-xl-4 col-xxl-4">
                 <label for="identity_proof" class="form-label">Identity Proof(img,pdf)</label>
-                <input class="form-control" type="file"  name="identity_proof" id="identity_proof" required>
+                <input class="form-control" type="file"  name="identity_proof"  accept=".pdf,.jpg,.jpeg,.png" id="identity_proof" required>
                   <div class="invalid-feedback">
                       @error('identity_proof')
                       {{ $message }}
@@ -295,7 +295,7 @@
 
               <div class="col-12 col-lg-6 col-xl-6 col-xxl-6">
                 <label for="license_no" class="form-label">License Number</label>
-                <input type="text" class="form-control" value="{{$user?->expert?->license_no}}" name="license_no" id="license_no" placeholder="1245XXXXXX" required>
+                <input type="text" class="form-control" value="{{$user?->expert?->license_no}}" name="license_no" id="license_no" placeholder="1245XXXXXX" max="50" min="6" required>
                   <div class="invalid-feedback">
                       @error('license_no')
                       {{ $message }}
@@ -708,25 +708,6 @@
                                           toastContent.append(ul);
                                           const toastBootstrap = bootstrap.Toast.getOrCreateInstance(toastLiveExample)
                                           toastBootstrap.show()
-
-
-
-
-
-                                          // setTimeout(function () {
-                                          //     toastBootstrap.toast('hide');
-                                          // }, 500000);
-                                          // toastBootstrap.addEventListener('hidden.bs.toast', () => {
-                                          //     // do something...
-                                          //
-                                          // })
-
-
-
-
-
-
-
 
                                           // Display validation errors under input fields
                                           // Object.keys(errors).forEach((field,value) => {

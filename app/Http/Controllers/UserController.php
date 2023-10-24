@@ -36,63 +36,78 @@ class UserController extends Controller
      */
     public function store(Request $request)
     {
-        $request->validate([
-            'doc_title' => ['required','integer'],
-            'first_name' => ['required','string','max:50'],
-            'last_name' => ['required','string','max:50'],
-            'gender'=>['required','max:10'],
-            'date_of_birth'=> ['required','date',],
-            'marital_status' => ['integer','max:3'],
-//            'nationality' => ['string','max:20'],
-            'address'=>['required','string','max:255'],
-            'address2'=>['max:255'],
-            'city'=>['required','string','max:50'],
-            'state'=>['required','string','max:50'],
-            'zip_code'=>['required','string','max:20'],
-//            'country'=>['required','string','max:20'],
-//            'phone_code' =>['required','max:6',],
-            'phone'=>['required','numeric','max:99999999999999999999'],
-//            'additional_phone_code' =>['required','min:8','max:6',],
-            'additional_phone'=>['numeric','max:99999999999999999999',],
-            'identity_type' => ['required','integer','max:3'],
-            'identity_no' => ['required','min:6','max:20',],
-            'identity_proof_file' => ['required','mimes:jpeg,jpg,png,pdf','max:2048'],
-            'license_no' => ['required','min:6','max:50'],
-            'license_attachment_file' => ['required','mimes:jpeg,jpg,png,pdf','max:2048'],
-            'religion' => ['string','max:10'],
-        ]);
-
-        $user = Auth::user();
-
-
-        if($request->file('identity_proof_file')){
-            $file = $request->file('identity_proof_file');
-            $fileName = Str::uuid().'.'.$file->extension();
-            $fileLocation = 'uploads/important_documents/doctor_license';
-            $file->move(public_path($fileLocation), $fileName);
-
-            // merging info into request
-            $request->merge(['identity_proof' => $fileName]);
-            $request->merge(['identity_location' => $fileLocation]);
+//        if(isset($request->btnSave)){
+//            return $request;
+//        }else if(isset($request->addMoreEdu)){
+//            return $request;
+//        }else{
+//            return $request->btnSave;
+//        }
+        switch ($request->btnSaveForm) {
+            case "personalInfo":
+                return $request;
+                break;
+            case "saveEdu":
+                return $request;
+                break;
+            default:
+                return redirect(route('error404'));
         }
-
-        if($request->file('license_attachment_file')){
-            $file = $request->file('license_attachment_file');
-            $fileName = Str::uuid().'.'.$file->extension();
-            $fileLocation = 'uploads/important_documents/doctor_license';
-            $file->move(public_path($fileLocation), $fileName);
-
-            // merging info into request
-            $request->merge(['license_attachment' => $fileName]);
-            $request->merge(['license_attachment_location' => $fileLocation]);
-        }
-
-
-        $user->update($request->all());
-        $user->address()->updateOrCreate([],$request->all());
-        $user->expert()->updateOrCreate([],$request->all());
-
-        return response()->json(['message' => 'Data updated successfully']);
+//        $user = Auth::user();
+//        $request->validate([
+//            'doc_title' => ['required','integer'],
+//            'first_name' => ['required','string','max:50'],
+//            'last_name' => ['required','string','max:50'],
+//            'gender'=>['required','max:10'],
+//            'date_of_birth'=> ['required','date',],
+//            'marital_status' => ['integer','max:3'],
+////            'nationality' => ['string','max:20'],
+//            'address'=>['required','string','max:255'],
+//            'address2'=>['max:255'],
+//            'city'=>['required','string','max:50'],
+//            'state'=>['required','string','max:50'],
+//            'zip_code'=>['required','string','max:20'],
+////            'country'=>['required','string','max:20'],
+////            'phone_code' =>['required','max:6',],
+//            'phone'=>['required','numeric','max:99999999999999999999'],
+////            'additional_phone_code' =>['required','min:8','max:6',],
+//            'additional_phone'=>['numeric','max:99999999999999999999',],
+//            'identity_type' => ['required','integer','max:3'],
+//            'identity_no' => ['required','min:6','max:20',],
+//            'identity_proof_file' => ['required','mimes:jpeg,jpg,png,pdf','max:2048'],
+//            'license_no' => ['required','min:6','max:50'],
+//            'license_attachment_file' => ['required','mimes:jpeg,jpg,png,pdf','max:2048'],
+//            'religion' => ['string','max:10'],
+//        ]);
+//
+//        if($request->file('identity_proof_file')){
+//            $file = $request->file('identity_proof_file');
+//            $fileName = Str::uuid().'.'.$file->extension();
+//            $fileLocation = 'uploads/important_documents/doctor_license';
+//            $file->move(public_path($fileLocation), $fileName);
+//
+//            // merging info into request
+//            $request->merge(['identity_proof' => $fileName]);
+//            $request->merge(['identity_location' => $fileLocation]);
+//        }
+//
+//        if($request->file('license_attachment_file')){
+//            $file = $request->file('license_attachment_file');
+//            $fileName = Str::uuid().'.'.$file->extension();
+//            $fileLocation = 'uploads/important_documents/doctor_license';
+//            $file->move(public_path($fileLocation), $fileName);
+//
+//            // merging info into request
+//            $request->merge(['license_attachment' => $fileName]);
+//            $request->merge(['license_attachment_location' => $fileLocation]);
+//        }
+//
+//
+//        $user->update($request->all());
+//        $user->address()->updateOrCreate([],$request->all());
+//        $user->expert()->updateOrCreate([],$request->all());
+//
+//        return response()->json(['message' => 'Data saved successfully']);
 
     }
 

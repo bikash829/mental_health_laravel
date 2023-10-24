@@ -28,6 +28,20 @@
                   </div>
               </div>
           </div>
+{{--            toast success--}}
+          <div class="toast-container position-fixed top-0 end-0 p-3" >
+              <div id="toastSuccess" class="toast" role="alert" aria-live="assertive"  aria-atomic="true">
+                  <div class="toast-header">
+                      <strong class="me-auto text-success">Alert!</strong>
+{{--                      <small>11 mins ago</small>--}}
+                      <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
+                  </div>
+                  <div class="toast-body">
+                      <div id="toastContentSuccess">
+                      </div>
+                  </div>
+              </div>
+          </div>
 
 
           <div class="row justify-content-center " id="doctor_register_container">
@@ -332,7 +346,7 @@
 
               <div class="col-12 my-4">
                 <div class="text-center">
-                  <button class="btn btn-outline-primary" id="btnPersonalInfo" name="btnSavePersonalInfo" type="submit">Continue</button>
+                  <button class="btn btn-outline-primary" id="btnPersonalInfo" name="btnSaveForm" value="personalInfo" type="submit">Continue</button>
                 </div>
               </div>
             </form>
@@ -344,7 +358,7 @@
               <form id="form_education" class="needs-validation" enctype="multipart/form-data" novalidate>
                   @csrf
                   @method('POST')
-                <div class="input-edu-container row  gy-3 ">
+                <div class="input-edu-container row gy-3 ">
                   <div class="col-12 group-input">
                     <label for="institute" class="form-label">Institute</label>
                     <input type="text" class="form-control form-field" name="institute" id="institute" placeholder="Institute Name" required>
@@ -362,7 +376,7 @@
                   </div>
 
                   <div class="col-12 col-lg-6 col-xl-6 col-xxl-6 group-input">
-                    <label for="duration" class="form-label">Duration</label>
+                    <label for="duration" class="form-label">Duration(Total Hour)</label>
                     <input type="number" class="form-control form-field" name="duration" id="duration" min="1" placeholder="Total Month" required>
                   </div>
 
@@ -382,7 +396,7 @@
                 </div>
 
                 <div class="col-6 my-3 d-grid mx-auto">
-                  <button type="submit" id="btnAddMoreEdu" class="btn btn-outline-secondary"><span><i class="fa-solid fa-plus"></i> Add More</span></button>
+                  <button type="submit" id="btnAddMoreEdu" name="btnSaveForm" value="saveEdu" class="btn btn-outline-secondary"><span><i class="fa-solid fa-plus"></i> Add More</span></button>
                 </div>
 
                 <div class="col-12 mt-4">
@@ -577,8 +591,11 @@
           // bootstrap toast
             const toastTrigger = document.getElementById('liveToastBtn')
             const toastLiveExample = document.getElementById('liveToast')
+            const toastSuccess = document.getElementById('toastSuccess')
 
             const toastContent = $("#toastContent");
+            const toastContentSuccess = $("#toastContentSuccess");
+            let toastContainer = $('<div>');
 
 
 
@@ -674,88 +691,145 @@
                               const identityProof = identityProofInput.files[0];
                               const licenseAttachment = licenseAttachmentInput.files[0];
 
-
-
-
                               formDataTransport.append('identity_proof_file', identityProof);
                               formDataTransport.append('license_attachment_file', licenseAttachment);
-
-
 
                               axios.post('{{route('doctor.profile.store')}}',formDataTransport, {
                                   headers: {
                                       'Content-Type': 'multipart/form-data',
                                   }
-                              })
-                                  .then(function (response) {
+                              }).then(function (response) {
+                                  console.log(response);
+                                      toastContentSuccess.empty();
+                                      toastContainer = toastContainer.text(response.data['message']);
 
-                                      alert(response.data['message']);
-                                  })
-                                  .catch(function (error) {
-                                      if (error.response.status === 422) {
-                                          let errors = error.response.data.errors;
-                                          // Clear previous error messages
-                                          toastContent.empty();
+                                      toastContentSuccess.append(toastContainer);
+                                      const toastBootstrap = bootstrap.Toast.getOrCreateInstance(toastSuccess)
+                                      toastBootstrap.show()
+                                      // alert(response.data['message']);
+                                      personalInfoContainer.hide(0,e=>{
+                                          educationInfoContainer.show();
+                                          tabActiveList.set('tabPersonal',tabPersonalInfo);
+                                          tabActiveList.set('tabEdu',tabEducation);
 
-                                          console.log(Object.entries(errors));
-                                          let ul = $("<ul>");
-                                          Object.entries(errors).forEach((value)=>{
-                                              let fieldName = value[0], errorMessage = value[1][0],  li = $("<li>").text(errorMessage) ;
-                                              console.log(fieldName,errorMessage);
-                                              ul.append(li);
-                                          })
+                                          if(!formActive.get('personalInfo')){
+                                              formActive.set('personalInfo',personalInfoContainer);
+                                              formActive.set('educationInfo',educationInfoContainer);
+                                              tabActiveList.set('tabPersonal',tabPersonalInfo);
+                                              tabActiveList.set('tabEdu',tabEducation);
+                                          }
+                                          tabActivate();
 
-                                          toastContent.append(ul);
-                                          const toastBootstrap = bootstrap.Toast.getOrCreateInstance(toastLiveExample)
-                                          toastBootstrap.show()
+                                      })
+                              }).catch(function (error) {
+                                  if (error.response.status === 422) {
+                                      let errors = error.response.data.errors;
+                                      // Clear previous error messages
+                                      toastContent.empty();
 
-                                          // Display validation errors under input fields
-                                          // Object.keys(errors).forEach((field,value) => {
-                                          //     console.log(field);
-                                          //     console.log('value:',value);
-                                          //     let ul = $("<ul>");
-                                          //     ul.addClass("text-danger");
-                                          //
-                                          //     // Display validation errors under input fields
-                                          //     $.each(errors, function (field, message) {
-                                          //         let $li = $("<li>").text(message);
-                                          //         ul.append($li);
-                                          //         ul.append(field);
-                                          //
-                                          //     });
-                                          //
-                                          //     toastContent.append(ul);
-                                          //     const toastBootstrap = bootstrap.Toast.getOrCreateInstance(toastLiveExample)
-                                          //     toastBootstrap.show()
-                                          // })
-                                      }
-                                  });
+                                      console.log(Object.entries(errors));
+                                      let ul = $("<ul>");
+                                      Object.entries(errors).forEach((value)=>{
+                                          let fieldName = value[0], errorMessage = value[1][0],  li = $("<li>").text(errorMessage) ;
+                                          console.log(fieldName,errorMessage);
+                                          ul.append(li);
+                                      })
 
-                              // personalInfoContainer.hide(0,e=>{
-                              //     educationInfoContainer.show();
-                              //     tabActiveList.set('tabPersonal',tabPersonalInfo);
-                              //     tabActiveList.set('tabEdu',tabEducation);
-                              //
-                              //     if(!formActive.get('personalInfo')){
-                              //         formActive.set('personalInfo',personalInfoContainer);
-                              //         formActive.set('educationInfo',educationInfoContainer);
-                              //         tabActiveList.set('tabPersonal',tabPersonalInfo);
-                              //         tabActiveList.set('tabEdu',tabEducation);
-                              //     }
-                              // })
+                                      toastContent.append(ul);
+                                      const toastBootstrap = bootstrap.Toast.getOrCreateInstance(toastLiveExample)
+                                      toastBootstrap.show()
+
+                                  }
+                              });
+
+
                           }else if(event.currentTarget.id === 'form_education'){  //======================= education information
+                              console.log('you are here in education info');
                               const rawEducationInfo = new FormOperation(event.target.elements,educationInfoContainer);
 
-                                  formData["educationInfo"] = rawEducationInfo.formDataPack;
-                                  educationInfoContainer.hide(0,e=>{
-                                      trainingInfoContainer.show();
+                              formData["educationInfo"] = rawEducationInfo.formDataPack;
 
-                                      if(!formActive.get('trainingInfo')){
-                                          formActive.set('trainingInfo',trainingInfoContainer);
-                                          tabActiveList.set('tabTraining',tabTraining);
+
+                              // const rawPersonalInfo = new FormOperation(event.target.elements,personalInfoContainer);
+                              // formData["personalInfo"] = rawPersonalInfo.formDataPack;
+
+                              // assigning data
+                              formData["educationInfo"].repackedData.forEach(function(value,key){
+                                  formDataTransport.append(key,value);
+                              })
+
+                              // const identityProofInput = $('#identity_proof')[0];
+                              // const licenseAttachmentInput = $('#license_attachment')[0];
+                              //
+                              // const identityProof = identityProofInput.files[0];
+                              // const licenseAttachment = licenseAttachmentInput.files[0];
+                              //
+                              // formDataTransport.append('identity_proof_file', identityProof);
+                              // formDataTransport.append('license_attachment_file', licenseAttachment);
+
+                              axios.post('{{route('doctor.profile.store')}}',formDataTransport, {
+                                  headers: {
+                                      'Content-Type': 'multipart/form-data',
+                                  }
+                              }).then(function (response) {
+                                  console.log(response);
+
+                                  toastContentSuccess.empty();
+                                  toastContainer = toastContainer.text(response.data['message']);
+
+                                  toastContentSuccess.append(toastContainer);
+                                  const toastBootstrap = bootstrap.Toast.getOrCreateInstance(toastSuccess)
+                                  toastBootstrap.show()
+                                  // alert(response.data['message']);
+                                  personalInfoContainer.hide(0,e=>{
+                                      educationInfoContainer.show();
+                                      tabActiveList.set('tabPersonal',tabPersonalInfo);
+                                      tabActiveList.set('tabEdu',tabEducation);
+
+                                      if(!formActive.get('personalInfo')){
+                                          formActive.set('personalInfo',personalInfoContainer);
+                                          formActive.set('educationInfo',educationInfoContainer);
+                                          tabActiveList.set('tabPersonal',tabPersonalInfo);
+                                          tabActiveList.set('tabEdu',tabEducation);
                                       }
+                                      tabActivate();
 
                                   })
+                              }).catch(function (error) {
+                                  if (error.response.status === 422) {
+                                      let errors = error.response.data.errors;
+                                      // Clear previous error messages
+                                      toastContent.empty();
+
+                                      console.log(Object.entries(errors));
+                                      let ul = $("<ul>");
+                                      Object.entries(errors).forEach((value)=>{
+                                          let fieldName = value[0], errorMessage = value[1][0],  li = $("<li>").text(errorMessage) ;
+                                          console.log(fieldName,errorMessage);
+                                          ul.append(li);
+                                      })
+
+                                      toastContent.append(ul);
+                                      const toastBootstrap = bootstrap.Toast.getOrCreateInstance(toastLiveExample)
+                                      toastBootstrap.show()
+
+                                  }
+                              });
+
+
+
+
+
+
+                                  // educationInfoContainer.hide(0,e=>{
+                                  //     trainingInfoContainer.show();
+                                  //
+                                  //     if(!formActive.get('trainingInfo')){
+                                  //         formActive.set('trainingInfo',trainingInfoContainer);
+                                  //         tabActiveList.set('tabTraining',tabTraining);
+                                  //     }
+                                  //
+                                  // })
                               // console.log(rawEducationInfo.formElements);
                               console.log(formData);
                           }else if(event.currentTarget.id === 'form_training'){  //===================== training information
@@ -847,14 +921,14 @@
 
           // ++++++++++++++++++++++++++   add more field
           // for education info
-          const addMoreEdu = new CloneFields($('#form_education .input-edu-container'),btnAddEdu,'<p class="my-0 "><strong class="h3">More Academic Info</strong></p>');
-
-          btnAddEdu.click(e=>{
-            addMoreEdu.formClone();
-            $('#form_education .btn-close').click(e=>{
-              $(e.currentTarget).parent().parent().remove();
-            })
-          })
+          // const addMoreEdu = new CloneFields($('#form_education .input-edu-container'),btnAddEdu,'<p class="my-0 "><strong class="h3">More Academic Info</strong></p>');
+          //
+          // btnAddEdu.click(e=>{
+          //   addMoreEdu.formClone();
+          //   $('#form_education .btn-close').click(e=>{
+          //     $(e.currentTarget).parent().parent().remove();
+          //   })
+          // })
 
           // for training info
           const addMoreTrain = new CloneFields($('#training_info_container .input-train-container'),btnAddTraining,'<p class="my-0 "><strong class="h3">More Training Info</strong></p>');

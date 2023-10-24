@@ -12,7 +12,25 @@
 
       <div class="" >
 
-        <div class="row justify-content-center " id="doctor_register_container">
+{{--          <button type="button" class="btn btn-primary" id="liveToastBtn">Show live toast</button>--}}
+
+          <div class="toast-container position-fixed top-0 end-0 p-3" >
+              <div id="liveToast" class="toast" role="alert" aria-live="assertive"  aria-atomic="true">
+                  <div class="toast-header">
+{{--                      <img src="..." class="rounded me-2" alt="...">--}}
+                      <strong class="me-auto text-danger">Warning!</strong>
+                      <small>11 mins ago</small>
+                      <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
+                  </div>
+                  <div class="toast-body">
+                      <div id="toastContent">
+                      </div>
+                  </div>
+              </div>
+          </div>
+
+
+          <div class="row justify-content-center " id="doctor_register_container">
             <div class="toast align-items-center" role="alert" aria-live="assertive" aria-atomic="true">
                 <div class="d-flex">
                     <div class="toast-body">
@@ -50,7 +68,7 @@
               <!-- name  -->
               <div class="col-12 col-lg-6 col-xl-6 col-xxl-6">
                 <label for="first_name" class="form-label">First Name</label>
-                <input type="text" class="form-control" value="{{$user->first_name}}" name="first_name" id="first_name" placeholder="First Name" required maxlength="2" >
+                <input type="text" class="form-control" value="{{$user->first_name}}" name="first_name" id="first_name" placeholder="First Name" required max="50" >
                   <div class="invalid-feedback">
                       @error('first_name')
                       {{ $message }}
@@ -64,7 +82,7 @@
 
               <div class="col-12 col-lg-6 col-xl-6 col-xxl-6">
                 <label for="last_name" class="form-label">Last Name</label>
-                <input type="text" class="form-control"  pattern="[A-Za-z]{3}" value="{{$user->last_name}}" name="last_name" id="last_name" placeholder="Last Name" required>
+                <input type="text" class="form-control"  value="{{$user->last_name}}" name="last_name" id="last_name" placeholder="Last Name" required>
                   <div class="invalid-feedback">
                       @error('last_name')
                       {{ $message }}
@@ -263,7 +281,7 @@
 
               <div class="col-12 col-lg-4 col-xl-4 col-xxl-4">
                 <label for="identity_proof" class="form-label">Identity Proof(img,pdf)</label>
-                <input class="form-control" type="file" name="identity_proof" id="identity_prof" required>
+                <input class="form-control" type="file"  name="identity_proof" id="identity_proof" required>
                   <div class="invalid-feedback">
                       @error('identity_proof')
                       {{ $message }}
@@ -289,7 +307,7 @@
 
               <div class="col-12 col-lg-6 col-xl-6 col-xxl-6">
                 <label for="license_attachment" class="form-label">License Attachment</label>
-                <input type="file" class="form-control" name="license_attachment" id="license_attachment" placeholder="" required>
+                <input type="file" class="form-control" name="license_attachment" accept=".pdf,.jpg,.jpeg,.png" id="license_attachment" placeholder="" required>
                   <div class="invalid-feedback">
                       @error('license_attachment')
                       {{ $message }}
@@ -507,6 +525,7 @@
 {{--          <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>--}}
 {{--          <script src="https://unpkg.com/axios/dist/axios.min.js"></script>--}}
     <x-vendor.bootstrap_bundle_js/>
+    <script src="{{asset('vendor/bootstrap-5.3.0-alpha1-dist/js/bootstrap.js')}}"></script>
 
     <script src="{{asset('wizard_form/js/wizard_step.js')}}"></script>
 
@@ -554,6 +573,14 @@
           const formData = {}; //form data container
           let formActive = new Map();
           const tabActiveList = new Map();
+
+          // bootstrap toast
+            const toastTrigger = document.getElementById('liveToastBtn')
+            const toastLiveExample = document.getElementById('liveToast')
+
+            const toastContent = $("#toastContent");
+
+
 
           //==========================job validation function=================
           function jobStatusValidation(arg){
@@ -628,22 +655,113 @@
                           event.stopPropagation()
                       }else{ // ============ validated
                           event.preventDefault();
+
+                          let formDataTransport = new FormData();
+
                           if(event.currentTarget.id === 'form_personal_info'){// ==========================personal information
-                              console.log('you are here in personal info');
+
                               const rawPersonalInfo = new FormOperation(event.target.elements,personalInfoContainer);
                               formData["personalInfo"] = rawPersonalInfo.formDataPack;
-                              personalInfoContainer.hide(0,e=>{
-                                  educationInfoContainer.show();
-                                  tabActiveList.set('tabPersonal',tabPersonalInfo);
-                                  tabActiveList.set('tabEdu',tabEducation);
 
-                                  if(!formActive.get('personalInfo')){
-                                      formActive.set('personalInfo',personalInfoContainer);
-                                      formActive.set('educationInfo',educationInfoContainer);
-                                      tabActiveList.set('tabPersonal',tabPersonalInfo);
-                                      tabActiveList.set('tabEdu',tabEducation);
+                              // assigning data
+                              formData["personalInfo"].repackedData.forEach(function(value,key){
+                                  formDataTransport.append(key,value);
+                              })
+
+                              const identityProofInput = $('#identity_proof')[0];
+                              const licenseAttachmentInput = $('#license_attachment')[0];
+
+                              const identityProof = identityProofInput.files[0];
+                              const licenseAttachment = licenseAttachmentInput.files[0];
+
+
+
+
+                              formDataTransport.append('identity_proof_file', identityProof);
+                              formDataTransport.append('license_attachment_file', licenseAttachment);
+
+
+
+                              axios.post('{{route('doctor.profile.store')}}',formDataTransport, {
+                                  headers: {
+                                      'Content-Type': 'multipart/form-data',
                                   }
                               })
+                                  .then(function (response) {
+
+                                      alert(response.data['message']);
+                                  })
+                                  .catch(function (error) {
+                                      if (error.response.status === 422) {
+                                          let errors = error.response.data.errors;
+                                          // Clear previous error messages
+                                          toastContent.empty();
+
+                                          console.log(Object.entries(errors));
+                                          let ul = $("<ul>");
+                                          Object.entries(errors).forEach((value)=>{
+                                              let fieldName = value[0], errorMessage = value[1][0],  li = $("<li>").text(errorMessage) ;
+                                              console.log(fieldName,errorMessage);
+                                              ul.append(li);
+                                          })
+
+                                          toastContent.append(ul);
+                                          const toastBootstrap = bootstrap.Toast.getOrCreateInstance(toastLiveExample)
+                                          toastBootstrap.show()
+
+
+
+
+
+                                          // setTimeout(function () {
+                                          //     toastBootstrap.toast('hide');
+                                          // }, 500000);
+                                          // toastBootstrap.addEventListener('hidden.bs.toast', () => {
+                                          //     // do something...
+                                          //
+                                          // })
+
+
+
+
+
+
+
+
+                                          // Display validation errors under input fields
+                                          // Object.keys(errors).forEach((field,value) => {
+                                          //     console.log(field);
+                                          //     console.log('value:',value);
+                                          //     let ul = $("<ul>");
+                                          //     ul.addClass("text-danger");
+                                          //
+                                          //     // Display validation errors under input fields
+                                          //     $.each(errors, function (field, message) {
+                                          //         let $li = $("<li>").text(message);
+                                          //         ul.append($li);
+                                          //         ul.append(field);
+                                          //
+                                          //     });
+                                          //
+                                          //     toastContent.append(ul);
+                                          //     const toastBootstrap = bootstrap.Toast.getOrCreateInstance(toastLiveExample)
+                                          //     toastBootstrap.show()
+                                          // })
+                                      }
+                                  });
+
+                              // personalInfoContainer.hide(0,e=>{
+                              //     educationInfoContainer.show();
+                              //     tabActiveList.set('tabPersonal',tabPersonalInfo);
+                              //     tabActiveList.set('tabEdu',tabEducation);
+                              //
+                              //     if(!formActive.get('personalInfo')){
+                              //         formActive.set('personalInfo',personalInfoContainer);
+                              //         formActive.set('educationInfo',educationInfoContainer);
+                              //         tabActiveList.set('tabPersonal',tabPersonalInfo);
+                              //         tabActiveList.set('tabEdu',tabEducation);
+                              //     }
+                              // })
                           }else if(event.currentTarget.id === 'form_education'){  //======================= education information
                               const rawEducationInfo = new FormOperation(event.target.elements,educationInfoContainer);
 
@@ -716,9 +834,6 @@
                   // jQuery methods go here...
                   tabActivated(tabActiveList);
                   tabVisibility();
-                  // tab button
-                  console.log('here you are');
-                  console.log(formActive);
 
                   if(formActive.get('personalInfo')){
 
@@ -790,6 +905,24 @@
 
 
           })// main loader ending tag
+
+
+        // ============================bootstrap toast functions
+        $(document).ready(function(){
+            $("#liveToast").toast({
+                autohide: false
+            });
+        });
+
+
+
+
+        // if (toastTrigger) {
+        //     const toastBootstrap = bootstrap.Toast.getOrCreateInstance(toastLiveExample)
+        //     toastTrigger.addEventListener('click', () => {
+        //
+        //     })
+        // }
     </script>
 
 

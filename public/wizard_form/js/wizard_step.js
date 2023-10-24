@@ -193,8 +193,9 @@ class FormOperation{
                 data.clear();
             }
             if(element.type == "file"){
-                element.files["file_path"] = element.value;
-                data.set(element.name,element.files);
+                // element.files["file_path"] = element.value;
+                // data.set(element.name,element.files);
+                // pass;
 
             }else{
                 if(element.type == 'checkbox'){

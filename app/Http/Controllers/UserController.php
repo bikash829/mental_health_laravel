@@ -7,10 +7,13 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Foundation\Auth\AuthenticatesUsers;
+use Illuminate\Support\Str;
 
 class UserController extends Controller
 {
     use AuthenticatesUsers;
+
+
 
     /**
      * Display a listing of the resource.
@@ -34,6 +37,7 @@ class UserController extends Controller
     public function store(Request $request)
     {
         $request->validate([
+            'doc_title' => ['required','integer'],
             'first_name' => ['required','string','max:20'],
             'last_name' => ['required','string','max:20'],
             'marital_status' => ['integer','max:3'],
@@ -44,13 +48,38 @@ class UserController extends Controller
             'additional_phone'=>['max:20',],
             'date_of_birth'=> ['required','date',],
             'identity_type' => ['required','integer','max:3'],
-            'identity_no' => ['required','max:50'],
-//            'identity_proof' => ['required',],
+            'identity_no' => ['required','max:20'],
+            'identity_proof_file' => ['required','mimes:jpeg,jpg,png,pdf','max:2048'],
+            'license_attachment_file' => ['required','mimes:jpeg,jpg,png,pdf','max:2048'],
 //            'identity_location' => ['required',],
             'religion' => ['string','max:10'],
         ]);
 
         $user = Auth::user();
+
+
+        if($request->file('identity_proof_file')){
+            $file = $request->file('identity_proof_file');
+            $fileName = Str::uuid().'.'.$file->extension();
+            $fileLocation = 'uploads/important_documents/doctor_license';
+            $file->move(public_path($fileLocation), $fileName);
+
+            // merging info into request
+            $request->merge(['identity_proof' => $fileName]);
+            $request->merge(['identity_location' => $fileLocation]);
+        }
+
+        if($request->file('license_attachment_file')){
+            $file = $request->file('license_attachment_file');
+            $fileName = Str::uuid().'.'.$file->extension();
+            $fileLocation = 'uploads/important_documents/doctor_license';
+            $file->move(public_path($fileLocation), $fileName);
+
+            // merging info into request
+            $request->merge(['license_attachment' => $fileName]);
+            $request->merge(['license_attachment_location' => $fileLocation]);
+        }
+
 
         $user->update($request->all());
         $user->address()->updateOrCreate([],$request->all());
@@ -120,8 +149,6 @@ class UserController extends Controller
                 }
                 break;
             case 'imageUpload':
-
-
 
                 $request->validate([
                     'profile_picture' => ['required','image','mimes:jpeg,png,gif','max:2048'],

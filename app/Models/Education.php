@@ -16,6 +16,7 @@ class Education extends Model
         'duration',
         'passing_year',
         'edu_doc_title',
+        'education_certificate',
         'certificate_location',
         'user_id',
 

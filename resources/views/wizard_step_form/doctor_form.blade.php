@@ -387,7 +387,7 @@
 
                   <div class="col-12 col-lg-6 col-xl-6 col-xxl-6 group-input">
                     <label for="education_certificate" class="form-label">Upload certificate(image/pdf)</label>
-                    <input type="file" class="form-control form-field" name="education_certificate" id="education_certificate" placeholder="" required>
+                    <input type="file" class="form-control form-field" accept=".pdf,.jpg,.jpeg,.png"  name="education_certificate" id="education_certificate" placeholder="" required>
                   </div>
                   <div class="col-12 col-lg-6 col-xl-6 col-xxl-6 group-input">
                     <label for="edu_doc_title" class="form-label">Certificate Title</label>
@@ -758,14 +758,10 @@
                                   formDataTransport.append(key,value);
                               })
 
-                              // const identityProofInput = $('#identity_proof')[0];
-                              // const licenseAttachmentInput = $('#license_attachment')[0];
-                              //
-                              // const identityProof = identityProofInput.files[0];
-                              // const licenseAttachment = licenseAttachmentInput.files[0];
-                              //
-                              // formDataTransport.append('identity_proof_file', identityProof);
-                              // formDataTransport.append('license_attachment_file', licenseAttachment);
+                              const education_certificate = $('#education_certificate')[0];
+                              const education_certificate_file = education_certificate.files[0];
+
+                              formDataTransport.append('education_certificate_file', education_certificate_file);
 
                               axios.post('{{route('doctor.profile.store')}}',formDataTransport, {
                                   headers: {
@@ -780,22 +776,12 @@
                                   toastContentSuccess.append(toastContainer);
                                   const toastBootstrap = bootstrap.Toast.getOrCreateInstance(toastSuccess)
                                   toastBootstrap.show()
+                                  // form reset
+                                  frmEducation[0].reset();
                                   // alert(response.data['message']);
-                                  personalInfoContainer.hide(0,e=>{
-                                      educationInfoContainer.show();
-                                      tabActiveList.set('tabPersonal',tabPersonalInfo);
-                                      tabActiveList.set('tabEdu',tabEducation);
 
-                                      if(!formActive.get('personalInfo')){
-                                          formActive.set('personalInfo',personalInfoContainer);
-                                          formActive.set('educationInfo',educationInfoContainer);
-                                          tabActiveList.set('tabPersonal',tabPersonalInfo);
-                                          tabActiveList.set('tabEdu',tabEducation);
-                                      }
-                                      tabActivate();
-
-                                  })
                               }).catch(function (error) {
+                                  console.log(error);
                                   if (error.response.status === 422) {
                                       let errors = error.response.data.errors;
                                       // Clear previous error messages
@@ -815,11 +801,6 @@
 
                                   }
                               });
-
-
-
-
-
 
                                   // educationInfoContainer.hide(0,e=>{
                                   //     trainingInfoContainer.show();

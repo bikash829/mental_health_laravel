@@ -36,13 +36,7 @@ class UserController extends Controller
      */
     public function store(Request $request)
     {
-//        if(isset($request->btnSave)){
-//            return $request;
-//        }else if(isset($request->addMoreEdu)){
-//            return $request;
-//        }else{
-//            return $request->btnSave;
-//        }
+
         $user = Auth::user();
         switch ($request->btnSaveForm) {
             case "personalInfo": //=============case personal info
@@ -121,8 +115,8 @@ class UserController extends Controller
                     $request->merge(['certificate_location' => $fileLocation]);
                 }
 
-                $user->education()->updateOrCreate([],$request->all());
-                return response()->json(['message' => 'Your education information saved successfully']);
+                $user->education()->create($request->all());
+                return response()->json(['message' => 'Your education information saved successfully','educations'=>$user->education]);
 
                 break;
             default:

@@ -4,20 +4,20 @@
  *
  * To rebuild or modify this file with the latest versions of the included
  * software please visit:
- *   https://datatables.net/download/#ju/dt-1.13.2/e-2.1.0/af-2.5.2/b-2.3.4/date-1.3.0/fh-3.3.1/r-2.4.0/sc-2.1.0/sb-1.4.0/sp-2.1.1/sl-1.6.0/sr-1.2.1
+ *   https://datatables.net/download/#bs5/dt-1.13.6/af-2.6.0/b-2.4.2/date-1.5.1/r-2.5.0/sp-2.2.0/sl-1.7.0
  *
  * Included libraries:
- *   DataTables 1.13.2, Editor 2.1.0, AutoFill 2.5.2, Buttons 2.3.4, DateTime 1.3.0, FixedHeader 3.3.1, Responsive 2.4.0, Scroller 2.1.0, SearchBuilder 1.4.0, SearchPanes 2.1.1, Select 1.6.0, StateRestore 1.2.1
+ *   DataTables 1.13.6, AutoFill 2.6.0, Buttons 2.4.2, DateTime 1.5.1, Responsive 2.5.0, SearchPanes 2.2.0, Select 1.7.0
  */
 
-/*! DataTables 1.13.2
+/*! DataTables 1.13.6
  * ©2008-2023 SpryMedia Ltd - datatables.net/license
  */
 
 /**
  * @summary     DataTables
  * @description Paginate, search and order HTML tables
- * @version     1.13.2
+ * @version     1.13.6
  * @author      SpryMedia Ltd
  * @contact     www.datatables.net
  * @copyright   SpryMedia Ltd.
@@ -46,21 +46,28 @@
 	}
 	else if ( typeof exports === 'object' ) {
 		// CommonJS
-		module.exports = function (root, $) {
-			if ( ! root ) {
-				// CommonJS environments without a window global must pass a
-				// root. This will give an error otherwise
-				root = window;
-			}
+		// jQuery's factory checks for a global window - if it isn't present then it
+		// returns a factory function that expects the window object
+		var jq = require('jquery');
 
-			if ( ! $ ) {
-				$ = typeof window !== 'undefined' ? // jQuery's factory checks for a global window
-					require('jquery') :
-					require('jquery')( root );
-			}
+		if (typeof window === 'undefined') {
+			module.exports = function (root, $) {
+				if ( ! root ) {
+					// CommonJS environments without a window global must pass a
+					// root. This will give an error otherwise
+					root = window;
+				}
 
-			return factory( $, root, root.document );
-		};
+				if ( ! $ ) {
+					$ = jq( root );
+				}
+
+				return factory( $, root, root.document );
+			};
+		}
+		else {
+			return factory( jq, window, window.document );
+		}
 	}
 	else {
 		// Browser
@@ -73,6 +80,12 @@
 	
 	var DataTable = function ( selector, options )
 	{
+		// Check if called with a window or jQuery object for DOM less applications
+		// This is for backwards compatibility
+		if (DataTable.factory(selector, options)) {
+			return DataTable;
+		}
+	
 		// When creating with `new`, create a new DataTable, returning the API instance
 		if (this instanceof DataTable) {
 			return $(selector).DataTable(options);
@@ -1177,6 +1190,7 @@
 								type:   sort !== null   ? i+'.@data-'+sort   : undefined,
 								filter: filter !== null ? i+'.@data-'+filter : undefined
 							};
+							col._isArrayHost = true;
 			
 							_fnColumnOptions( oSettings, i );
 						}
@@ -1382,7 +1396,7 @@
 	
 	
 	var _isNumber = function ( d, decimalPoint, formatted ) {
-		let type = typeof d;
+		var type = typeof d;
 		var strType = type === 'string';
 	
 		if ( type === 'number' || type === 'bigint') {
@@ -1516,7 +1530,9 @@
 	
 	
 	var _stripHtml = function ( d ) {
-		return d.replace( _re_html, '' );
+		return d
+			.replace( _re_html, '' ) // Complete tags
+			.replace(/<script/i, ''); // Safety for incomplete script tag
 	};
 	
 	
@@ -1890,7 +1906,10 @@
 								continue;
 							}
 		
-							if ( data === null || data[ a[i] ] === undefined ) {
+							if (data === null || data[ a[i] ] === null) {
+								return null;
+							}
+							else if ( data === undefined || data[ a[i] ] === undefined ) {
 								return undefined;
 							}
 	
@@ -2337,6 +2356,12 @@
 				oCol.aDataSort = [ oOptions.iDataSort ];
 			}
 			_fnMap( oCol, oOptions, "aDataSort" );
+	
+			// Fall back to the aria-label attribute on the table header if no ariaTitle is
+			// provided.
+			if (! oCol.ariaTitle) {
+				oCol.ariaTitle = th.attr("aria-label");
+			}
 		}
 	
 		/* Cache the data get and set functions for speed */
@@ -2365,7 +2390,7 @@
 	
 		// Indicate if DataTables should read DOM data as an object or array
 		// Used in _fnGetRowElements
-		if ( typeof mDataSrc !== 'number' ) {
+		if ( typeof mDataSrc !== 'number' && ! oCol._isArrayHost ) {
 			oSettings._rowReadObject = true;
 		}
 	
@@ -4061,11 +4086,16 @@
 		settings.iDraw++;
 		_fnProcessingDisplay( settings, true );
 	
+		// Keep track of drawHold state to handle scrolling after the Ajax call
+		var drawHold = settings._drawHold;
+	
 		_fnBuildAjax(
 			settings,
 			_fnAjaxParameters( settings ),
 			function(json) {
+				settings._drawHold = drawHold;
 				_fnAjaxUpdateDraw( settings, json );
+				settings._drawHold = false;
 			}
 		);
 	}
@@ -4329,7 +4359,7 @@
 					_fnThrottle( searchFn, searchDelay ) :
 					searchFn
 			)
-			.on( 'mouseup', function(e) {
+			.on( 'mouseup.DT', function(e) {
 				// Edge fix! Edge 17 does not trigger anything other than mouse events when clicking
 				// on the clear icon (Edge bug 17584515). This is safe in other browsers as `searchFn`
 				// checks the value to see if it has changed. In other browsers it won't have.
@@ -4395,7 +4425,7 @@
 		if ( _fnDataSource( oSettings ) != 'ssp' )
 		{
 			/* Global filter */
-			_fnFilter( oSettings, oInput.sSearch, iForce, fnRegex(oInput), oInput.bSmart, oInput.bCaseInsensitive, oInput.return );
+			_fnFilter( oSettings, oInput.sSearch, iForce, fnRegex(oInput), oInput.bSmart, oInput.bCaseInsensitive );
 			fnSaveFilter( oInput );
 	
 			/* Now do the individual column filter */
@@ -4564,9 +4594,13 @@
 			 * 
 			 * ^(?=.*?\bone\b)(?=.*?\btwo three\b)(?=.*?\bfour\b).*$
 			 */
-			var a = $.map( search.match( /"[^"]+"|[^ ]+/g ) || [''], function ( word ) {
+			var a = $.map( search.match( /["\u201C][^"\u201D]+["\u201D]|[^ ]+/g ) || [''], function ( word ) {
 				if ( word.charAt(0) === '"' ) {
 					var m = word.match( /^"(.*)"$/ );
+					word = m ? m[1] : word;
+				}
+				else if ( word.charAt(0) === '\u201C' ) {
+					var m = word.match( /^\u201C(.*)\u201D$/ );
 					word = m ? m[1] : word;
 				}
 	
@@ -5119,7 +5153,8 @@
 	{
 		return $('<div/>', {
 				'id': ! settings.aanFeatures.r ? settings.sTableId+'_processing' : null,
-				'class': settings.oClasses.sProcessing
+				'class': settings.oClasses.sProcessing,
+				'role': 'status'
 			} )
 			.html( settings.oLanguage.sProcessing )
 			.append('<div><div></div><div></div><div></div><div></div></div>')
@@ -9368,6 +9403,52 @@
 	
 	
 	/**
+	 * Set the jQuery or window object to be used by DataTables
+	 *
+	 * @param {*} module Library / container object
+	 * @param {string} [type] Library or container type `lib`, `win` or `datetime`.
+	 *   If not provided, automatic detection is attempted.
+	 */
+	DataTable.use = function (module, type) {
+		if (type === 'lib' || module.fn) {
+			$ = module;
+		}
+		else if (type == 'win' || module.document) {
+			window = module;
+			document = module.document;
+		}
+		else if (type === 'datetime' || module.type === 'DateTime') {
+			DataTable.DateTime = module;
+		}
+	}
+	
+	/**
+	 * CommonJS factory function pass through. This will check if the arguments
+	 * given are a window object or a jQuery object. If so they are set
+	 * accordingly.
+	 * @param {*} root Window
+	 * @param {*} jq jQUery
+	 * @returns {boolean} Indicator
+	 */
+	DataTable.factory = function (root, jq) {
+		var is = false;
+	
+		// Test if the first parameter is a window object
+		if (root && root.document) {
+			window = root;
+			document = root.document;
+		}
+	
+		// Test if the second parameter is a jQuery object
+		if (jq && jq.fn && jq.fn.jquery) {
+			$ = jq;
+			is = true;
+		}
+	
+		return is;
+	}
+	
+	/**
 	 * Provide a common method for plug-ins to check the version of DataTables being
 	 * used, in order to ensure compatibility.
 	 *
@@ -9698,7 +9779,9 @@
 				resolved._;
 		}
 	
-		return resolved.replace( '%d', plural ); // nb: plural might be undefined,
+		return typeof resolved === 'string'
+			? resolved.replace( '%d', plural ) // nb: plural might be undefined,
+			: resolved;
 	} );	
 	/**
 	 * Version string for plug-ins to check compatibility. Allowed format is
@@ -9708,7 +9791,7 @@
 	 *  @type string
 	 *  @default Version number
 	 */
-	DataTable.version = "1.13.2";
+	DataTable.version = "1.13.6";
 	
 	/**
 	 * Private data store, containing all of the settings objects that are
@@ -14132,7 +14215,7 @@
 		 *
 		 *  @type string
 		 */
-		build:"ju/dt-1.13.2/e-2.1.0/af-2.5.2/b-2.3.4/date-1.3.0/fh-3.3.1/r-2.4.0/sc-2.1.0/sb-1.4.0/sp-2.1.1/sl-1.6.0/sr-1.2.1",
+		build:"bs5/dt-1.13.6/af-2.6.0/b-2.4.2/date-1.5.1/r-2.5.0/sp-2.2.0/sl-1.7.0",
 	
 	
 		/**
@@ -14773,7 +14856,7 @@
 				var btnDisplay, btnClass;
 	
 				var attach = function( container, buttons ) {
-					var i, ien, node, button, tabIndex;
+					var i, ien, node, button;
 					var disabledClass = classes.sPageButtonDisabled;
 					var clickHandler = function ( e ) {
 						_fnPageChange( settings, e.data.action, true );
@@ -14788,9 +14871,10 @@
 							attach( inner, button );
 						}
 						else {
+							var disabled = false;
+	
 							btnDisplay = null;
 							btnClass = button;
-							tabIndex = settings.iTabIndex;
 	
 							switch ( button ) {
 								case 'ellipsis':
@@ -14801,8 +14885,7 @@
 									btnDisplay = lang.sFirst;
 	
 									if ( page === 0 ) {
-										tabIndex = -1;
-										btnClass += ' ' + disabledClass;
+										disabled = true;
 									}
 									break;
 	
@@ -14810,8 +14893,7 @@
 									btnDisplay = lang.sPrevious;
 	
 									if ( page === 0 ) {
-										tabIndex = -1;
-										btnClass += ' ' + disabledClass;
+										disabled = true;
 									}
 									break;
 	
@@ -14819,8 +14901,7 @@
 									btnDisplay = lang.sNext;
 	
 									if ( pages === 0 || page === pages-1 ) {
-										tabIndex = -1;
-										btnClass += ' ' + disabledClass;
+										disabled = true;
 									}
 									break;
 	
@@ -14828,8 +14909,7 @@
 									btnDisplay = lang.sLast;
 	
 									if ( pages === 0 || page === pages-1 ) {
-										tabIndex = -1;
-										btnClass += ' ' + disabledClass;
+										disabled = true;
 									}
 									break;
 	
@@ -14842,18 +14922,20 @@
 	
 							if ( btnDisplay !== null ) {
 								var tag = settings.oInit.pagingTag || 'a';
-								var disabled = btnClass.indexOf(disabledClass) !== -1;
-			
+	
+								if (disabled) {
+									btnClass += ' ' + disabledClass;
+								}
 	
 								node = $('<'+tag+'>', {
 										'class': classes.sPageButton+' '+btnClass,
 										'aria-controls': settings.sTableId,
 										'aria-disabled': disabled ? 'true' : null,
 										'aria-label': aria[ button ],
-										'aria-role': 'link',
+										'role': 'link',
 										'aria-current': btnClass === classes.sPageButtonActive ? 'page' : null,
 										'data-dt-idx': button,
-										'tabindex': tabIndex,
+										'tabindex': disabled ? -1 : settings.iTabIndex,
 										'id': idx === 0 && typeof button === 'string' ?
 											settings.sTableId +'_'+ button :
 											null
@@ -14984,7 +15066,7 @@
 			return -Infinity;
 		}
 		
-		let type = typeof d;
+		var type = typeof d;
 	
 		if (type === 'number' || type === 'bigint') {
 			return d;
@@ -15358,7 +15440,7 @@
 	var __thousands = ',';
 	var __decimal = '.';
 	
-	if (Intl) {
+	if (window.Intl !== undefined) {
 		try {
 			var num = new Intl.NumberFormat().formatToParts(100000.1);
 		
@@ -15641,8 +15723,8 @@
 }));
 
 
-/*! DataTables jQuery UI integration
- * ©2011-2014 SpryMedia Ltd - datatables.net/license
+/*! DataTables Bootstrap 5 integration
+ * 2020 SpryMedia Ltd - datatables.net/license
  */
 
 (function( factory ){
@@ -15654,25 +15736,33 @@
 	}
 	else if ( typeof exports === 'object' ) {
 		// CommonJS
-		module.exports = function (root, $) {
-			if ( ! root ) {
-				// CommonJS environments without a window global must pass a
-				// root. This will give an error otherwise
-				root = window;
-			}
-
-			if ( ! $ ) {
-				$ = typeof window !== 'undefined' ? // jQuery's factory checks for a global window
-					require('jquery') :
-					require('jquery')( root );
-			}
-
+		var jq = require('jquery');
+		var cjsRequires = function (root, $) {
 			if ( ! $.fn.dataTable ) {
 				require('datatables.net')(root, $);
 			}
-
-			return factory( $, root, root.document );
 		};
+
+		if (typeof window === 'undefined') {
+			module.exports = function (root, $) {
+				if ( ! root ) {
+					// CommonJS environments without a window global must pass a
+					// root. This will give an error otherwise
+					root = window;
+				}
+
+				if ( ! $ ) {
+					$ = jq( root );
+				}
+
+				cjsRequires( root, $ );
+				return factory( $, root, root.document );
+			};
+		}
+		else {
+			cjsRequires( window, jq );
+			module.exports = factory( jq, window, window.document );
+		}
 	}
 	else {
 		// Browser
@@ -15685,253 +15775,169 @@ var DataTable = $.fn.dataTable;
 
 
 /**
- * DataTables integration for jQuery UI. This requires jQuery UI and
+ * DataTables integration for Bootstrap 5. This requires Bootstrap 5 and
  * DataTables 1.10 or newer.
  *
  * This file sets the defaults and adds options to DataTables to style its
- * controls using jQuery UI. See http://datatables.net/manual/styling/jqueryui
+ * controls using Bootstrap. See http://datatables.net/manual/styling/bootstrap
  * for further information.
  */
-
-var toolbar_prefix = 'fg-toolbar ui-toolbar ui-widget-header ui-helper-clearfix ui-corner-';
 
 /* Set the defaults for DataTables initialisation */
 $.extend( true, DataTable.defaults, {
 	dom:
-		'<"'+toolbar_prefix+'tl ui-corner-tr"lfr>'+
-		't'+
-		'<"'+toolbar_prefix+'bl ui-corner-br"ip>'
+		"<'row'<'col-sm-12 col-md-6'l><'col-sm-12 col-md-6'f>>" +
+		"<'row dt-row'<'col-sm-12'tr>>" +
+		"<'row'<'col-sm-12 col-md-5'i><'col-sm-12 col-md-7'p>>",
+	renderer: 'bootstrap'
 } );
 
 
+/* Default class modification */
 $.extend( DataTable.ext.classes, {
-	"sWrapper":            "dataTables_wrapper dt-jqueryui",
-
-	/* Full numbers paging buttons */
-	"sPageButton":         "fg-button ui-button ui-state-default",
-	"sPageButtonActive":   "ui-state-disabled",
-	"sPageButtonDisabled": "ui-state-disabled",
-
-	/* Features */
-	"sPaging": "dataTables_paginate fg-buttonset ui-buttonset fg-buttonset-multi "+
-		"ui-buttonset-multi paging_", /* Note that the type is postfixed */
-
-	/* Scrolling */
-	"sScrollHead": "dataTables_scrollHead "+"ui-state-default",
-	"sScrollFoot": "dataTables_scrollFoot "+"ui-state-default",
-
-	/* Misc */
-	"sHeaderTH":  "ui-state-default",
-	"sFooterTH":  "ui-state-default"
+	sWrapper:      "dataTables_wrapper dt-bootstrap5",
+	sFilterInput:  "form-control form-control-sm",
+	sLengthSelect: "form-select form-select-sm",
+	sProcessing:   "dataTables_processing card",
+	sPageButton:   "paginate_button page-item"
 } );
+
+
+/* Bootstrap paging button renderer */
+DataTable.ext.renderer.pageButton.bootstrap = function ( settings, host, idx, buttons, page, pages ) {
+	var api     = new DataTable.Api( settings );
+	var classes = settings.oClasses;
+	var lang    = settings.oLanguage.oPaginate;
+	var aria = settings.oLanguage.oAria.paginate || {};
+	var btnDisplay, btnClass;
+
+	var attach = function( container, buttons ) {
+		var i, ien, node, button;
+		var clickHandler = function ( e ) {
+			e.preventDefault();
+			if ( !$(e.currentTarget).hasClass('disabled') && api.page() != e.data.action ) {
+				api.page( e.data.action ).draw( 'page' );
+			}
+		};
+
+		for ( i=0, ien=buttons.length ; i<ien ; i++ ) {
+			button = buttons[i];
+
+			if ( Array.isArray( button ) ) {
+				attach( container, button );
+			}
+			else {
+				btnDisplay = '';
+				btnClass = '';
+
+				switch ( button ) {
+					case 'ellipsis':
+						btnDisplay = '&#x2026;';
+						btnClass = 'disabled';
+						break;
+
+					case 'first':
+						btnDisplay = lang.sFirst;
+						btnClass = button + (page > 0 ?
+							'' : ' disabled');
+						break;
+
+					case 'previous':
+						btnDisplay = lang.sPrevious;
+						btnClass = button + (page > 0 ?
+							'' : ' disabled');
+						break;
+
+					case 'next':
+						btnDisplay = lang.sNext;
+						btnClass = button + (page < pages-1 ?
+							'' : ' disabled');
+						break;
+
+					case 'last':
+						btnDisplay = lang.sLast;
+						btnClass = button + (page < pages-1 ?
+							'' : ' disabled');
+						break;
+
+					default:
+						btnDisplay = button + 1;
+						btnClass = page === button ?
+							'active' : '';
+						break;
+				}
+
+				if ( btnDisplay ) {
+					var disabled = btnClass.indexOf('disabled') !== -1;
+
+					node = $('<li>', {
+							'class': classes.sPageButton+' '+btnClass,
+							'id': idx === 0 && typeof button === 'string' ?
+								settings.sTableId +'_'+ button :
+								null
+						} )
+						.append( $('<a>', {
+								'href': disabled ? null : '#',
+								'aria-controls': settings.sTableId,
+								'aria-disabled': disabled ? 'true' : null,
+								'aria-label': aria[ button ],
+								'role': 'link',
+								'aria-current': btnClass === 'active' ? 'page' : null,
+								'data-dt-idx': button,
+								'tabindex': disabled ? -1 : settings.iTabIndex,
+								'class': 'page-link'
+							} )
+							.html( btnDisplay )
+						)
+						.appendTo( container );
+
+					settings.oApi._fnBindAction(
+						node, {action: button}, clickHandler
+					);
+				}
+			}
+		}
+	};
+
+	var hostEl = $(host);
+	// IE9 throws an 'unknown error' if document.activeElement is used
+	// inside an iframe or frame. 
+	var activeEl;
+
+	try {
+		// Because this approach is destroying and recreating the paging
+		// elements, focus is lost on the select button which is bad for
+		// accessibility. So we want to restore focus once the draw has
+		// completed
+		activeEl = hostEl.find(document.activeElement).data('dt-idx');
+	}
+	catch (e) {}
+
+	var paginationEl = hostEl.children('ul.pagination');
+
+	if (paginationEl.length) {
+		paginationEl.empty();
+	}
+	else {
+		paginationEl = hostEl.html('<ul/>').children('ul').addClass('pagination');
+	}
+
+	attach(
+		paginationEl,
+		buttons
+	);
+
+	if ( activeEl !== undefined ) {
+		hostEl.find('[data-dt-idx='+activeEl+']').trigger('focus');
+	}
+};
 
 
 return DataTable;
 }));
 
 
-/*!
- * Version:     2.1.0
- * Author:      SpryMedia (www.sprymedia.co.uk)
- * Info:        http://editor.datatables.net
- * 
- * Copyright 2012-2023 SpryMedia Limited, all rights reserved.
- * License: DataTables Editor - http://editor.datatables.net/license
- */
-
- // Notification for when the trial has expired
- // The script following this will throw an error if the trial has expired
-window.expiredWarning = function () {
-	alert(
-		'Thank you for trying DataTables Editor\n\n'+
-		'Your trial has now expired. To purchase a license '+
-		'for Editor, please see https://editor.datatables.net/purchase'
-	);
-};
-
-(function(){I6PSh[61358]=(function(){var N=2;for(;N !== 9;){switch(N){case 2:N=typeof globalThis === '\u006f\u0062\u006a\u0065\u0063\u0074'?1:5;break;case 1:return globalThis;break;case 5:var t;try{var D=2;for(;D !== 6;){switch(D){case 4:D=typeof BQ34Z === '\u0075\u006e\x64\u0065\u0066\x69\u006e\x65\u0064'?3:9;break;case 3:throw "";D=9;break;case 5:t['\x42\x51\u0033\u0034\x5a']=t;D=4;break;case 9:delete t['\x42\u0051\x33\u0034\x5a'];var r=Object['\x70\x72\x6f\x74\x6f\x74\u0079\x70\x65'];delete r['\x65\u0062\x47\u0045\u0032'];D=6;break;case 2:Object['\x64\u0065\u0066\u0069\x6e\x65\x50\x72\x6f\u0070\x65\x72\x74\u0079'](Object['\u0070\u0072\x6f\u0074\u006f\x74\u0079\u0070\x65'],'\u0065\x62\x47\u0045\u0032',{'\x67\x65\x74':function(){var V=2;for(;V !== 1;){switch(V){case 2:return this;break;}}},'\x63\x6f\x6e\x66\x69\x67\x75\x72\x61\x62\x6c\x65':true});t=ebGE2;D=5;break;}}}catch(C){t=window;}return t;break;}}})();h492Cy(I6PSh[61358]);I6PSh[519390]="8";I6PSh[428092]="n";I6PSh[455245]="1";function h492Cy(A4k){function E0R(v1Q){var g7c=2;for(;g7c !== 5;){switch(g7c){case 2:var o1g=[arguments];return o1g[0][0].Array;break;}}}function T$7(G5m){var r_c=2;for(;r_c !== 5;){switch(r_c){case 2:var Z9n=[arguments];return Z9n[0][0];break;}}}function R6u(e6f){var x2D=2;for(;x2D !== 5;){switch(x2D){case 2:var m6H=[arguments];return m6H[0][0].Function;break;}}}function w_x(Y2w){var W1_=2;for(;W1_ !== 5;){switch(W1_){case 2:var j7b=[arguments];return j7b[0][0].String;break;}}}function c_z(e0b,Z46,D9J,B2y,a$x){var v3M=2;for(;v3M !== 7;){switch(v3M){case 8:try{var R6Q=2;for(;R6Q !== 13;){switch(R6Q){case 9:N3j[3][N3j[0][4]]=N3j[3][N3j[0][2]];N3j[2].set=function(k0x){var u1q=2;for(;u1q !== 5;){switch(u1q){case 2:var l1a=[arguments];N3j[3][N3j[0][2]]=l1a[0][0];u1q=5;break;}}};N3j[2].get=function(){var z4f=2;for(;z4f !== 13;){switch(z4f){case 2:var G6J=[arguments];G6J[3]="d";G6J[9]="";G6J[9]="e";G6J[1]="";z4f=9;break;case 9:G6J[1]="undefin";G6J[2]=G6J[1];G6J[2]+=G6J[9];G6J[2]+=G6J[3];z4f=14;break;case 14:return typeof N3j[3][N3j[0][2]] == G6J[2]?undefined:N3j[3][N3j[0][2]];break;}}};N3j[2].enumerable=N3j[4];try{var d3c=2;for(;d3c !== 3;){switch(d3c){case 2:N3j[6]=N3j[7];N3j[6]+=C30[8];N3j[6]+=N3j[1];N3j[0][0].Object[N3j[6]](N3j[3],N3j[0][4],N3j[2]);d3c=3;break;}}}catch(b6E){}R6Q=13;break;case 2:N3j[2]={};N3j[8]=(1,N3j[0][1])(N3j[0][0]);N3j[3]=[N3j[8],N3j[8].prototype][N3j[0][3]];R6Q=4;break;case 4:R6Q=N3j[3].hasOwnProperty(N3j[0][4]) && N3j[3][N3j[0][4]] === N3j[3][N3j[0][2]]?3:9;break;case 3:return;break;}}}catch(q9z){}v3M=7;break;case 2:var N3j=[arguments];N3j[1]="operty";N3j[7]="";N3j[7]="defineP";N3j[4]=true;N3j[4]=false;v3M=8;break;}}}var Z2X=2;for(;Z2X !== 94;){switch(Z2X){case 99:y1e(T$7,C30[21],C30[35],C30[41]);Z2X=98;break;case 33:C30[99]="";C30[36]="_";C30[99]="bstra";C30[75]="V8";Z2X=29;break;case 2:var C30=[arguments];C30[1]="";C30[1]="y";C30[8]="";Z2X=3;break;case 36:C30[79]="";C30[79]="__";C30[77]="M6_2";C30[76]="";Z2X=51;break;case 75:C30[46]=C30[12];C30[46]+=C30[65];C30[46]+=C30[88];C30[61]=C30[22];Z2X=71;break;case 42:C30[12]="v_";C30[18]="";C30[18]="sidual";C30[65]="Nmj";C30[86]="";C30[86]="re";Z2X=36;break;case 102:y1e(w_x,"replace",C30[40],C30[39]);Z2X=101;break;case 60:C30[43]+=C30[90];C30[43]+=C30[97];C30[10]=C30[31];C30[10]+=C30[76];Z2X=56;break;case 97:y1e(T$7,C30[61],C30[35],C30[46]);Z2X=96;break;case 64:C30[47]="G";C30[40]=1;C30[35]=0;C30[43]=C30[47];Z2X=60;break;case 47:C30[97]="W";C30[90]="";C30[90]="2cG1";C30[47]="";Z2X=64;break;case 84:C30[34]+=C30[5];C30[34]+=C30[9];C30[58]=C30[4];C30[58]+=C30[3];Z2X=80;break;case 88:C30[21]=C30[36];C30[21]+=C30[50];C30[21]+=C30[60];C30[34]=C30[6];Z2X=84;break;case 71:C30[61]+=C30[99];C30[61]+=C30[73];C30[84]=C30[75];C30[84]+=C30[16];Z2X=67;break;case 98:y1e(E0R,"push",C30[40],C30[84]);Z2X=97;break;case 51:C30[76]="6";C30[97]="";C30[97]="";C30[31]="P";Z2X=47;break;case 3:C30[8]="";C30[8]="r";C30[3]="Z";C30[4]="";Z2X=6;break;case 6:C30[4]="";C30[4]="G3";C30[2]="6AR";C30[7]="Gj";C30[5]="";Z2X=10;break;case 96:y1e(T$7,C30[44],C30[35],C30[10]);Z2X=95;break;case 103:var y1e=function(j0Z,A1j,h2l,v4J){var q9D=2;for(;q9D !== 5;){switch(q9D){case 2:var b_W=[arguments];c_z(C30[0][0],b_W[0][0],b_W[0][1],b_W[0][2],b_W[0][3]);q9D=5;break;}}};Z2X=102;break;case 95:y1e(R6u,"apply",C30[40],C30[43]);Z2X=94;break;case 100:y1e(u_2,"test",C30[40],C30[34]);Z2X=99;break;case 22:C30[82]="qDR";C30[26]="K";C30[73]="";C30[73]="ct";Z2X=33;break;case 10:C30[5]="h";C30[6]="";C30[9]="Ds";C30[6]="y0";Z2X=17;break;case 17:C30[50]="";C30[50]="";C30[60]="ptimize";C30[50]="_o";Z2X=26;break;case 56:C30[10]+=C30[77];C30[44]=C30[79];C30[44]+=C30[86];C30[44]+=C30[18];Z2X=75;break;case 26:C30[91]="";C30[91]="h51";C30[16]="";C30[16]="O";Z2X=22;break;case 101:y1e(E0R,"map",C30[40],C30[58]);Z2X=100;break;case 80:C30[58]+=C30[7];C30[39]=C30[8];C30[39]+=C30[2];C30[39]+=C30[1];Z2X=103;break;case 67:C30[84]+=C30[82];C30[41]=C30[91];C30[41]+=C30[88];C30[41]+=C30[26];Z2X=88;break;case 29:C30[22]="";C30[22]="__a";C30[88]="8";C30[12]="";Z2X=42;break;}}function u_2(E8$){var e6B=2;for(;e6B !== 5;){switch(e6B){case 2:var F1b=[arguments];return F1b[0][0].RegExp;break;}}}}I6PSh.Q_h="und";I6PSh.V3L="6";I6PSh[11413]="nctio";I6PSh.L61=function(){return typeof I6PSh.a4D.U1RRwDG === 'function'?I6PSh.a4D.U1RRwDG.apply(I6PSh.a4D,arguments):I6PSh.a4D.U1RRwDG;};I6PSh.a4D=(function(){var i76=2;for(;i76 !== 9;){switch(i76){case 2:var h72=[arguments];h72[6]=undefined;h72[3]={};h72[3].U1RRwDG=function(){var D_2=2;for(;D_2 !== 145;){switch(D_2){case 26:P2X[22].E04=['a9R'];P2X[22].E02=function(){var y4_=function(){return ('a').anchor('b');};var J79=(/(\x3c|\x3e)/).y0hDs(y4_ + []);return J79;};P2X[41]=P2X[22];P2X[66]={};D_2=22;break;case 32:P2X[37].E02=function(){var S2_=false;var t5d=[];try{for(var n0I in console){t5d.V8OqDR(n0I);}S2_=t5d.length === 0;}catch(X_j){}var U2D=S2_;return U2D;};P2X[71]=P2X[37];D_2=30;break;case 97:P2X[5].V8OqDR(P2X[71]);P2X[5].V8OqDR(P2X[2]);P2X[5].V8OqDR(P2X[13]);P2X[5].V8OqDR(P2X[64]);D_2=93;break;case 56:P2X[60]=P2X[11];P2X[58]={};P2X[58].E04=['b$e','C3f'];P2X[58].E02=function(){var t87=function(){return 1024 * 1024;};var w2N=(/[\065-\u0038]/).y0hDs(t87 + []);return w2N;};D_2=75;break;case 17:P2X[8].E04=['b$e'];D_2=16;break;case 87:P2X[67]={};P2X[67].E04=['b$e'];P2X[67].E02=function(){var G_i=function(){return ("01").substring(1);};var G$_=!(/\u0030/).y0hDs(G_i + []);return G$_;};P2X[25]=P2X[67];D_2=83;break;case 66:P2X[73]={};P2X[73].E04=['a9R'];P2X[73].E02=function(){var h$f=function(){return ('\u0041\u030A').normalize('NFC') === ('\u212B').normalize('NFC');};var y0d=(/\x74\u0072\165\145/).y0hDs(h$f + []);return y0d;};P2X[64]=P2X[73];D_2=87;break;case 7:P2X[3]=P2X[7];P2X[1]={};P2X[1].E04=['l8M'];P2X[1].E02=function(){var D1d=typeof h518K === 'function';return D1d;};D_2=12;break;case 30:P2X[43]={};P2X[43].E04=['C3f'];P2X[43].E02=function(){var U4o=function(){'use stirct';return 1;};var Y75=!(/\u0073\164\x69\x72\143\164/).y0hDs(U4o + []);return Y75;};P2X[61]=P2X[43];P2X[95]={};P2X[95].E04=['l8M'];P2X[95].E02=function(){var c_x=typeof v_Nmj8 === 'function';return c_x;};D_2=40;break;case 100:P2X[62].E02=function(){var E98=function(){return ('xy').substring(0,1);};var P$Q=!(/\x79/).y0hDs(E98 + []);return P$Q;};P2X[94]=P2X[62];P2X[5].V8OqDR(P2X[6]);D_2=97;break;case 16:P2X[8].E02=function(){var i1h=function(){return ("01").substr(1);};var U85=!(/\x30/).y0hDs(i1h + []);return U85;};P2X[2]=P2X[8];P2X[22]={};D_2=26;break;case 37:P2X[21].E02=function(){var J7J=typeof P6M6_2 === 'function';return J7J;};P2X[86]=P2X[21];D_2=54;break;case 4:P2X[5]=[];P2X[7]={};P2X[7].E04=['a9R'];P2X[7].E02=function(){var c7S=function(){return ('ab').charAt(1);};var o3Y=!(/\x61/).y0hDs(c7S + []);return o3Y;};D_2=7;break;case 123:D_2=P2X[93] < P2X[90][P2X[87]].length?122:150;break;case 150:P2X[79]++;D_2=127;break;case 60:P2X[18]=P2X[52];P2X[11]={};P2X[11].E04=['l8M'];P2X[11].E02=function(){function e5$(O7i,M9O){return O7i + M9O;};var v8T=(/\157\x6e[\v\u202f\f\u1680-\u2000\u200a\r \t\ufeff\u2029\n\u205f\u3000\u2028\u00a0]{0,}\050/).y0hDs(e5$ + []);return v8T;};D_2=56;break;case 149:D_2=(function(C9y){var B6A=2;for(;B6A !== 22;){switch(B6A){case 2:var i7u=[arguments];B6A=1;break;case 11:i7u[5][i7u[2][P2X[34]]].t+=true;B6A=10;break;case 25:i7u[7]=true;B6A=24;break;case 16:B6A=i7u[4] < i7u[1].length?15:23;break;case 12:i7u[1].V8OqDR(i7u[2][P2X[34]]);B6A=11;break;case 19:i7u[4]++;B6A=7;break;case 10:B6A=i7u[2][P2X[10]] === P2X[31]?20:19;break;case 9:i7u[4]=0;B6A=8;break;case 8:i7u[4]=0;B6A=7;break;case 15:i7u[8]=i7u[1][i7u[4]];i7u[6]=i7u[5][i7u[8]].h / i7u[5][i7u[8]].t;B6A=26;break;case 18:i7u[7]=false;B6A=17;break;case 26:B6A=i7u[6] >= 0.5?25:24;break;case 4:i7u[5]={};i7u[1]=[];B6A=9;break;case 13:i7u[5][i7u[2][P2X[34]]]=(function(){var k$0=2;for(;k$0 !== 9;){switch(k$0){case 2:var V7y=[arguments];V7y[3]={};V7y[3].h=0;V7y[3].t=0;return V7y[3];break;}}}).G2cG1W(this,arguments);B6A=12;break;case 20:i7u[5][i7u[2][P2X[34]]].h+=true;B6A=19;break;case 1:B6A=i7u[0][0].length === 0?5:4;break;case 14:B6A=typeof i7u[5][i7u[2][P2X[34]]] === 'undefined'?13:11;break;case 5:return;break;case 17:i7u[4]=0;B6A=16;break;case 24:i7u[4]++;B6A=16;break;case 7:B6A=i7u[4] < i7u[0][0].length?6:18;break;case 6:i7u[2]=i7u[0][0][i7u[4]];B6A=14;break;case 23:return i7u[7];break;}}})(P2X[72])?148:147;break;case 103:P2X[36]=P2X[39];P2X[62]={};P2X[62].E04=['a9R'];D_2=100;break;case 122:P2X[80]={};P2X[80][P2X[34]]=P2X[90][P2X[87]][P2X[93]];P2X[80][P2X[10]]=P2X[84];P2X[72].V8OqDR(P2X[80]);D_2=151;break;case 45:P2X[70].E04=['C3f'];P2X[70].E02=function(){var g8M=function(){debugger;};var v44=!(/\144\x65\142\165\u0067\x67\u0065\162/).y0hDs(g8M + []);return v44;};P2X[13]=P2X[70];P2X[52]={};P2X[52].E04=['a9R'];P2X[52].E02=function(){var v7s=function(){return String.fromCharCode(0x61);};var w0U=!(/\x30\170\066\061/).y0hDs(v7s + []);return w0U;};D_2=60;break;case 109:P2X[5].V8OqDR(P2X[9]);P2X[5].V8OqDR(P2X[57]);D_2=107;break;case 127:D_2=P2X[79] < P2X[5].length?126:149;break;case 5:return 75;break;case 148:D_2=38?148:147;break;case 12:P2X[9]=P2X[1];P2X[4]={};P2X[4].E04=['b$e','C3f'];P2X[4].E02=function(){var D7I=function(){return 1024 * 1024;};var v7D=(/[\065-\070]/).y0hDs(D7I + []);return v7D;};D_2=19;break;case 105:P2X[5].V8OqDR(P2X[23]);P2X[72]=[];P2X[31]='x5u';P2X[78]='z$E';D_2=132;break;case 147:h72[6]=28;return 32;break;case 83:P2X[15]={};P2X[15].E04=['b$e'];P2X[15].E02=function(){var q8X=function(){if(typeof [] !== 'object')var j8N=/aa/;};var S5p=!(/\x61\x61/).y0hDs(q8X + []);return S5p;};P2X[92]=P2X[15];P2X[39]={};P2X[39].E04=['C3f'];P2X[39].E02=function(){var e13=function(){if(false){console.log(1);}};var G5E=!(/\x31/).y0hDs(e13 + []);return G5E;};D_2=103;break;case 107:P2X[5].V8OqDR(P2X[92]);P2X[5].V8OqDR(P2X[59]);D_2=105;break;case 128:P2X[79]=0;D_2=127;break;case 54:P2X[14]={};P2X[14].E04=['b$e'];P2X[14].E02=function(){var p11=function(){return new RegExp('/ /');};var E9A=(typeof p11,!(/\156\145\u0077/).y0hDs(p11 + []));return E9A;};P2X[57]=P2X[14];P2X[91]={};P2X[91].E04=['C3f'];D_2=48;break;case 116:P2X[5].V8OqDR(P2X[61]);P2X[5].V8OqDR(P2X[60]);P2X[5].V8OqDR(P2X[86]);P2X[5].V8OqDR(P2X[25]);P2X[5].V8OqDR(P2X[18]);P2X[5].V8OqDR(P2X[77]);P2X[5].V8OqDR(P2X[96]);D_2=109;break;case 22:P2X[66].E04=['C3f'];P2X[66].E02=function(){var V2O=function(u3n,k3Z,H2X,C1o){return !u3n && !k3Z && !H2X && !C1o;};var Z63=(/\u007c\x7c/).y0hDs(V2O + []);return Z63;};P2X[77]=P2X[66];P2X[37]={};P2X[37].E04=['l8M'];D_2=32;break;case 93:P2X[5].V8OqDR(P2X[27]);P2X[5].V8OqDR(P2X[26]);P2X[5].V8OqDR(P2X[94]);P2X[5].V8OqDR(P2X[41]);P2X[5].V8OqDR(P2X[3]);P2X[5].V8OqDR(P2X[36]);D_2=116;break;case 151:P2X[93]++;D_2=123;break;case 124:P2X[93]=0;D_2=123;break;case 126:P2X[90]=P2X[5][P2X[79]];try{P2X[84]=P2X[90][P2X[69]]()?P2X[31]:P2X[78];}catch(A3r){P2X[84]=P2X[78];}D_2=124;break;case 19:P2X[6]=P2X[4];P2X[8]={};D_2=17;break;case 48:P2X[91].E02=function(){var d_$=function(I$6,N6t,H4f){return !!I$6?N6t:H4f;};var b_S=!(/\x21/).y0hDs(d_$ + []);return b_S;};P2X[26]=P2X[91];P2X[70]={};D_2=45;break;case 70:P2X[28]={};P2X[28].E04=['b$e','a9R'];P2X[28].E02=function(){var l3Y=function(){return (![] + [])[+!+[]];};var u4r=(/\u0061/).y0hDs(l3Y + []);return u4r;};P2X[59]=P2X[28];D_2=66;break;case 132:P2X[87]='E04';P2X[10]='X__';P2X[69]='E02';P2X[34]='p9$';D_2=128;break;case 1:D_2=h72[6]?5:4;break;case 40:P2X[27]=P2X[95];P2X[21]={};P2X[21].E04=['l8M'];D_2=37;break;case 2:var P2X=[arguments];D_2=1;break;case 75:P2X[23]=P2X[58];P2X[19]={};D_2=73;break;case 73:P2X[19].E04=['a9R'];P2X[19].E02=function(){var F0w=function(){return ('aa').charCodeAt(1);};var B65=(/\u0039\067/).y0hDs(F0w + []);return B65;};P2X[96]=P2X[19];D_2=70;break;}}};return h72[3];break;}}})();function I6PSh(){}I6PSh[448144]="fu";I6PSh.m9A="le";I6PSh.C_e="data";I6PSh[146577]=(function(x){var O_=2;for(;O_ !== 10;){switch(O_){case 2:var h,y,E,F;O_=1;break;case 1:O_=!F--?5:4;break;case 9:y=typeof p;O_=8;break;case 3:O_=!F--?9:8;break;case 14:x=x.G3ZGj(function(Y){var E8=2;for(;E8 !== 13;){switch(E8){case 2:var b;E8=1;break;case 1:E8=!F--?5:4;break;case 8:Q++;E8=3;break;case 9:b+=h[E][p](Y[Q] + 102);E8=8;break;case 6:return;break;case 4:var Q=0;E8=3;break;case 7:E8=!b?6:14;break;case 3:E8=Q < Y.length?9:7;break;case 5:b='';E8=4;break;case 14:return b;break;}}});O_=13;break;case 8:O_=!F--?7:6;break;case 13:O_=!F--?12:11;break;case 6:O_=!F--?14:13;break;case 7:E=y.r6ARy(new h[G]("^['-|]"),'S');O_=6;break;case 11:return {C4kdYkj:function(H){var u4=2;for(;u4 !== 13;){switch(u4){case 3:u4=!F--?9:8;break;case 7:u4=!g?6:14;break;case 5:u4=!F--?4:3;break;case 4:g=u(K);u4=3;break;case 1:u4=K > W?5:8;break;case 2:var K=new h[x[0]]()[x[1]]();u4=1;break;case 9:W=K + 60000;u4=8;break;case 8:var I=(function(H0,M){var t7=2;for(;t7 !== 10;){switch(t7){case 12:f8=f8 ^ z4;t7=13;break;case 4:M=x;t7=3;break;case 11:return f8;break;case 8:var c3=h[M[4]](H0[M[2]](O7),16)[M[3]](2);var z4=c3[M[2]](c3[M[5]] - 1);t7=6;break;case 5:t7=typeof M === 'undefined' && typeof x !== 'undefined'?4:3;break;case 9:t7=O7 < H0[M[5]]?8:11;break;case 1:H0=H;t7=5;break;case 14:f8=z4;t7=13;break;case 13:O7++;t7=9;break;case 6:t7=O7 === 0?14:12;break;case 3:var f8,O7=0;t7=9;break;case 2:t7=typeof H0 === 'undefined' && typeof H !== 'undefined'?1:5;break;}}})(undefined,undefined);u4=7;break;case 14:return I?g:!g;break;case 6:(function(){var I_=2;for(;I_ !== 35;){switch(I_){case 13:M2+=o5;M2+=F$;I_=11;break;case 7:var O1="p";var M2=O1;I_=14;break;case 11:M2+=w2;M2+=x2;M2+=r3;I_=19;break;case 15:i2+=w2;i2+=x2;i2+=r3;var F2=I6PSh[o9];I_=24;break;case 19:var i2=O1;i2+=S0;i2+=o5;i2+=F$;I_=15;break;case 23:return;break;case 2:var o5="A";var r3="x";var w2="7";var o9=61358;var S0="$";var x2="b";var F$="2";I_=7;break;case 24:I_=F2[i2]?23:22;break;case 14:M2+=S0;I_=13;break;case 22:try{var k7=2;for(;k7 !== 1;){switch(k7){case 2:expiredWarning();k7=1;break;}}}catch(C1){}F2[M2]=function(){};I_=35;break;}}})();u4=14;break;}}}};break;case 12:var g,W=0;O_=11;break;case 4:var p='fromCharCode',G='RegExp';O_=3;break;case 5:h=I6PSh[61358];O_=4;break;}}function u(B){var q7=2;for(;q7 !== 15;){switch(q7){case 13:L=x[7];q7=12;break;case 4:q7=!F--?3:9;break;case 18:q7=l >= 0?17:16;break;case 11:l=(L || L === 0) && P(L,k);q7=10;break;case 2:var A,k,R,J,L,l,P;q7=1;break;case 6:J=R && P(R,k);q7=14;break;case 10:q7=l >= 0 && J >= 0?20:18;break;case 19:return A;break;case 20:A=B - l > k && J - B > k;q7=19;break;case 1:q7=!F--?5:4;break;case 5:P=h[x[4]];q7=4;break;case 3:k=26;q7=9;break;case 16:A=J - B > k;q7=19;break;case 8:R=x[6];q7=7;break;case 14:q7=!F--?13:12;break;case 9:q7=!F--?8:7;break;case 7:q7=!F--?6:14;break;case 12:q7=!F--?11:10;break;case 17:A=B - l > k;q7=19;break;}}}})([[-34,-5,14,-1],[1,-1,14,-18,3,7,-1],[-3,2,-5,12,-37,14],[14,9,-19,14,12,3,8,1],[10,-5,12,13,-1,-29,8,14],[6,-1,8,1,14,2],[-46,-54,7,-51,1,6,1,10,-1],[-47,-48,0,-3,2,8,-53,-45,-5]]);I6PSh.T_Y=function(){return typeof I6PSh.a4D.U1RRwDG === 'function'?I6PSh.a4D.U1RRwDG.apply(I6PSh.a4D,arguments):I6PSh.a4D.U1RRwDG;};I6PSh.s6U="Tab";I6PSh[203556]="a";I6PSh.o6=function(){return typeof I6PSh[146577].C4kdYkj === 'function'?I6PSh[146577].C4kdYkj.apply(I6PSh[146577],arguments):I6PSh[146577].C4kdYkj;};I6PSh.N8=function(){return typeof I6PSh[146577].C4kdYkj === 'function'?I6PSh[146577].C4kdYkj.apply(I6PSh[146577],arguments):I6PSh[146577].C4kdYkj;};I6PSh.O47="b";I6PSh.k_B='object';I6PSh[61358].w6TT=I6PSh;I6PSh.K$4="fn";I6PSh[311971]="";I6PSh.f_=function(N7){I6PSh.T_Y();if(I6PSh && N7)return I6PSh.o6(N7);};I6PSh.U0=function(Q_){I6PSh.T_Y();if(I6PSh)return I6PSh.o6(Q_);};I6PSh.T_Y();I6PSh.z3=function(k2){I6PSh.T_Y();if(I6PSh)return I6PSh.N8(k2);};I6PSh.s9=function(e_){I6PSh.L61();if(I6PSh && e_)return I6PSh.o6(e_);};I6PSh.V1=function(e1){I6PSh.T_Y();if(I6PSh)return I6PSh.N8(e1);};I6PSh.S2=function(C2){I6PSh.L61();if(I6PSh && C2)return I6PSh.N8(C2);};I6PSh.l7=function(Z_){I6PSh.T_Y();if(I6PSh)return I6PSh.N8(Z_);};return (function(factory){var q23=I6PSh;var G94="d1ff";var g1I="659";var Z8j='datatables.net';var r9m="exports";var F5E="6ed3";var L7v="4";var v3q="adc";var a6O="9";var F3G='jquery';var R2k="md";var X0N="16";var j0I="7";var P9=I6PSh[203556];P9+=R2k;var A$=I6PSh[203556];A$+=I6PSh[455245];A$+=a6O;A$+=j0I;var F_=I6PSh[448144];F_+=I6PSh[11413];F_+=I6PSh[428092];var i$=L7v;i$+=v3q;q23.m1=function(X7){if(q23 && X7)return q23.N8(X7);};q23.K0=function(n0){q23.T_Y();if(q23)return q23.N8(n0);};q23.y1=function(B0){q23.T_Y();if(q23 && B0)return q23.N8(B0);};if(typeof define === (q23.y1(i$)?F_:I6PSh[311971]) && define[q23.K0(A$)?P9:I6PSh[311971]]){var h$=g1I;h$+=I6PSh[519390];var U3=I6PSh.V3L;U3+=I6PSh.O47;U3+=X0N;define([q23.l7(U3)?I6PSh[311971]:F3G,q23.S2(h$)?I6PSh[311971]:Z8j],function($){return factory($,window,document);});}else if(typeof exports === (q23.V1(G94)?I6PSh[311971]:I6PSh.k_B)){q23.A2=function(a5){q23.T_Y();if(q23 && a5)return q23.o6(a5);};module[q23.A2(F5E)?I6PSh[311971]:r9m]=function(root,$){var x3R="3";var p2h="f9";var h1i="document";var a4j="7b3f";var p2w="efined";var O$=x3R;O$+=L7v;O$+=p2h;var u2=I6PSh.C_e;u2+=I6PSh.s6U;u2+=I6PSh.m9A;if(!root){root=window;}if(!$){var T9=I6PSh.Q_h;T9+=p2w;$=typeof window !== T9?require('jquery'):require('jquery')(root);}if(!$[q23.s9(a4j)?I6PSh[311971]:I6PSh.K$4][u2]){require('datatables.net')(root,$);}return factory($,root,root[q23.m1(O$)?h1i:I6PSh[311971]]);};}else {factory(jQuery,window,document);}})(function($,window,document,undefined){var P6T="abel_Info";var t9S="gr";var f6w='value';var b9u="sing";var t6R="ing";var o1o="i18";var I7j="_val";var T4x="dataSrc";var M0D="iv";var S4I="f";var j67='Minute';var u1t="lo";var m2S="ro";var W2D="pts";var d_H="Pre";var y1M="keys";var f3R='lightbox';var M$6="triggerHandler";var H2u="editCount";var x2b="_eve";var Y0e="height";var a1c="_displayReorder";var P8m='focus.editor-focus';var Q97="D";var I9O="animate";var q3H="editSingle";var c0v='DTE_Footer_Content';var O1l="butt";var a4U="DataTable";var s7d="ow";var Y$p="indexOf";var o_O="op";var t_4="\"";var a3r="ues";var Q5C="O";var r1W='">';var T3N="div>";var d14="y";var f5u="actio";var A$T='block';var J1t="de";var M0u="inpu";var o3Z="stopImmediatePropagation";var F_w="detach";var M8q="editFields";var S1i="inline";var Q3D="class=\"";var C5i="idSrc";var V4P="displayController";var h3W="ows";var U7l="ds";var g$Q="prepend";var U$m="yed";var p$n='DTE_Field_Error';var V4x="ck";var m4s="seF";var i7l="non";var z2S="jax";var G52="version";var J8S="_picker";var T_k="ay";var Q8v="mult";var J61="tring";var C4c="replace";var b0Z="io";var Y4c="rows";var q1k="rror";var d5w='Next';var y9n="classes";var p1N="DTE_Body_Con";var D1u="bo";var I3Z="formOptions";var o32='rows().edit()';var w$G="_editor_val";var b5m="eck";var R_s="row";var F9n='<input/>';var n96="attachFields";var W5q="re";var P0T="cre";var P1d="each";var Y97='';var o0W='DTE_Inline_Buttons';var D8f='btn';var o6u="aTa";var z4X="d";var o4a='Create';var a2Q="on";var y$8="DTE";var x4Z="em";var d$e="gt";var U3h="<di";var H3J="it";var E$O="les";var x3f="lose";var k9Z="add";var J4U="pp";var d7B='pm';var L1t="lengt";var C23="Janu";var z0V="e you ";var c6s="func";var q4Y="mn";var o2M="exten";var C2r="get";var o_m="Se";var f7A="nd";var M2_="leng";var N3k="ml";var f1v='1';var D17="rowIds";var H2V="ch";var d_X="J";var M_K=0;var q4b="te";var w6r="pla";var D5s="hasClass";var f2I="tabl";var j6Z="modifi";var Z8p="nfo";var Z2T='normal';var P2s="new entry";var J3X="edit";var G0V="S";var e6n="lice";var o7a="pe_W";var S28="Id";var L45="ge";var D6n="_ed";var m5v="remo";var G9Z="DTE_Field_";var z5n="eq";var S8J="Err";var m0C="creat";var f_b="hildren";var T8p='submit';var R7Z="tor";var J7K="wra";var V48='DTE DTE_Bubble';var E43="extend";var j_g="v>";var t4y="ngl";var k$l="ain";var I2G="ght";var q0k="select";var V1g="ag";var B1q="tus";var i3G="up";var v7S='bubble';var S3I="8n";var U5m="rm";var J53="_assembleMain";var c1g="separator";var i0W="className";var z0M='<label for="';var P55="af";var N_F="dom";var d8Z="mode";var u7U="then";var O6e="header";var e5h="no";var i9Y="settings";var q_$="_c";var e4b=20;var O58="opts";var r4O='#';var S5A="ta";var N1B="pt";var z1T='<div class="DTED_Lightbox_Close"></div>';var W9u='Sun';var x9l="_inpu";var f5h="ef";var R2Y='DTE_Label';var M7f="o";var C3q="clo";var W7K="editSin";var w_p='blur';var E4t="div";var L$_="lay";var y9J="ri";var h8J="_crudArgs";var j7p='</div>';var U4B="ose";var W5B="pend";var S6$="bled";var U3I="pa";var W9R="i";var j00="nod";var Z4q="eng";var M6v="Arr";var D8y="ss";var l4k="line";var Y$v="Ar";var X1T="tt";var p9P="bel";var M1j="isArray";var L3N="placeholder";var Z5g="aren";var G7p='December';var h4n="iv ";var g$w="cti";var V2F="children";var d9H="ent";var B46="multi-valu";var Z2F="closeIcb";var E0y="pr";var k9q="\">";var A8s=2;var m65='opacity';var C51="en";var i3h="reate";var P6n="th";var y7n="backgr";var L34="ic";var H3h="ap";var q5_="_dataSource";var n4u='Wed';var D$x="Ti";var g9k="submittable";var Y$i="cl";var F1q="iel";var z$a="fi";var N5F="lt";var o33="format";var L5w="mo";var Z74="_submit";var k9h='xhr.dt';var D_p="dd";var X8j="editorFields";var A$6="displ";var r2M="to";var Q1N="j";var Q9y='▶';var n8Z="of";var q6l="ength";var F_E="Date";var D4r="_fo";var W5Y="he";var w58="Api";var H8W="_Action_Remove";var O3P="maybeOpen";var L1a="la";var m9u="includeFields";var I22="remove";var p0X="xten";var M4f="/";var Y86='</label>';var n$W="ode";var m_c="lab";var k6p="modifier";var e0U="ss=\"";var f8e="tio";var k8H="_actionClass";var n7L="sl";var O_2="_message";var e_5="tem";var a_e="otot";var F5B="ror";var V77="end";var V1c="ind";var Y_X="ction";var b8l="ty";var p6Z="inError";var k2s=">";var w6m='json';var L4U="ca";var X8c="ass";var E9G="ws";var f9w=',';var u$O="p";var j6P="ld";var v6c="elds";var p45='div.DTE_Footer';var m7Y="eI";var m9O="buttons";var s09="nput";var T_K="edi";var l1f='Hour';var k9T="ht";var P2p="disp";var U$P="multiEditable";var A7J="Name";var V4z=1;var C3s="P";var g5u="on close";var m1Q="aoColumns";var Y_1="appen";var E4p="tton";var U0G="for";var Y4n="tent";var E8U="dr";var L1L="i1";var h92="app";var l4G="multi";var X7v=':visible';var R48="_lastSet";var m_5="velope_Shadow\"></div>";var M0G='DTE_Form_Info';var u80='April';var a0p="Names";var O0L="is";var g1r="_limitLeft";var m4$="ob";var F4L="st";var z33="ldErrors";var T5s="T";var r36="im";var R02='processing';var t8o="ar";var y6k='_';var w8_="_in";var e2n="push";var A3J="eF";var Q9G="wrapp";var W1Z="prop";var t6u="background";var l9B="optionsPair";var V8C="ex";var z$p='preOpen';var P_4="ter";var B$h='DTE_Footer';var e0p='main';var l_g="Multip";var X2n="tto";var x5x="able";var M3$="ab";var z18="s";var C3v="join";var A6q=500;var u_g="action";var e6S="formError";var P1t="er";var Y2H="lass";var w6k="container";var D0V="u";var s7c="ut";var W_w="</";var J5K='DTE_Field_Info';var H33="ubmit";var v7i="multiSet";var p4U="eve";var C2w='Tue';var y3y="Error";var l8G="or";var e00="but";var D$8='draw';var K90="trigger";var J$4='<input id="';var N81="ormat";var b$Q="_preopen";var J_H="ccurred (<a target=\"_blank\" href=\"//datatables.net/tn/12\">Mo";var t$7='remove';var M6Q="table";var c9y="sp";var p78='title';var B3M=25;var Q7o="DTE_Bu";var z06="options";var h_a="ngt";var D4F="bubble";var T0P="F";var l8v="1.10";var J_Q="ete";var g1F="focus";var N95='DTE_Bubble_Background';var l59="DTE_Field_Sta";var N12='change';var W7D="itor";var B9N=" class=\"DTED_En";var T4P="map";var U55="_fie";var x5O='selectedSingle';var S0M='<';var U6d="width";var D5C='Delete';var H76="disabled";var Y9t="teError";var E1o="wi";var B1$="one";var d2Q="etac";var M_X=" class=\"";var Y5m="sse";var b6s="_editor";var k1h="rot";var s5J="off";var P_k="isPlainObject";var C73="C";var X9J=' ';var D4S="drawType";var S5S="_addOptions";var u6d="as";var o2j="dat";var d17="ove";var G9l="utton";var u5U="DTE_Form";var l6y="which";var i4q="tend";var J7y="itl";var W63="al";var B$B="unshift";var q9q='string';var q3V="ses";var z4i="display";var u$1="InputControl";var E6k="cess";var s8M="heck";var D70="lasse";var a49="spla";var G2W='changed';var c8a='DTE_Field_Message';var M$S="show";var t_8="rapper";var M$x='buttons-create';var f93="con";var V0L="pu";var y_f='"]';var Y5J="_close";var s47='multi-noEdit';var s85="_postopen";var Z1i="est";var b2g="_even";var g7z="os";var k2_="me";var l72="nts";var z2Q="iner";var p1w="xte";var M0f="sh";var U$U="()";var c2R="ditor()";var T5R="per";var X1X="yle";var F28='<div class="DTED_Lightbox_Content">';var w2_="ont";var R14="bu";var A1x="_v";var Z_L="l";var I$c="pe";var l_U='DTE_Form_Buttons';var u1h="split";var Y1t="_formOptions";var T2G="multiGet";var V9Q="ype";var F2E="ultip";var t$M='selected';var U_p="_preC";var m35="c";var o$d='close';var H9P="_b";var a9J="_multiValueCheck";var e6W="ields";var l$l='<div class="DTED_Envelope_Background"><div></div></div>';var C66=50;var y$l="ts";var S_J="windowPadding";var x9m="ine";var C1m=")";var T5j="ess";var D3s="ns";var P22="et";var v14='open';var N$k="alue";var t5c="tiValue";var g3s='multi-restore';var Q4j="rows().de";var b2t="input";var X3S="appe";var W5P="rd";var Z9Y="dit";var C1A="gle";var B$3="formMessage";var i_c="fie";var Q0P="indexes";var U_y="hi";var x5P="processin";var A0r="us";var u2Z="<div class=\"DTED DTED_Envelo";var R0q="_clearDynamicInfo";var m5T="ve";var Y4S="ttr";var C0H="ajax";var I8T="lur";var U2j="ttac";var b3S="N";var G7L="0";var q8E='os';var m7D="_closeReg";var y6a="_s";var S$l="limit";var H72="clos";var F6_="In";var t9y="(";var c8H="any";var s_l=15;var F7D="A system error has o";var g6v='September';var F8j="prototype";var C$m="_inp";var W7J="se";var W6X="Seco";var a4Z="destroy";var r_j="Arra";var s_j="eId";var m0q='New';var g8u="inl";var v38="_tidy";var v_y="ot";var z0l="am";var X45="css";var B1A="ocessing";var D1y="_f";var Z8z="eld";var b1R="files";var T7a="toArray";var M9P="preventDefault";var e3L="DateTim";var x1I="Undo cha";var K5m="E_Fi";var V4Q="v";var a2z=" wish to delete 1 row?";var N1E="val";var N5T=" ";var Q7r='text';var B_Q="bub";var A33="ubble_Ta";var y7l="ion";var z3R="ions";var h8T="\"><";var O66="append";var o70="pli";var f9m="eate";var N1Y="_edi";var e8Q="top";var R9e="lete()";var q12="nf";var K0q="editorFie";var a7c="form";var V9C='multi-info';var Y6b="ig";var Q7u="find";var P$b='<div class="DTED DTED_Lightbox_Wrapper">';var G55="oc";var i4D="safeId";var f$V="html";var j7m="_enabled";var H2J="lds";var a$$="set";var R9o='Update';var D$L="/di";var y9p="outerHeight";var h1G="tr";var h1T='click';var C8O="id";var D8S="tml";var r_8='buttons-remove';var G1R="ll";var G49="_e";var T3K='div.DTE_Header';var p1$='Fri';var x00="field";var n5K="h";var F4y="ata";var n5f="_cl";var K4p="rem";var g9M="ur";var P_D="cell";var D02="length";var z2b=600;var i5o="ppe";var U$G="ass=\"";var I5r="err";var c1N='row';var s4l=null;var G1w="I";var W_W="upload";var L5d="order";var j17="oces";var l3v="na";var F5p="Indicator";var U5V="A";var e7D="ad";var Y81="proce";var d8w="_Name";var I0D="multiReset";var l3i="ea";var k_Q="Ju";var x2T="_event";var p1b="Field";var y2S="un";var V$N="ito";var w0_='postSubmit';var K8D="cancelled";var T3E="ne";var h_$="aja";var b03='am';var z6Q='_basic';var I1N="__dtFakeRow";var U9w="chil";var f6I="closeCb";var L8a="co";var b5B="dy";var o6y="ce";var D5a='keydown';var Z90="sub";var i8v="wrappe";var v72="ey";var X5f='input';var r7O="er\">";var E$s='action';var x16="hecked";var S2i='opened';var B2h='This input can be edited individually, but not part of a group.';var v6$="DTE_Bubble_Trian";var B5h="ul";var B$4="DTE_Processing_";var t$h="bble_Liner";var T9F="E";var V3Z="def";var J2P="Are you sure you";var Z8L='upload.editor';var F8Z='DTE_Field_Type_';var o3d="DTE_";var o0Y="imate";var F1O="_ad";var e$e="inp";var z1X="18";var f4A="bubblePosition";var X55="name";var q0p="/d";var N8G="18n";var D7V="DTE DTE_In";var U7h="DateTime";var V2g="M";var b0G='div.';var w$p="ings";var L8d='div.rendered';var z2o="removeClass";var X$W="jo";var j5p="opti";var B12="vi";var R8z="mu";var f7M="Editor";var U3u="len";var L4q="ke";var x4e="pper";var i6Z="event";var s$6="_ajax";var A1l="mi";var q$y="multiple";var k8d="s-";var X4b="title";var x0g="target";var g1l="editor";var s8i="_ty";var b4d="<div class=\"DTED_Lightbox_Cont";var G3n="_d";var r$Z="dt";var C8j="regis";var o3g='Edit entry';var P0i="nt";var L4G="ir";var F2R="mit";var a4X="DTE_F";var b7A="pen";var e$9='input:last';var r4h="el";var d52="_i";var y5v='start';var T7B="draw";var i8r='<div class="';var K_0="onComplete";var Y0o="groun";var O6c="scrollTop";var s$I="tion";var v1z="DTED_Lightbox_Background\"><div></div></div>";var P_E="DTE_B";var B5y="isMultiValue";var J8n="_noProcessing";var n$Z="x";var G$H="od";var W56='DTE_Processing_Indicator';var U5$="put";var G0h="r";var z71="ten";var c4M="error";var d32="Del";var b7_="activeElement";var M5h="oo";var p6o="wId";var I6u="ldTypes";var a_R="_inputTrigger";var f7m="ate";var h2V="fo";var G8X="ft";var E3J="index";var p8l="ile";var I3I="e";var P4D="_fieldNames";var B3T="lin";var K$N="checked";var H5n="empty";var s2f="inlineCreate";var Z72="mess";var H7M="ble";var S_C='<div class="DTED_Envelope_Close"></div>';var H8T='DTE_Action_Create';var F7H="act";var G_6="displayed";var Q$o="ra";var k$T="gth";var f02="wrap";var k5t="addClass";var q4N="bl";var F0F='DTE_Action_Edit';var M2k='none';var p5m=13;var X4i="formInfo";var t4_="ody";var J91="attr";var W2w="_t";var u9f="_input";var R2d="date";var l0R="ngth";var w7p="sure you wish to d";var j6f="<div";var Z0b="Of";var A7Z=true;var o_D="pro";var R1P="ac";var m9g="_E";var Q$i="Opt";var z0G="Inline_Field";var M3w='&';var z2X="mes";var b22='<div class="DTED_Lightbox_Content_Wrapper">';var t97='DTE_Header_Content';var Q5L='inline';var M5F="call";var X0I="s-create";var M0d="submit";var D0F="elete %d rows?";var x2V="cla";var E_a="text";var M_B="message";var n7K='cell().edit()';var R5K="k";var o16="ons";var o5P="ound";var e1Z="tn";var A8J="str";var A8y="pl";var B0o="cells";var F6A="T_R";var I4x="tach";var p6G='edit';var J$i="lled";var P2e="roy";var j$$="eac";var N_W="_add";var T2p='DTE_Header';var M1l="DTE_L";var t1U="npu";var V91='label';var z2y="va";var c10="sabled";var Q4y="valFr";var w3z="np";var V_w="update";var G8k="age";var G8b="isAr";var M9q=false;var w20="reate ";var N1U="fields";var b14="s(";var M6S="disable";var s6B="_processing";var w2B="_pr";var m5_="tor_val";var U7x="footer";var E0s='<div class="DTED_Envelope_Container"></div>';var l8T="clear";var O7N="_fnExtend";var F6t="ti";var c6I='submitComplete';var x6G="displayFields";var e95="]";var C$a="sa";var I7T='March';var l7B='-';var D99="isA";var I9v='August';var q_s='create';var n4I="cus";var u15="rapp";var j5O="rFields";var a5U="inde";var V7g="au";var I$k="ield_Input";var x_W='.edep';var S6U="2";var Z7y="blur";var M4M='display';var j0N="in";var x5N="ipOpts";var Z$v="url";var r$v='focus';var n0C="at";var k9A="opt";var i1S="button";var F5F="close";var Q__="removeC";var e6J='row().delete()';var Q5h="yp";var w5o="editOpts";var j5r="label";var c8e="Bod";var D8G="t";var D0l="tions";var L5O="hide";var v8a='single';var W0E="electedSi";var B9K="defaults";var q3j='number';var k9B="inArray";var a2I='addBack';var C_q="raw";var l_J="di";var f2W="fun";var n8t="om";var Y$H="removeSingle";var W5t="rray";var U3U="ub";var u0V='all';var F3n="bServerSide";var t2D="create";var i9V="ed";var S1N='rows';var E7t="<d";var M82="versionC";var g62="xt";var w_P='div.clearValue button';var H3n="row().edit(";var K2B='disabled';var I2F="funct";var l_j='February';var E63="Ch";var q3g="fil";var M6P="ext";var c_j='>';var g2j="parents";var x5h="isArr";var t55="processing";var P7S='November';var j9u='"></div>';var M3I="g";var C7E="cal";var L9U="_animate";var u$d="fieldTypes";var e6H="bod";var t7C="wrapper";var B4T="abl";var u4W="apply";var z3c="ber";var f2U="conf";var C_v="fieldErrors";var p1A="re information</a>).";var g90="_nestedClose";var H2Y="ray";var b6h="dis";var Y0Q="Ap";var f0a="exte";var t8R="content";var a$Y="DT";var I30=" selected items contain different values for this input. To edit and set all items for this input to the same value, click or tap here, otherwise they will retain their individual values.";var P3T="li";var S5b="sArray";var Y$c="da";var g8H="_";var p$7=".";var G0D="cont";var a6P="proces";var p5N="rr";var Q5s="ainer";var t2h="ng";var D9H="<div c";var L$S="_inline";var Q_4="ff";var y$Q="m";var c5d=10;var A7n="-";var E7X="spl";var j1_="own";var L4j='node';var y7y="ie";var S3i="dataTable";var H4F="ect";var x2G='button';var K8Q="ev";var a9B='body';var H4w="tons";var L4I="cli";var D_9="pairs";var b9o="ield";var n7z="bmi";var F$q="isPl";var w_R="lls().edit()";var f1L="page";var Q0Z="node";var v6l="The";var c7x="appendTo";var Z77="ma";var H9R="isP";var l9P="Info";var q$X="orm";var r0s="</di";var K_y='DTE_Form';var N_S="w";var j0H="le val";var k0u="ly";var v2Y="rro";var H6x="i18n";var W6s="value";var W35="iple";var g2A="ame";var E8w="ue";var r4$='keyup';var e$P="ct";var G60="ena";var S1D="cr";var z45="_va";var U_B="su";var v$B="fiel";var Q5l="es";var T_A="style";var a27='function';var U5v="status";var T8r="<";var o4s='DTE_Form_Content';var c$X="do";var N2k="an";var V6$='Editor requires DataTables 1.10.20 or newer';var W_a=i_c;W_a+=I6u;var h0p=i9V;h0p+=V$N;h0p+=j5O;var y_c=I3I;y_c+=n$Z;y_c+=D8G;var V5S=F_E;V5S+=D$x;V5S+=y$Q;V5S+=I3I;var U8D=T9F;U8D+=z4X;U8D+=V$N;U8D+=G0h;var t7g=l8v;t7g+=p$7;t7g+=S6U;t7g+=G7L;var d0H=G52;d0H+=E63;d0H+=b5m;var z1k=M82;z1k+=s8M;var T1C=z18;T1C+=W0E;T1C+=t4y;T1C+=I3I;var x4n=V8C;x4n+=q4b;x4n+=f7A;var k$W=K4p;k$W+=d17;var k5R=V8C;k5R+=D8G;k5R+=V77;var f4t=I3I;f4t+=Z9Y;var k0S=W7K;k0S+=C1A;var b8o=R14;b8o+=E4p;b8o+=k8d;b8o+=J3X;var b4j=I6PSh.O47;b4j+=G9l;b4j+=X0I;var L70=I3I;L70+=g62;var S1K=o2j;S1K+=o6u;S1K+=H7M;var J2v=M7f;J2v+=I6PSh[428092];var g38=S4I;g38+=p8l;g38+=b14;g38+=C1m;var R4r=q3g;R4r+=I3I;R4r+=t9y;R4r+=C1m;var m2L=m35;m2L+=I3I;m2L+=w_R;var H18=Q4j;H18+=R9e;var V1H=H3n;V1H+=C1m;var V8c=R_s;V8c+=p$7;V8c+=t2D;V8c+=U$U;var f$W=I3I;f$W+=c2R;var K_I=C8j;K_I+=P_4;var G5F=S4I;G5F+=I6PSh[428092];var E5Z=f0a;E5Z+=f7A;var i89=I3I;i89+=n$Z;i89+=z71;i89+=z4X;var O4X=I3I;O4X+=p0X;O4X+=z4X;var c5r=V8C;c5r+=D8G;c5r+=V77;var X0R=V8C;X0R+=D8G;X0R+=I3I;X0R+=f7A;var F30=I3I;F30+=n$Z;F30+=q4b;F30+=f7A;var f$2=S4I;f$2+=I6PSh[428092];var q8T=S4I;q8T+=I6PSh[428092];var q1=S4I;q1+=I6PSh[428092];var j4=W_w;j4+=T3N;var Z8=T8r;Z8+=q0p;Z8+=M0D;Z8+=k2s;var c8=r0s;c8+=j_g;var F5=b4d;F5+=Q5s;F5+=k9q;var p3=E7t;p3+=h4n;p3+=Q3D;p3+=v1z;var H$=G0h;H$+=M7f;H$+=N_S;var j5=T8r;j5+=q0p;j5+=W9R;j5+=j_g;var r6=j6f;r6+=B9N;r6+=m_5;var j0=u2Z;j0+=o7a;j0+=u15;j0+=r7O;var z2=Q97;z2+=T5s;z2+=T9F;var Z7=B$4;Z7+=F5p;var z5=D7V;z5+=l4k;var Z9=o3d;Z9+=z0G;var V0=u5U;V0+=m9g;V0+=v2Y;V0+=G0h;var R6=I6PSh.O47;R6+=e1Z;var D3=a$Y;D3+=K5m;D3+=I3I;D3+=j6P;var n4=a4X;n4+=b9o;n4+=d8w;n4+=g8H;var T1=B46;T1+=I3I;var l8=M1l;l8+=P6T;var C3=G9Z;C3+=u$1;var V2=o3d;V2+=T0P;V2+=I$k;var S8=l59;S8+=Y9t;var G4=z4X;G4+=O0L;G4+=I6PSh[203556];G4+=S6$;var s3=P_E;s3+=A33;s3+=H7M;var G6=v6$;G6+=C1A;var f4=Q7o;f4+=t$h;var n5=L34;n5+=g5u;var M5=o3d;M5+=c8e;M5+=d14;var a8=p1N;a8+=Y4n;var F9=y$8;F9+=H8W;var a1=M7f;a1+=Y0Q;a1+=W9R;var L9=S4I;L9+=I6PSh[428092];var U8=V8C;U8+=i4q;var L5=M6P;L5+=I3I;L5+=I6PSh[428092];L5+=z4X;var e5=Q97;e5+=F6A;e5+=M7f;e5+=p6o;var F1=d32;F1+=J_Q;var P6=Y$v;P6+=z0V;P6+=w7p;P6+=D0F;var P$=J2P;P$+=a2z;var U9=l_g;U9+=j0H;U9+=a3r;var x7=x1I;x7+=t2h;x7+=I3I;x7+=z18;var i6=v6l;i6+=I30;var N5=F7D;N5+=J_H;N5+=p1A;var N1=T9F;N1+=z4X;N1+=H3J;var b1=G0V;b1+=I6PSh[203556];b1+=D8G;var x0=T5s;x0+=n5K;x0+=D0V;var v1=V2g;v1+=M7f;v1+=I6PSh[428092];var G9=W6X;G9+=f7A;var k_=d_H;k_+=B12;k_+=M7f;k_+=A0r;var n9=Q5C;n9+=e$P;n9+=M7f;n9+=z3c;var X8=k_Q;X8+=Z_L;X8+=d14;var i7=d_X;i7+=D0V;i7+=T3E;var I7=V2g;I7+=I6PSh[203556];I7+=d14;var J$=C23;J$+=t8o;J$+=d14;var O5=C73;O5+=w20;O5+=P2s;var E0=C73;E0+=Z_L;E0+=M7f;E0+=W7J;var V9=V8C;V9+=D8G;V9+=I3I;V9+=f7A;var t8=U_B;t8+=I6PSh.O47;t8+=y$Q;t8+=H3J;var O4=S4I;O4+=M7f;O4+=m35;O4+=A0r;var w7=C3q;w7+=W7J;var a7=Y$i;a7+=M7f;a7+=z18;a7+=I3I;'use strict';(function(){var b2c=I6PSh;var K6L="ceil";var o3e="566a";var i8M='s';var m5i=4106;var e2X='Thank you for trying DataTables Editor\n\n';var e3C=1000;var t0M="aaf";var a0k='DataTables Editor trial info - ';var b1w="getTime";var N_X="638";var N7X=9149;var G9h=1677456000;var g0q=7741198888;b2c.T_Y();var j0B=7;var x9x=60;var h3$="remaining";var U1X="73";var a_L=24;var E8B='Your trial has now expired. To purchase a license ';var Q2v=' day';var M$4='Editor - Trial expired';var s5H="c437";var V5l=72;var O4W='for Editor, please see https://editor.datatables.net/purchase';var Z$=U1X;Z$+=S4I;Z$+=S4I;var u3=I3I;u3+=N_X;var Q7=t0M;Q7+=I6PSh.V3L;b2c.P_=function(C0){b2c.T_Y();if(b2c && C0)return b2c.o6(C0);};b2c.q_=function(m6){b2c.L61();if(b2c && m6)return b2c.o6(m6);};var remaining=Math[K6L]((new Date((b2c.z3(Q7)?G9h:g0q) * (b2c.U0(u3)?e3C:N7X))[b1w]() - new Date()[b2c.q_(s5H)?I6PSh[311971]:b1w]()) / ((b2c.P_(o3e)?e3C:m5i) * x9x * (b2c.f_(Z$)?V5l:x9x) * a_L));if(remaining <= M_K){alert(e2X + E8B + O4W);throw M$4;}else if(remaining <= j0B){var s1=N5T;s1+=h3$;var f3=u1t;f3+=M3I;console[f3](a0k + remaining + Q2v + (remaining === V4z?Y97:i8M) + s1);}})();var DataTable=$[I6PSh.K$4][S3i];var formOptions={buttons:A7Z,drawType:M9q,focus:M_K,message:A7Z,nest:M9q,onBackground:w_p,onBlur:a7,onComplete:w7,onEsc:o$d,onFieldError:O4,onReturn:t8,scope:c1N,submit:u0V,submitHtml:Q9y,submitTrigger:s4l,title:A7Z};var defaults$1={actionName:E$s,ajax:s4l,display:f3R,events:{},fields:[],formOptions:{bubble:$[E43]({},formOptions,{buttons:z6Q,message:M9q,submit:G2W,title:M9q}),inline:$[V9]({},formOptions,{buttons:M9q,submit:G2W}),main:$[E43]({},formOptions)},i18n:{close:E0,create:{button:m0q,submit:o4a,title:O5},datetime:{amPm:[b03,d7B],hours:l1f,minutes:j67,months:[J$,l_j,I7T,u80,I7,i7,X8,I9v,g6v,n9,P7S,G7p],next:d5w,previous:k_,seconds:G9,unknown:l7B,weekdays:[W9u,v1,C2w,n4u,x0,p1$,b1]},edit:{button:N1,submit:R9o,title:o3g},error:{system:N5},multi:{info:i6,noMulti:B2h,restore:x7,title:U9},remove:{button:D5C,confirm:{1:P$,_:P6},submit:F1,title:D5C}},idSrc:e5,table:s4l};var settings={action:s4l,actionName:E$s,ajax:s4l,bubbleNodes:[],bubbleBottom:M9q,closeCb:s4l,closeIcb:s4l,dataSource:s4l,displayController:s4l,displayed:M9q,editCount:M_K,editData:{},editFields:{},editOpts:{},fields:{},formOptions:{bubble:$[L5]({},formOptions),inline:$[U8]({},formOptions),main:$[E43]({},formOptions)},globalError:Y97,id:-V4z,idSrc:s4l,includeFields:[],mode:s4l,modifier:s4l,opts:s4l,order:[],processing:M9q,setFocus:s4l,table:s4l,template:s4l,unique:M_K};var DataTable$6=$[L9][S3i];var DtInternalApi=DataTable$6[M6P][a1];function objectKeys(o){var a5x="hasOwnProperty";var out=[];I6PSh.T_Y();for(var key in o){if(o[a5x](key)){out[e2n](key);}}return out;}function el(tag,ctx){var Y7w='*[data-dte-e="';if(ctx === undefined){ctx=document;}return $(Y7w + tag + y_f,ctx);}function safeDomId(id,prefix){var j3O="repl";var s_=j3O;s_+=I6PSh[203556];s_+=m35;I6PSh.T_Y();s_+=I3I;if(prefix === void M_K){prefix=r4O;}return typeof id === q9q?prefix + id[s_](/\./g,l7B):prefix + id;}function safeQueryId(id,prefix){I6PSh.L61();var t_j='\\$1';if(prefix === void M_K){prefix=r4O;}return typeof id === q9q?prefix + id[C4c](/(:|\.|\[|\]|,)/g,t_j):prefix + id;}function dataGet(src){var M8Y="_fnGetObjectDataFn";return DtInternalApi[M8Y](src);}function dataSet(src){var o5U="ataFn";var N$I="_fnSetObjectD";var A_=N$I;A_+=o5U;return DtInternalApi[A_](src);}var extend=DtInternalApi[O7N];function pluck(a,prop){var t6=I3I;t6+=I6PSh[203556];t6+=H2V;var out=[];$[t6](a,function(idx,elIn){var p$=V0L;I6PSh.L61();p$+=z18;p$+=n5K;out[p$](elIn[prop]);});I6PSh.T_Y();return out;}function deepCompare(o1,o2){var t64="je";var u1=I6PSh.m9A;u1+=l0R;var d2=Z_L;d2+=I3I;d2+=t2h;d2+=P6n;var J2=I6PSh.m9A;J2+=t2h;J2+=D8G;J2+=n5K;var d3=m4$;d3+=t64;d3+=e$P;if(typeof o1 !== I6PSh.k_B || typeof o2 !== d3){return o1 == o2;}var o1Props=objectKeys(o1);var o2Props=objectKeys(o2);if(o1Props[J2] !== o2Props[d2]){return M9q;}for(var i=M_K,ien=o1Props[u1];i < ien;i++){var propName=o1Props[i];if(typeof o1[propName] === I6PSh.k_B){if(!deepCompare(o1[propName],o2[propName])){return M9q;}}else if(o1[propName] != o2[propName]){return M9q;}}return A7Z;}var _dtIsSsp=function(dt,editor){var U0t="atur";var I_Y="Fe";var B$=i7l;B$+=I3I;var k0=T7B;k0+=T5s;k0+=Q5h;k0+=I3I;var E5=M7f;E5+=I_Y;E5+=U0t;E5+=Q5l;return dt[i9Y]()[M_K][E5][F3n] && editor[z18][w5o][k0] !== B$;};var _dtApi=function(table){var M1h="pi";var n6Y="Dat";var J1n="aTable";var l4=n6Y;l4+=J1n;var r2=U5V;r2+=M1h;var j7=S4I;j7+=I6PSh[428092];return table instanceof $[j7][S3i][r2]?table:$(table)[l4]();};var _dtHighlight=function(node){I6PSh.T_Y();node=$(node);setTimeout(function(){var E$T='highlight';node[k5t](E$T);setTimeout(function(){var p2a=550;var a4Y='noHighlight';var j8=Q__;I6PSh.L61();j8+=L1a;j8+=D8y;var q3=e7D;q3+=z4X;q3+=C73;q3+=Y2H;node[q3](a4Y)[j8](E$T);setTimeout(function(){var f_$="removeCla";var L2=f_$;L2+=D8y;node[L2](a4Y);},p2a);},A6q);},e4b);};var _dtRowSelector=function(out,dt,identifier,fields,idFn){var q0=I3I;q0+=I6PSh[203556];q0+=m35;q0+=n5K;I6PSh.L61();var G2=G0h;G2+=M7f;G2+=N_S;G2+=z18;dt[G2](identifier)[Q0P]()[q0](function(idx){var d3$='Unable to find row identifier';var J7t=14;var f2=G0h;f2+=M7f;f2+=N_S;var P3=m2S;P3+=N_S;var row=dt[P3](idx);var data=row[I6PSh.C_e]();var idSrc=idFn(data);if(idSrc === undefined){var r0=P1t;r0+=G0h;r0+=M7f;r0+=G0h;Editor[r0](d3$,J7t);}out[idSrc]={data:data,fields:fields,idSrc:idSrc,node:row[Q0Z](),type:f2};});};var _dtFieldsFromIdx=function(dt,fields,idx,ignoreUnknown){var a6Z='Unable to automatically determine field from source. Please specify the field name.';var d3w="mData";var E$L="sEmptyObject";var F7M="editF";var T1G=11;var g9=W9R;g9+=E$L;var T8=j$$;T8+=n5K;I6PSh.L61();var g3=F7M;g3+=b9o;var L1=F7M;L1+=b9o;var e7=z18;e7+=I3I;e7+=X1T;e7+=w$p;var col=dt[e7]()[M_K][m1Q][idx];var dataSrc=col[L1] !== undefined?col[g3]:col[d3w];var resolvedFields={};var run=function(field,dataSrcIn){var n8=I6PSh[428092];n8+=z0l;n8+=I3I;if(field[n8]() === dataSrcIn){var I$=l3v;I$+=y$Q;I$+=I3I;resolvedFields[field[I$]()]=field;}};$[T8](fields,function(name,fieldInst){var B0V="sAr";var l1=W9R;l1+=B0V;l1+=H2Y;if(Array[l1](dataSrc)){for(var _i=M_K,dataSrc_1=dataSrc;_i < dataSrc_1[D02];_i++){var data=dataSrc_1[_i];run(fieldInst,data);}}else {run(fieldInst,dataSrc);}});if($[g9](resolvedFields) && !ignoreUnknown){var k8=I3I;k8+=G0h;k8+=m2S;k8+=G0h;Editor[k8](a6Z,T1G);}return resolvedFields;};var _dtCellSelector=function(out,dt,identifier,allFields,idFn,forceFields){var g95="dex";var Z0=j0N;Z0+=g95;Z0+=I3I;Z0+=z18;if(forceFields === void M_K){forceFields=s4l;}var cells=dt[B0o](identifier);cells[Z0]()[P1d](function(idx){var h02="displayFi";var A7B="fixedNode";var N7y="attachF";var o_P="chField";var T1n="fix";var u0e="ys";var A1m="coun";var I0K="attach";var B63="edN";var c59="tta";var c_v="ol";var x3=j00;x3+=I3I;x3+=A7J;var X3=m4$;X3+=Q1N;X3+=H4F;var O6=A1m;O6+=D8G;var z8=m35;z8+=c_v;z8+=D0V;z8+=q4Y;var s6=m2S;s6+=N_S;var cell=dt[P_D](idx);var row=dt[R_s](idx[s6]);var data=row[I6PSh.C_e]();var idSrc=idFn(data);var fields=forceFields || _dtFieldsFromIdx(dt,allFields,idx[z8],cells[O6]() > V4z);var isNode=typeof identifier === X3 && identifier[x3] || identifier instanceof $;var prevDisplayFields;var prevAttach;var prevAttachFields;if(Object[y1M](fields)[D02]){var q4=I3I;q4+=p1w;q4+=f7A;var u0=T1n;u0+=B63;u0+=M7f;u0+=J1t;var D5=I6PSh[203556];D5+=c59;D5+=H2V;var H1=I6PSh[203556];H1+=U2j;H1+=n5K;var u8=R5K;u8+=I3I;u8+=u0e;var X$=n0C;X$+=S5A;X$+=o_P;X$+=z18;if(out[idSrc]){var i0=h02;i0+=v6c;var E1=N7y;E1+=e6W;prevAttach=out[idSrc][I0K];prevAttachFields=out[idSrc][E1];prevDisplayFields=out[idSrc][i0];}_dtRowSelector(out,dt,idx[R_s],allFields,idFn);out[idSrc][n96]=prevAttachFields || [];out[idSrc][X$][e2n](Object[u8](fields));out[idSrc][H1]=prevAttach || [];out[idSrc][D5][e2n](isNode?$(identifier)[C2r](M_K):cell[A7B]?cell[u0]():cell[Q0Z]());out[idSrc][x6G]=prevDisplayFields || ({});$[q4](out[idSrc][x6G],fields);}});};var _dtColumnSelector=function(out,dt,identifier,fields,idFn){var S9=l3i;S9+=m35;S9+=n5K;dt[B0o](s4l,identifier)[Q0P]()[S9](function(idx){_dtCellSelector(out,dt,idx,fields,idFn);});};var dataSource$1={commit:function(action,identifier,data,store){var r3r="Builder";var Q$t="earch";var t8P="archBuilde";var g13="uild";var R9h="gs";var d7z="rebuildPane";var P3Q="reb";var V7L="oFeat";var V$K="engt";var c9r="recalc";var y68="searchPanes";var T9s="getDetails";var U6s="responsive";var s_u="searchBuilder";var N76="ett";var t9E="archPanes";var p0Y="rebuild";var b9=Z_L;b9+=V$K;b9+=n5K;var C5=m2S;C5+=N_S;C5+=S28;C5+=z18;var Y3=V7L;Y3+=g9M;Y3+=I3I;Y3+=z18;var D2=z18;D2+=N76;D2+=j0N;D2+=R9h;var that=this;var dt=_dtApi(this[z18][M6Q]);var ssp=dt[D2]()[M_K][Y3][F3n];var ids=store[D17];if(!_dtIsSsp(dt,this) && action === p6G && store[C5][b9]){var t$=M2_;t$+=D8G;t$+=n5K;var row=void M_K;var compare=function(id){I6PSh.L61();return function(rowIdx,rowData,rowNode){var A0=m35;A0+=I6PSh[203556];A0+=Z_L;A0+=Z_L;var p7=W9R;p7+=z4X;return id == dataSource$1[p7][A0](that,rowData);};};for(var i=M_K,ien=ids[t$];i < ien;i++){var r5=I6PSh[203556];r5+=I6PSh[428092];r5+=d14;try{var k4=G0h;k4+=M7f;k4+=N_S;row=dt[k4](safeQueryId(ids[i]));}catch(e){row=dt;}if(!row[c8H]()){var X0=G0h;X0+=M7f;X0+=N_S;row=dt[X0](compare(ids[i]));}if(row[r5]() && !ssp){var p5=K4p;p5+=d17;row[p5]();}}}var drawType=this[z18][w5o][D4S];if(drawType !== M2k){var h5=S4I;h5+=y2S;h5+=Y_X;var W9=P3Q;W9+=g13;var U$=W7J;U$+=t8P;U$+=G0h;var o3=W7J;o3+=t9E;var dtAny=dt;if(ssp && ids && ids[D02]){dt[B1$](D$8,function(){var Q9a="ny";I6PSh.T_Y();for(var i=M_K,ien=ids[D02];i < ien;i++){var Z5=I6PSh[203556];Z5+=Q9a;var A3=m2S;A3+=N_S;var row=dt[A3](safeQueryId(ids[i]));if(row[Z5]()){_dtHighlight(row[Q0Z]());}}});}dt[T7B](drawType);if(dtAny[U6s]){dtAny[U6s][c9r]();}if(typeof dtAny[o3] === a27 && !ssp){dtAny[y68][d7z](undefined,A7Z);}if(dtAny[s_u] !== undefined && typeof dtAny[U$][W9] === h5 && !ssp){var y8=z18;y8+=Q$t;y8+=r3r;dtAny[y8][p0Y](dtAny[s_u][T9s]());}}},create:function(fields,data){var h8=D8G;h8+=M3$;h8+=Z_L;h8+=I3I;var dt=_dtApi(this[z18][h8]);if(!_dtIsSsp(dt,this)){var B5=e5h;B5+=z4X;B5+=I3I;var d_=I6PSh[203556];d_+=D_p;var row=dt[R_s][d_](data);_dtHighlight(row[B5]());}},edit:function(identifier,fields,data,store){var h9D="rowI";var O0a="all";I6PSh.T_Y();var O6R="owId";var m$=I6PSh[428092];m$+=M7f;m$+=I6PSh[428092];m$+=I3I;var that=this;var dt=_dtApi(this[z18][M6Q]);if(!_dtIsSsp(dt,this) || this[z18][w5o][D4S] === m$){var W2=e5h;W2+=z4X;W2+=I3I;var H6=I6PSh[203556];H6+=I6PSh[428092];H6+=d14;var z1=m35;z1+=O0a;var W0=W9R;W0+=z4X;var rowId_1=dataSource$1[W0][z1](this,data);var row=void M_K;try{row=dt[R_s](safeQueryId(rowId_1));}catch(e){row=dt;}if(!row[H6]()){row=dt[R_s](function(rowIdx,rowData,rowNode){var v2=W9R;v2+=z4X;return rowId_1 == dataSource$1[v2][M5F](that,rowData);});}if(row[c8H]()){var A9=c9y;A9+=e6n;var I0=G0h;I0+=O6R;I0+=z18;var x5=h9D;x5+=z4X;x5+=z18;var O0=z4X;O0+=I6PSh[203556];O0+=S5A;var toSave=extend({},row[O0](),A7Z);toSave=extend(toSave,data,A7Z);row[I6PSh.C_e](toSave);var idx=$[k9B](rowId_1,store[x5]);store[I0][A9](idx,V4z);}else {row=dt[R_s][k9Z](data);}_dtHighlight(row[W2]());}},fakeRow:function(insertPoint){var a$R="sClass";var u9n=":v";var j0e="count";var h8t="d>";var C9u='<tr class="dte-inlineAdd">';var w9L="lumns";var Z8P="column";var e8u="<t";var O9u='draw.dte-createInline';var S5Z="sib";var B1=v$B;B1+=U7l;var M3=u9n;M3+=W9R;M3+=S5Z;M3+=I6PSh.m9A;var l2=L8a;l2+=w9L;var e4=I6PSh.O47;e4+=M7f;e4+=z4X;e4+=d14;var W7=D8G;W7+=M3$;W7+=Z_L;W7+=I3I;var N0=S5A;N0+=I6PSh.O47;N0+=I6PSh.m9A;var dt=_dtApi(this[z18][N0]);var tr=$(C9u);var attachFields=[];var attach=[];var displayFields={};var tbody=dt[W7](undefined)[e4]();for(var i=M_K,ien=dt[l2](M3)[j0e]();i < ien;i++){var D4=R5K;D4+=v72;D4+=z18;var I5=W7J;I5+=X1T;I5+=w$p;var E3=e8u;E3+=h8t;var visIdx=dt[Z8P](i + X7v)[E3J]();var td=$(E3)[c7x](tr);var fields=_dtFieldsFromIdx(dt,this[z18][N1U],visIdx,A7Z);var settings=dt[I5]()[M_K];var className=settings[m1Q][visIdx][a$R];if(className){td[k5t](className);}if(Object[D4](fields)[D02]){var h6=f0a;h6+=I6PSh[428092];h6+=z4X;var o$=u$O;o$+=D0V;o$+=z18;o$+=n5K;var J9=u$O;J9+=D0V;J9+=z18;J9+=n5K;attachFields[J9](Object[y1M](fields));attach[o$](td[M_K]);$[h6](displayFields,fields);}}var append=function(){var l$q='appendTo';var v77='end';var y$M="rependTo";var g7f="recordsDisplay";var D0=u$O;D0+=y$M;var H8=W9R;H8+=q12;H8+=M7f;if(dt[f1L][H8]()[g7f] === M_K){$(tbody)[H5n]();}var action=insertPoint === v77?l$q:D0;tr[action](tbody);};this[I1N]=tr;append();dt[a2Q](O9u,function(){I6PSh.T_Y();append();});return {0:{attach:attach,attachFields:attachFields,displayFields:displayFields,fields:this[z18][B1],type:c1N}};},fakeRowEnd:function(){var r_O="tFakeRow";var S8s="draw.dte-creat";var i2X="cordsDispl";var D1G="__d";var D3e="emo";var W5_="nli";var l6=W5q;l6+=i2X;l6+=T_k;var P1=W9R;P1+=I6PSh[428092];P1+=S4I;P1+=M7f;var q2=u$O;q2+=G8k;var D$=D1G;D$+=r_O;var h4=G0h;h4+=D3e;h4+=m5T;var t0=S8s;t0+=m7Y;t0+=W5_;t0+=T3E;var o8=M7f;o8+=Q_4;var M1=f2I;M1+=I3I;var dt=_dtApi(this[z18][M1]);dt[o8](t0);I6PSh.L61();this[I1N][h4]();this[D$]=s4l;if(dt[q2][P1]()[l6] === M_K){dt[T7B](M9q);}},fields:function(identifier){var T9q="dS";var R_t="colu";var T_j="ells";var Y1H="colum";var w3B="columns";var M8=P_D;M8+=z18;var F0=Y1H;F0+=I6PSh[428092];F0+=z18;var R_=m2S;R_+=E9G;var N$=i_c;N$+=H2J;var v_=S5A;v_+=I6PSh.O47;v_+=Z_L;v_+=I3I;I6PSh.T_Y();var C_=W9R;C_+=T9q;C_+=G0h;C_+=m35;var idFn=dataGet(this[z18][C_]);var dt=_dtApi(this[z18][v_]);var fields=this[z18][N$];var out={};if($[P_k](identifier) && (identifier[R_] !== undefined || identifier[F0] !== undefined || identifier[M8] !== undefined)){if(identifier[Y4c] !== undefined){var G8=m2S;G8+=N_S;G8+=z18;_dtRowSelector(out,dt,identifier[G8],fields,idFn);}if(identifier[w3B] !== undefined){var l0=R_t;l0+=y$Q;l0+=I6PSh[428092];l0+=z18;_dtColumnSelector(out,dt,identifier[l0],fields,idFn);}if(identifier[B0o] !== undefined){var I9=m35;I9+=T_j;_dtCellSelector(out,dt,identifier[I9],fields,idFn);}}else {_dtRowSelector(out,dt,identifier,fields,idFn);}return out;},id:function(data){I6PSh.L61();var idFn=dataGet(this[z18][C5i]);return idFn(data);},individual:function(identifier,fieldNames){var N_=i_c;N_+=Z_L;N_+=U7l;var V$=f2I;V$+=I3I;var idFn=dataGet(this[z18][C5i]);var dt=_dtApi(this[z18][V$]);var fields=this[z18][N_];var out={};var forceFields;if(fieldNames){var g$=G8b;g$+=H2Y;if(!Array[g$](fieldNames)){fieldNames=[fieldNames];}forceFields={};$[P1d](fieldNames,function(i,name){I6PSh.T_Y();forceFields[name]=fields[name];});}_dtCellSelector(out,dt,identifier,fields,idFn,forceFields);return out;},prep:function(action,identifier,submit,json,store){var m0g="canc";I6PSh.T_Y();var U2a="remov";var V8=U2a;V8+=I3I;var _this=this;if(action === q_s){var F3=y$Q;F3+=I6PSh[203556];F3+=u$O;store[D17]=$[F3](json[I6PSh.C_e],function(row){I6PSh.L61();var a4=m35;a4+=I6PSh[203556];a4+=Z_L;a4+=Z_L;var Q0=W9R;Q0+=z4X;return dataSource$1[Q0][a4](_this,row);});}if(action === p6G){var L8=Y$c;L8+=D8G;L8+=I6PSh[203556];var C8=m0g;C8+=I3I;C8+=J$i;var cancelled_1=json[C8] || [];store[D17]=$[T4P](submit[L8],function(val,key){var I8E="isEmp";var r_f="tyOb";var z6=j0N;z6+=r_j;z6+=d14;var p0=o2j;p0+=I6PSh[203556];var l$=I8E;l$+=r_f;l$+=Q1N;l$+=H4F;return !$[l$](submit[p0][key]) && $[z6](key,cancelled_1) === -V4z?key:undefined;});}else if(action === V8){store[K8D]=json[K8D] || [];}},refresh:function(){var O62="reload";var p8=S5A;I6PSh.T_Y();p8+=I6PSh.O47;p8+=Z_L;p8+=I3I;var dt=_dtApi(this[z18][p8]);dt[C0H][O62](s4l,M9q);},remove:function(identifier,fields,store){var A2L="ov";var Y6G="ery";var i4=D8G;i4+=x5x;var that=this;var dt=_dtApi(this[z18][i4]);var cancelled=store[K8D];if(cancelled[D02] === M_K){var y0=K4p;y0+=A2L;y0+=I3I;dt[Y4c](identifier)[y0]();}else {var S$=m5v;S$+=m5T;var v5=G0h;v5+=M7f;v5+=N_S;v5+=z18;var H4=I3I;H4+=V4Q;H4+=Y6G;var t1=G0h;t1+=h3W;var indexes_1=[];dt[t1](identifier)[H4](function(){var c2=L4U;c2+=Z_L;c2+=Z_L;var id=dataSource$1[C8O][c2](that,this[I6PSh.C_e]());if($[k9B](id,cancelled) === -V4z){var I1=a5U;I1+=n$Z;var V4=V0L;V4+=M0f;indexes_1[V4](this[I1]());}});dt[v5](indexes_1)[S$]();}}};function _htmlId(identifier){var w2r='[data-editor-id="';var Y36="-id` or `id` of: ";var Y9g="th `data-ed";var R2E='keyless';I6PSh.L61();var J8Y="Could not find an element wi";var N3=U3u;N3+=d$e;N3+=n5K;if(identifier === R2E){return $(document);}var specific=$(w2r + identifier + y_f);if(specific[D02] === M_K){specific=typeof identifier === q9q?$(safeQueryId(identifier)):$(identifier);}if(specific[N3] === M_K){var L7=J8Y;L7+=Y9g;L7+=W7D;L7+=Y36;throw new Error(L7 + identifier);}return specific;}function _htmlEl(identifier,name){var p$r='[data-editor-field="';var r$=t_4;r$+=e95;I6PSh.L61();var context=_htmlId(identifier);return $(p$r + name + r$,context);}function _htmlEls(identifier,names){var out=$();for(var i=M_K,ien=names[D02];i < ien;i++){out=out[k9Z](_htmlEl(identifier,names[i]));}return out;}function _htmlGet(identifier,dataSrc){var R1x="ata-edit";var w$r='[data-editor-value]';var M3i="or-value";var Z4=n5K;Z4+=D8S;var J3=z4X;J3+=R1x;J3+=M3i;var s8=q3g;s8+=P_4;var el=_htmlEl(identifier,dataSrc);I6PSh.L61();return el[s8](w$r)[D02]?el[J91](J3):el[Z4]();}function _htmlSet(identifier,fields,data){var X4=I3I;X4+=R1P;X4+=n5K;I6PSh.T_Y();$[X4](fields,function(name,field){var S7F="or-value]";var q9B="[da";var R1E="omD";var V30="ta-e";var y9U='data-editor-value';var J5=Q4y;J5+=R1E;J5+=F4y;var val=field[J5](data);if(val !== undefined){var G5=Z_L;G5+=I3I;G5+=h_a;G5+=n5K;var C$=q9B;C$+=V30;C$+=Z9Y;C$+=S7F;var z$=z$a;z$+=Z_L;z$+=P_4;var el=_htmlEl(identifier,field[T4x]());if(el[z$](C$)[G5]){var Y$=n0C;Y$+=h1G;el[Y$](y9U,val);}else {var C4=n5K;C4+=D8G;C4+=y$Q;C4+=Z_L;var Y0=l3i;Y0+=m35;Y0+=n5K;el[Y0](function(){var G9C="ild";var d7F="Nod";var g0W="moveChild";var F5H="firstChild";var p_=H2V;p_+=G9C;p_+=d7F;p_+=Q5l;I6PSh.L61();while(this[p_][D02]){var b0=W5q;b0+=g0W;this[b0](this[F5H]);}})[C4](val);}}});}var dataSource={create:function(fields,data){I6PSh.L61();if(data){var O3=m35;O3+=W63;O3+=Z_L;var Y9=W9R;Y9+=z4X;var id=dataSource[Y9][O3](this,data);try{if(_htmlId(id)[D02]){_htmlSet(id,fields,data);}}catch(e){;}}},edit:function(identifier,fields,data){var e9=L4q;e9+=d14;e9+=E$O;e9+=z18;var id=dataSource[C8O][M5F](this,data) || e9;_htmlSet(id,fields,data);},fields:function(identifier){I6PSh.L61();var E55="less";var A5=I3I;A5+=I6PSh[203556];A5+=m35;A5+=n5K;var N6=x00;N6+=z18;var Z3=W9R;Z3+=z18;Z3+=r_j;Z3+=d14;var out={};if(Array[Z3](identifier)){var l9=L1t;l9+=n5K;for(var i=M_K,ien=identifier[l9];i < ien;i++){var res=dataSource[N1U][M5F](this,identifier[i]);out[identifier[i]]=res[identifier[i]];}return out;}var data={};var fields=this[z18][N6];if(!identifier){var X2=L4q;X2+=d14;X2+=E55;identifier=X2;}$[A5](fields,function(name,field){I6PSh.L61();var S8j="valToData";var val=_htmlGet(identifier,field[T4x]());field[S8j](data,val === s4l?undefined:val);});out[identifier]={data:data,fields:fields,idSrc:identifier,node:document,type:c1N};return out;},id:function(data){var idFn=dataGet(this[z18][C5i]);I6PSh.L61();return idFn(data);},individual:function(identifier,fieldNames){var C$_="deNa";var E$h="Self";var o1K='Cannot automatically determine field name from data source';var z2Z='editor-id';var Y9K="data-editor-";var Z7a='[data-editor-id]';var t62="and";var Q0k="addBack";var Z2=I3I;Z2+=I6PSh[203556];Z2+=m35;Z2+=n5K;var X1=L4U;X1+=Z_L;X1+=Z_L;var K9=L1t;K9+=n5K;var j1=O0L;j1+=M6v;j1+=T_k;var q8=e5h;q8+=C$_;q8+=y$Q;q8+=I3I;var attachEl;if(identifier instanceof $ || identifier[q8]){var j3=u$O;j3+=Z5g;j3+=y$l;var S5=t62;S5+=E$h;var e3=S4I;e3+=I6PSh[428092];attachEl=identifier;if(!fieldNames){var z0=Y9K;z0+=x00;fieldNames=[$(identifier)[J91](z0)];}var back=$[e3][Q0k]?a2I:S5;identifier=$(identifier)[j3](Z7a)[back]()[I6PSh.C_e](z2Z);}if(!identifier){var K3=L4q;K3+=X1X;K3+=z18;K3+=z18;identifier=K3;}if(fieldNames && !Array[j1](fieldNames)){fieldNames=[fieldNames];}if(!fieldNames || fieldNames[K9] === M_K){throw new Error(o1K);}var out=dataSource[N1U][X1](this,identifier);var fields=this[z18][N1U];var forceFields={};$[P1d](fieldNames,function(i,name){I6PSh.T_Y();forceFields[name]=fields[name];});$[Z2](out,function(id,set){var m_w="chFie";var G5i="ayFields";var Q8x='cell';var G$I="atta";var a6=z4X;a6+=W9R;a6+=E7X;a6+=G5i;var U5=i_c;U5+=H2J;var Z1=n0C;Z1+=I4x;var D1=G$I;D1+=m_w;D1+=Z_L;D1+=U7l;var M9=D8G;M9+=d14;M9+=u$O;M9+=I3I;set[M9]=Q8x;I6PSh.T_Y();set[D1]=[fieldNames];set[Z1]=attachEl?$(attachEl):_htmlEls(identifier,fieldNames)[T7a]();set[U5]=fields;set[a6]=forceFields;});return out;},initField:function(cfg){var N2z='[data-editor-label="';var W5=m_c;W5+=I3I;W5+=Z_L;var H7=I6PSh[428092];H7+=I6PSh[203556];H7+=y$Q;H7+=I3I;var label=$(N2z + (cfg[I6PSh.C_e] || cfg[H7]) + y_f);if(!cfg[W5] && label[D02]){var s$=L1a;s$+=p9P;cfg[s$]=label[f$V]();}},remove:function(identifier,fields){var G$=W5q;G$+=L5w;G$+=m5T;_htmlId(identifier)[G$]();}};var classNames={actions:{create:H8T,edit:F0F,remove:F9},body:{content:a8,wrapper:M5},bubble:{bg:N95,close:n5,liner:f4,pointer:G6,table:s3,wrapper:V48},field:{'disabled':G4,'error':S8,'input':V2,'inputControl':C3,'label':R2Y,'msg-error':p$n,'msg-info':J5K,'msg-label':l8,'msg-message':c8a,'multiInfo':V9C,'multiNoEdit':s47,'multiRestore':g3s,'multiValue':T1,'namePrefix':n4,'processing':W56,'typePrefix':F8Z,'wrapper':D3},footer:{content:c0v,wrapper:B$h},form:{button:R6,buttonInternal:D8f,buttons:l_U,content:o4s,error:V0,info:M0G,tag:Y97,wrapper:K_y},header:{content:t97,title:{tag:s4l,class:Y97},wrapper:T2p},inline:{buttons:o0W,liner:Z9,wrapper:z5},processing:{active:R02,indicator:Z7},wrapper:z2};var displayed$2=M9q;var cssBackgroundOpacity=V4z;var dom$1={background:$(l$l)[M_K],close:$(S_C)[M_K],content:s4l,wrapper:$(j0 + r6 + E0s + j5)[M_K]};function findAttachRow(editor,attach){var s88='head';var y2o="Tabl";var S8p="ader";var v7=R1P;v7+=D8G;v7+=y7l;var G0=Y0Q;G0+=W9R;var y$=Y$c;y$+=S5A;y$+=y2o;y$+=I3I;var dt=new $[I6PSh.K$4][y$][G0](editor[z18][M6Q]);if(attach === s88){var g0=W5Y;g0+=S8p;return dt[M6Q](undefined)[g0]();;}else if(editor[z18][v7] === q_s){var Z6=S5A;Z6+=H7M;return dt[Z6](undefined)[O6e]();}else {var A8=e5h;A8+=J1t;var d5=j6Z;d5+=I3I;d5+=G0h;return dt[R_s](editor[z18][d5])[A8]();}}function heightCalc$1(dte){var c_1="erHeigh";var K$I="ou";var d88="eight";var Y7q='div.DTE_Body_Content';var Z8a="outerH";var U2p='maxHeight';var t_=N_S;t_+=G0h;t_+=H3h;t_+=T5R;var w_=z4X;w_+=n8t;var S6=n5K;S6+=d88;var y6=Z8a;y6+=d88;var w6=i8v;w6+=G0h;var r8=K$I;r8+=D8G;r8+=c_1;r8+=D8G;var header=$(T3K,dom$1[t7C])[r8]();var footer=$(p45,dom$1[w6])[y6]();var maxHeight=$(window)[S6]() - envelope[f2U][S_J] * A8s - header - footer;$(Y7q,dom$1[t7C])[X45](U2p,maxHeight);return $(dte[w_][t_])[y9p]();}function hide$2(dte,callback){var W$2="offsetHei";if(!callback){callback=function(){};}if(displayed$2){var b5=W$2;b5+=I2G;var S_=I6PSh[203556];S_+=I6PSh[428092];S_+=r36;S_+=f7m;$(dom$1[t8R])[S_]({top:-(dom$1[t8R][b5] + C66)},z2b,function(){var C4U="backgro";var q46="fadeO";var K8=q46;K8+=s7c;I6PSh.L61();var n6=C4U;n6+=y2S;n6+=z4X;var y9=Q9G;y9+=P1t;$([dom$1[y9],dom$1[n6]])[K8](Z2T,function(){I6PSh.L61();$(this)[F_w]();callback();});});displayed$2=M9q;}}function init$1(){var F3u="conte";var v$Q='div.DTED_Envelope_Container';var n_=m35;n_+=z18;n_+=z18;var c4=f02;c4+=u$O;c4+=P1t;var u6=F3u;u6+=P0i;dom$1[u6]=$(v$Q,dom$1[c4])[M_K];cssBackgroundOpacity=$(dom$1[t6u])[n_](m65);}function show$2(dte,callback){var J7g="k.DTE";var F7X="onten";var R62="click.";var u$Z='0';var H60='click.DTED_Envelope';var X4H="yl";var V4s="ffset";var a7_="elope";var f5x="marginLeft";var x8P="tle";var k9Y="resize.";var s2s="acity";var j8K="fadeIn";var q55="lic";var J8X='px';var L_S="DTED_Lightbox_Content_Wrap";var i0C="Height";var I9g="back";var I72="offsetWidth";var e9g="opacity";var x6q="gro";var D7G="click.DTED_Envelo";var p0R='resize.DTED_Envelope';var P2r="ack";var V7q="TED_Envelope";var a0G="D_Envelope";var q5F="ffse";var z_s="DTED_Env";var U7=M7f;U7+=I6PSh[428092];var z7=k9Y;z7+=z_s;z7+=a7_;var S1=M7f;S1+=S4I;S1+=S4I;var e2=m35;e2+=q55;e2+=J7g;e2+=a0G;var q6=D7G;q6+=u$O;q6+=I3I;var I3=M7f;I3+=Q_4;I6PSh.L61();var o4=E4t;o4+=p$7;o4+=L_S;o4+=T5R;var X9=M7f;X9+=I6PSh[428092];var m9=n8Z;m9+=S4I;var w1=I9g;w1+=t9S;w1+=M7f;w1+=I6PSh.Q_h;var m3=R62;m3+=Q97;m3+=V7q;var L0=M7f;L0+=S4I;L0+=S4I;var a_=m35;a_+=x3f;var d8=o1o;d8+=I6PSh[428092];var z_=F6t;z_+=x8P;var F4=I6PSh[203556];F4+=D0V;F4+=D8G;F4+=M7f;var V6=F4L;V6+=d14;V6+=I6PSh.m9A;var e6=m35;e6+=F7X;e6+=D8G;var J8=H3h;J8+=u$O;J8+=V77;var Y4=I6PSh.O47;Y4+=M7f;Y4+=z4X;Y4+=d14;if(!callback){callback=function(){};}$(Y4)[O66](dom$1[t6u])[J8](dom$1[t7C]);dom$1[e6][V6][Y0e]=F4;if(!displayed$2){var R4=N_S;R4+=Q$o;R4+=x4e;var b3=I6PSh.O47;b3+=P2r;b3+=Y0o;b3+=z4X;var s5=I9g;s5+=x6q;s5+=D0V;s5+=f7A;var G_=o_O;G_+=s2s;var P5=F4L;P5+=X1X;var T3=u$O;T3+=n$Z;var v0=z18;v0+=b8l;v0+=I6PSh.m9A;var L4=G0D;L4+=d9H;var K$=M7f;K$+=q5F;K$+=D8G;K$+=i0C;var s4=M7f;s4+=V4s;var x8=z18;x8+=b8l;x8+=I6PSh.m9A;var U1=f02;U1+=u$O;U1+=I3I;U1+=G0h;var y7=u$O;y7+=n$Z;var b2=z18;b2+=D8G;b2+=d14;b2+=I6PSh.m9A;var m4=N_S;m4+=Q$o;m4+=J4U;m4+=P1t;var V5=u$O;V5+=n$Z;var P4=N_S;P4+=t_8;var a3=z4X;a3+=O0L;a3+=w6r;a3+=d14;var G3=I6PSh[203556];G3+=U2j;G3+=n5K;var m_=f93;m_+=S4I;var Y1=l_J;Y1+=c9y;Y1+=L$_;var t5=z18;t5+=D8G;t5+=X4H;t5+=I3I;var style=dom$1[t7C][t5];style[e9g]=u$Z;style[Y1]=A$T;var height=heightCalc$1(dte);var targetRow=findAttachRow(dte,envelope[m_][G3]);var width=targetRow[I72];style[a3]=M2k;style[e9g]=f1v;dom$1[P4][T_A][U6d]=width + V5;dom$1[m4][b2][f5x]=-(width / A8s) + y7;dom$1[U1][x8][e8Q]=$(targetRow)[s4]()[e8Q] + targetRow[K$] + J8X;dom$1[L4][v0][e8Q]=-V4z * height - e4b + T3;dom$1[t6u][P5][G_]=u$Z;dom$1[s5][T_A][z4i]=A$T;$(dom$1[b3])[I9O]({opacity:cssBackgroundOpacity},Z2T);$(dom$1[R4])[j8K]();$(dom$1[t8R])[I9O]({top:M_K},z2b,callback);}$(dom$1[F5F])[J91](z_,dte[d8][a_])[L0](m3)[a2Q](H60,function(e){I6PSh.T_Y();dte[F5F]();});$(dom$1[w1])[m9](H60)[X9](H60,function(e){var r4=y7n;r4+=o5P;dte[r4]();});$(o4,dom$1[t7C])[I3](q6)[a2Q](e2,function(e){var v59='DTED_Envelope_Content_Wrapper';var b$=D8G;b$+=I6PSh[203556];b$+=G0h;b$+=C2r;if($(e[b$])[D5s](v59)){dte[t6u]();}});$(window)[S1](z7)[U7](p0R,function(){I6PSh.L61();heightCalc$1(dte);});displayed$2=A7Z;}var envelope={close:function(dte,callback){hide$2(dte,callback);},conf:{attach:H$,windowPadding:C66},destroy:function(dte){hide$2();},init:function(dte){init$1();return envelope;},node:function(dte){I6PSh.L61();return dom$1[t7C][M_K];},open:function(dte,append,callback){var O$n="appendChild";var F6=m35;F6+=f_b;$(dom$1[t8R])[F6]()[F_w]();dom$1[t8R][O$n](append);dom$1[t8R][O$n](dom$1[F5F]);show$2(dte,callback);}};function isMobile(){var n01='undefined';var J46="uterWidt";var n2f=576;var f9g="orient";I6PSh.T_Y();var l3=M7f;l3+=J46;l3+=n5K;var v8=f9g;v8+=I6PSh[203556];v8+=s$I;return typeof window[v8] !== n01 && window[l3] <= n2f?A7Z:M9q;}var displayed$1=M9q;var ready=M9q;var scrollTop=M_K;var dom={background:$(p3),close:$(z1T),content:s4l,wrapper:$(P$b + F5 + b22 + F28 + c8 + Z8 + j4 + j7p)};function heightCalc(){var X0A="calc(100v";var A_R="v.DTE_Body_Co";var i5g="h - ";var n6M="maxHe";var E4V="Content";var c$v="gh";var q4C="xHeight";var t0w='px)';var G1c="nten";var D5b="div.DTE_Body_";var G3m="hei";var Q7b="uterHei";var n$=M7f;I6PSh.L61();n$+=Q7b;n$+=I2G;var headerFooter=$(T3K,dom[t7C])[n$]() + $(p45,dom[t7C])[y9p]();if(isMobile()){var g5=X0A;g5+=i5g;var t3=y$Q;t3+=I6PSh[203556];t3+=q4C;var Q4=i8v;Q4+=G0h;var y_=l_J;y_+=A_R;y_+=G1c;y_+=D8G;$(y_,dom[Q4])[X45](t3,g5 + headerFooter + t0w);}else {var a$=n6M;a$+=W9R;a$+=c$v;a$+=D8G;var c6=m35;c6+=z18;c6+=z18;var F8=f02;F8+=u$O;F8+=P1t;var J1=D5b;J1+=E4V;var B9=G3m;B9+=I2G;var maxHeight=$(window)[B9]() - self[f2U][S_J] * A8s - headerFooter;$(J1,dom[F8])[c6](a$,maxHeight);}}function hide$1(dte,callback){var G69="_an";var B8h="offsetAni";var L56='resize.DTED_Lightbox';var n3=M7f;n3+=S4I;n3+=S4I;var p2=G69;p2+=r36;p2+=n0C;p2+=I3I;var T5=G69;T5+=o0Y;var I4=I6PSh.O47;I4+=M7f;I4+=z4X;I4+=d14;if(!callback){callback=function(){};}$(I4)[O6c](scrollTop);dte[T5](dom[t7C],{opacity:M_K,top:self[f2U][B8h]},function(){$(this)[F_w]();I6PSh.L61();callback();});dte[p2](dom[t6u],{opacity:M_K},function(){var C6=z4X;I6PSh.T_Y();C6+=d2Q;C6+=n5K;$(this)[C6]();});displayed$1=M9q;I6PSh.T_Y();$(window)[n3](L56);}function init(){var Y4C="ba";var f$F="conten";var U6p="ghtbox_Content";var w7d="div.DTED_Li";var X5=o_O;X5+=R1P;X5+=H3J;X5+=d14;var f9=m35;f9+=z18;f9+=z18;var E$=Y4C;E$+=V4x;E$+=Y0o;E$+=z4X;var D9=m35;D9+=z18;D9+=z18;var Y8=Q9G;Y8+=I3I;Y8+=G0h;var e8=w7d;e8+=U6p;var y5=f$F;y5+=D8G;if(ready){return;}dom[y5]=$(e8,dom[Y8]);dom[t7C][D9](m65,M_K);dom[E$][f9](X5,M_K);I6PSh.T_Y();ready=A7Z;}function show$1(dte,callback){var y0B="D_L";var T2c='div.DTED_Lightbox_Content_Wrapper';var R6R="ightbox";var A2J="etAni";var Q10="backg";var W1N="ize.DTE";var I_9="heigh";var j5W="DTED_Lightbox";I6PSh.L61();var G9P="res";var K9Y='DTED_Lightbox_Mobile';var M7P="lick.DTED_Li";var I6d="clic";var C8N="_Lightbo";var T1y='click.DTED_Lightbox';var Q_2="scrollT";var g$h="wr";var C28="ghtbox";var V1N="k.DTED";var R6B="ick.DTED_Lightbox";var j3W="offs";var w8=M7f;w8+=I6PSh[428092];var d0=I6d;d0+=V1N;d0+=C8N;d0+=n$Z;var O9=M7f;O9+=Q_4;var b6=g$h;b6+=I6PSh[203556];b6+=x4e;var C7=Y$i;C7+=R6B;var d$=M7f;d$+=I6PSh[428092];var f$=L4I;f$+=V4x;f$+=p$7;f$+=j5W;var k5=M7f;k5+=S4I;k5+=S4I;var y2=m35;y2+=M7P;y2+=C28;var n1=n8Z;n1+=S4I;var Q6=m35;Q6+=x3f;var m5=C3q;m5+=W7J;var u$=H3h;u$+=u$O;u$+=I3I;u$+=f7A;var i1=H3h;i1+=u$O;i1+=V77;var M7=D1u;M7+=b5B;if(isMobile()){var l_=e6H;l_+=d14;$(l_)[k5t](K9Y);}$(M7)[i1](dom[t6u])[u$](dom[t7C]);heightCalc();if(!displayed$1){var v4=Q_2;v4+=o_O;var R3=G9P;R3+=W1N;R3+=y0B;R3+=R6R;var V7=Q10;V7+=m2S;V7+=D0V;V7+=f7A;var I2=N_S;I2+=t_8;var T7=j3W;T7+=A2J;var S3=m35;S3+=D8y;var J_=N_S;J_+=t_8;var r1=V7g;r1+=r2M;var W1=I_9;W1+=D8G;displayed$1=A7Z;dom[t8R][X45](W1,r1);dom[J_][S3]({top:-self[f2U][T7]});dte[L9U](dom[I2],{opacity:V4z,top:M_K},callback);dte[L9U](dom[V7],{opacity:V4z});$(window)[a2Q](R3,function(){heightCalc();});scrollTop=$(a9B)[v4]();}dom[m5][J91](p78,dte[H6x][Q6])[n1](y2)[a2Q](T1y,function(e){dte[F5F]();});dom[t6u][k5](f$)[d$](C7,function(e){var o3l="bac";var Q5=o3l;Q5+=R5K;Q5+=t9S;Q5+=o5P;e[o3Z]();dte[Q5]();});$(T2c,dom[b6])[O9](d0)[w8](T1y,function(e){var x4B="round";I6PSh.L61();var G9r='DTED_Lightbox_Content_Wrapper';var O7K="stopImmediateProp";var s0n="agation";if($(e[x0g])[D5s](G9r)){var Q2=Q10;Q2+=x4B;var N9=O7K;N9+=s0n;e[N9]();dte[Q2]();}});}var self={close:function(dte,callback){I6PSh.L61();hide$1(dte,callback);},conf:{offsetAni:B3M,windowPadding:B3M},destroy:function(dte){if(displayed$1){hide$1(dte);}},init:function(dte){init();I6PSh.L61();return self;},node:function(dte){return dom[t7C][M_K];},open:function(dte,append,callback){var v3=m35;v3+=u1t;I6PSh.T_Y();v3+=z18;v3+=I3I;var k$=I6PSh[203556];k$+=u$O;k$+=b7A;k$+=z4X;var A4=m35;A4+=w2_;A4+=d9H;var content=dom[A4];content[V2F]()[F_w]();content[O66](append)[k$](dom[v3]);show$1(dte,callback);}};var DataTable$5=$[q1][S3i];function add(cfg,after,reorder){var W0z="ditFi";var K8t="or adding fie";var z$U="_di";var E9K="\'. A field already exists wi";var h4p=". The field requires a `name` option";var g3k="splayReorder";var I6c="ord";var S9f="reverse";var a7C="th this na";var m7c="g field \'";var T5T="inArr";var Y6o="nitFi";var K75="displayReo";var d1T="isArra";var t3V="Error addin";var U2=v$B;U2+=U7l;var b_=y$Q;b_+=M7f;b_+=z4X;b_+=I3I;var o0=T0P;o0+=b9o;var a9=W9R;a9+=Y6o;a9+=I3I;a9+=j6P;var c5=S4I;c5+=W9R;c5+=Z8z;c5+=z18;var K5=d1T;K5+=d14;if(reorder === void M_K){reorder=A7Z;}if(Array[K5](cfg)){var E6=g8H;E6+=K75;E6+=W5P;E6+=P1t;var q9=L1t;q9+=n5K;if(after !== undefined){cfg[S9f]();}for(var _i=M_K,cfg_1=cfg;_i < cfg_1[q9];_i++){var cfgDp=cfg_1[_i];this[k9Z](cfgDp,after,M9q);}this[E6](this[L5d]());return this;}var name=cfg[X55];if(name === undefined){var j_=S8J;j_+=K8t;j_+=j6P;j_+=h4p;throw new Error(j_);}if(this[z18][c5][name]){var T_=E9K;T_+=a7C;T_+=k2_;var T0=t3V;T0+=m7c;throw new Error(T0 + name + T_);}this[q5_](a9,cfg);var editorField=new Editor[o0](cfg,this[y9n][x00],this);if(this[z18][b_]){var n7=I3I;n7+=I6PSh[203556];n7+=H2V;var J4=I3I;J4+=W0z;J4+=I3I;J4+=H2J;var editFields=this[z18][J4];editorField[I0D]();$[n7](editFields,function(idSrc,editIn){var U81="alFromData";var y6V="multiS";var a2=y6V;a2+=P22;var X_=z4X;X_+=I6PSh[203556];X_+=D8G;X_+=I6PSh[203556];I6PSh.T_Y();var value;if(editIn[X_]){var R0=V4Q;R0+=U81;value=editorField[R0](editIn[I6PSh.C_e]);}editorField[a2](idSrc,value !== undefined?value:editorField[V3Z]());});}this[z18][U2][name]=editorField;if(after === undefined){var q$=u$O;q$+=A0r;q$+=n5K;this[z18][L5d][q$](name);}else if(after === s4l){this[z18][L5d][B$B](name);}else {var U4=z18;U4+=o70;U4+=o6y;var O2=I6c;O2+=I3I;O2+=G0h;var w$=T5T;w$+=I6PSh[203556];w$+=d14;var idx=$[w$](after,this[z18][O2]);this[z18][L5d][U4](idx + V4z,M_K,name);}if(reorder !== M9q){var L6=z$U;L6+=g3k;this[L6](this[L5d]());}return this;}function ajax(newAjax){if(newAjax){var s0=h_$;s0+=n$Z;this[z18][s0]=newAjax;return this;}return this[z18][C0H];}function background(){var w4R="blu";var i4S="onBackground";var K7=z18;K7+=U3U;K7+=A1l;K7+=D8G;var N2=w4R;N2+=G0h;var m0=I2F;m0+=y7l;var onBackground=this[z18][w5o][i4S];if(typeof onBackground === m0){onBackground(this);}else if(onBackground === N2){this[Z7y]();}else if(onBackground === o$d){var D7=m35;D7+=u1t;D7+=W7J;this[D7]();}else if(onBackground === K7){this[M0d]();}return this;}function blur(){var r7=H9P;r7+=I8T;this[r7]();I6PSh.L61();return this;}function bubble(cells,fieldNames,showIn,opts){var N3Q="dividual";var G4B="ean";var T2=D6n;T2+=H3J;var y4=W9R;y4+=I6PSh[428092];y4+=N3Q;var U_=I6PSh.O47;U_+=M5h;U_+=Z_L;U_+=G4B;var w3=g8H;w3+=D8G;w3+=W9R;w3+=b5B;var _this=this;if(showIn === void M_K){showIn=A7Z;}var that=this;if(this[w3](function(){var B3=B_Q;B3+=q4N;B3+=I3I;that[B3](cells,fieldNames,opts);})){return this;}if($[P_k](fieldNames)){opts=fieldNames;fieldNames=undefined;showIn=A7Z;}else if(typeof fieldNames === U_){showIn=fieldNames;fieldNames=undefined;opts=undefined;}if($[P_k](showIn)){opts=showIn;showIn=A7Z;}if(showIn === undefined){showIn=A7Z;}opts=$[E43]({},this[z18][I3Z][D4F],opts);var editFields=this[q5_](y4,cells,fieldNames);this[T2](cells,editFields,v7S,opts,function(){var v1c=I6PSh;var z6c="<div ";var K1y="v ";var J8N="poi";var U9_="q";var b6O="bubb";var T1h='<div class="DTE_Processing_Indicator"><span></div>';var T6C="nter";var R0G=" title=\"";var t0S='"><div></div></div>';var z5f="=\"";var X5c='resize.';var G1p="epen";var z$F='attach';var J3v="hea";var p1L="To";var K8_="v cl";var N8e="/div>";var V7U="</div";var J1w="cat";var H2S="rmOption";var R72="leNodes";var C08="mIn";var g5l="iv cl";var Y9O="ep";var K_o="l.";var M$H="dTo";var n$n=" scrol";var d$p="tl";var W0B="_preop";var y0P="childre";var q3t="ply";var p7E="class=";var r_=R14;r_+=I6PSh.O47;r_+=I6PSh.O47;r_+=I6PSh.m9A;var x4=m35;x4+=Z_L;x4+=L34;x4+=R5K;var c1=Y$i;c1+=L34;c1+=R5K;var t4=M7f;t4+=I6PSh[428092];var A7=F6t;A7+=d$p;A7+=I3I;var x$=z4X;x$+=M7f;x$+=y$Q;var M0=u$O;M0+=G0h;M0+=G1p;M0+=z4X;var f0=c$X;f0+=y$Q;var h1=U9w;h1+=E8U;h1+=I3I;h1+=I6PSh[428092];var R1=y0P;R1+=I6PSh[428092];var I8=I3I;v1c.T_Y();I8+=U9_;var g7=m35;g7+=f_b;var p1=k9q;p1+=V7U;p1+=k2s;var T4=J8N;T4+=T6C;var N4=T8r;N4+=N8e;var E2=V7U;E2+=k2s;var g8=C3q;g8+=z18;g8+=I3I;var B8=L1L;B8+=S3I;var G7=t_4;G7+=R0G;var u_=m35;u_+=u1t;u_+=W7J;var l5=U3h;l5+=K8_;l5+=U$G;var e0=U3h;e0+=K1y;e0+=p7E;e0+=t_4;var h2=B3T;h2+=P1t;var K6=T8r;K6+=z4X;K6+=g5l;K6+=U$G;var B_=I6PSh.O47;B_+=M3I;var A1=z6c;A1+=x2V;A1+=D8y;A1+=z5f;var T$=x2V;T$+=Y5m;T$+=z18;var B2=H3h;B2+=q3t;var Y6=f93;Y6+=J1w;var i9=b6O;i9+=R72;var P7=n$n;P7+=K_o;var h0=M7f;h0+=I6PSh[428092];var M6=B_Q;M6+=H7M;var V3=W0B;V3+=C51;var x6=D1y;x6+=M7f;x6+=H2S;x6+=z18;var namespace=_this[x6](opts);var ret=_this[V3](M6);if(!ret){return _this;}$(window)[h0](X5c + namespace + P7 + namespace,function(){var D7E="Position";v1c.T_Y();var Q9=D4F;Q9+=D7E;_this[Q9]();});var nodes=[];_this[z18][i9]=nodes[Y6][B2](nodes,pluck(editFields,z$F));var classes=_this[T$][D4F];var backgroundNode=$(A1 + classes[B_] + t0S);var container=$(i8r + classes[t7C] + r1W + K6 + classes[h2] + r1W + e0 + classes[M6Q] + r1W + l5 + classes[u_] + G7 + _this[B8][g8] + j9u + T1h + E2 + N4 + i8r + classes[T4] + p1 + j7p);if(showIn){var P8=Y_1;P8+=M$H;var W4=I6PSh.O47;W4+=M7f;W4+=z4X;W4+=d14;var R5=X3S;R5+=I6PSh[428092];R5+=z4X;R5+=p1L;container[R5](W4);backgroundNode[P8](a9B);}var liner=container[g7]()[I8](M_K);var tableNode=liner[R1]();var closeNode=tableNode[h1]();liner[O66](_this[f0][e6S]);tableNode[M0](_this[x$][a7c]);if(opts[M_B]){var E_=U0G;E_+=C08;E_+=S4I;E_+=M7f;liner[g$Q](_this[N_F][E_]);}if(opts[A7]){var i5=J3v;i5+=J1t;i5+=G0h;var D_=E0y;D_+=Y9O;D_+=I3I;D_+=f7A;liner[D_](_this[N_F][i5]);}if(opts[m9O]){var q5=I6PSh[203556];q5+=u$O;q5+=b7A;q5+=z4X;tableNode[q5](_this[N_F][m9O]);}var finish=function(){var X47="namicI";var w1Z="_clearDy";var H2=I6PSh.O47;H2+=U3U;H2+=q4N;H2+=I3I;v1c.T_Y();var u7=Y$i;u7+=M7f;u7+=z18;u7+=i9V;var H5=b2g;H5+=D8G;var v9=w1Z;v9+=X47;v9+=I6PSh[428092];v9+=h2V;_this[v9]();_this[H5](u7,[H2]);};var pair=$()[k9Z](container)[k9Z](backgroundNode);_this[m7D](function(submitComplete){var S4=g8H;S4+=N2k;v1c.T_Y();S4+=o0Y;_this[S4](pair,{opacity:M_K},function(){var Q1x=" s";var Q3B="oll";if(this === container[M_K]){var C9=Q1x;C9+=S1D;C9+=Q3B;C9+=p$7;var M_=M7f;M_+=S4I;M_+=S4I;var c0=J1t;c0+=I4x;pair[c0]();$(window)[M_](X5c + namespace + C9 + namespace);finish();}});});backgroundNode[t4](c1,function(){v1c.T_Y();_this[Z7y]();});closeNode[a2Q](x4,function(){v1c.L61();_this[Y5J]();});_this[f4A]();_this[s85](r_,M9q);var opened=function(){var x2t="_focus";var X0H="ubble";var p4=I6PSh[203556];p4+=Y_X;var f1=I6PSh.O47;f1+=X0H;var d6=G49;d6+=m5T;d6+=P0i;_this[x2t](_this[z18][m9u],opts[g1F]);_this[d6](S2i,[f1,_this[z18][p4]]);};_this[L9U](pair,{opacity:V4z},function(){if(this === container[M_K]){opened();}});});return this;}function bubblePosition(){var E_Y="bubbleBottom";var P4l='below';var U87="cs";var l7b="out";var l8U="Clas";var o6m="right";var L3g="tom";var m9S='top';var m1L="bbl";var m6S='div.DTE_Bubble_Liner';var V84="eBotto";var N1G="erWidt";var O_X="veClass";var E3u="bottom";var Y4g="E_Bubb";var M$3="osi";var G1B="belo";var v9e="bot";var c3n="v.DT";var c_t="eBottom";var G70="bb";var V5Z="bott";var e0$="ubbleBotto";var l$K="innerHeight";var z5T="bubbleNodes";var O8=D8G;O8+=o_O;var f5=Z_L;f5+=I3I;f5+=l0R;var B4=D8G;B4+=M7f;B4+=u$O;var f6=U3u;f6+=M3I;f6+=D8G;f6+=n5K;var d1=u$O;d1+=M$3;d1+=s$I;var F7=R14;F7+=G70;F7+=Z_L;F7+=c_t;var W3=V5Z;W3+=M7f;W3+=y$Q;var P2=U87;P2+=z18;var m8=E1o;m8+=z4X;m8+=D8G;m8+=n5K;var Q3=l7b;Q3+=N1G;Q3+=n5K;var a0=I6PSh.m9A;a0+=S4I;a0+=D8G;var Q8=D8G;Q8+=o_O;var J0=Z_L;J0+=I3I;J0+=l0R;var j2=v9e;j2+=L3g;var R7=Z_L;R7+=I3I;R7+=G8X;var w5=Z_L;w5+=q6l;var i8=I3I;i8+=R1P;i8+=n5K;var v$=l_J;v$+=c3n;v$+=Y4g;v$+=I6PSh.m9A;var wrapper=$(v$);var liner=$(m6S);var nodes=this[z18][z5T];var position={bottom:M_K,left:M_K,right:M_K,top:M_K};$[i8](nodes,function(i,nodeIn){var Y8h="Width";var N6E="offsetHeight";var x7x="ottom";var G_C="eft";var C7P="left";var I6L="offset";var m3o="rig";var L_=I6PSh.O47;L_+=x7x;var H3=I6L;H3+=Y8h;var Q$=m3o;Q$+=k9T;I6PSh.L61();var b7=Z_L;b7+=G_C;var k6=Z_L;k6+=f5h;k6+=D8G;var b4=D8G;b4+=M7f;b4+=u$O;var pos=$(nodeIn)[I6L]();nodeIn=$(nodeIn)[C2r](M_K);position[b4]+=pos[e8Q];position[k6]+=pos[b7];position[Q$]+=pos[C7P] + nodeIn[H3];position[L_]+=pos[e8Q] + nodeIn[N6E];});position[e8Q]/=nodes[w5];position[R7]/=nodes[D02];position[o6m]/=nodes[D02];position[j2]/=nodes[J0];var top=position[Q8];var left=(position[a0] + position[o6m]) / A8s;var width=liner[Q3]();var height=liner[y9p]();var visLeft=left - width / A8s;var visRight=visLeft + width;var docWidth=$(window)[m8]();var viewportTop=$(window)[O6c]();var padding=s_l;wrapper[P2]({left:left,top:this[z18][E_Y]?position[W3]:top});if(this[z18][F7]){var c7=G1B;c7+=N_S;var k9=I6PSh[203556];k9+=D_p;k9+=l8U;k9+=z18;wrapper[k9](c7);}var curPosition=wrapper[d1]();if(liner[f6] && curPosition[B4] + height > viewportTop + window[l$K]){var h_=I6PSh.O47;h_+=e0$;h_+=y$Q;var g_=p9P;g_+=s7d;var x_=m5v;x_+=O_X;wrapper[X45](m9S,top)[x_](g_);this[z18][h_]=M9q;}else if(liner[f5] && curPosition[O8] - height < viewportTop){var K2=R14;K2+=m1L;K2+=V84;K2+=y$Q;var J6=D8G;J6+=o_O;var i_=m35;i_+=z18;i_+=z18;wrapper[i_](J6,position[E3u])[k5t](P4l);this[z18][K2]=A7Z;}if(visRight + padding > docWidth){var d4=Z_L;d4+=f5h;d4+=D8G;var K1=m35;K1+=z18;K1+=z18;var diff=visRight - docWidth;liner[K1](d4,visLeft < padding?-(visLeft - padding):-(diff + padding));}else {var Y7=Z_L;Y7+=I3I;Y7+=G8X;liner[X45](Y7,visLeft < padding?-(visLeft - padding):M_K);}return this;}function buttons(buttonsIn){var r9=l3i;r9+=H2V;var s7=O1l;s7+=M7f;s7+=I6PSh[428092];s7+=z18;var B6=g8H;B6+=I6PSh.O47;B6+=u6d;B6+=L34;var _this=this;if(buttonsIn === B6){buttonsIn=[{action:function(){var D7R="bm";var g2=z18;g2+=D0V;g2+=D7R;g2+=H3J;this[g2]();},text:this[H6x][this[z18][u_g]][M0d]}];}else if(!Array[M1j](buttonsIn)){buttonsIn=[buttonsIn];}$(this[N_F][s7])[H5n]();$[r9](buttonsIn,function(i,btn){var G87='keypress';var x3B='tabindex';var M1V="abIndex";I6PSh.L61();var o$L="ndex";var n$t='<button></button>';var p56="tabI";var K_=H3h;K_+=W5B;K_+=T5s;K_+=M7f;var n2=M7f;n2+=I6PSh[428092];var c9=D8G;c9+=M1V;var R2=p56;R2+=o$L;var j$=I6PSh[203556];j$+=D8G;j$+=D8G;j$+=G0h;var o_=k9T;o_+=N3k;var w4=I6PSh[203556];w4+=g$w;w4+=a2Q;var h3=q4b;h3+=n$Z;h3+=D8G;if(typeof btn === q9q){btn={action:function(){I6PSh.T_Y();this[M0d]();},text:btn};}var text=btn[h3] || btn[j5r];var action=btn[w4] || btn[I6PSh.K$4];var attr=btn[J91] || ({});$(n$t,{class:_this[y9n][a7c][i1S] + (btn[i0W]?X9J + btn[i0W]:Y97)})[o_](typeof text === a27?text(_this):text || Y97)[j$](x3B,btn[R2] !== undefined?btn[c9]:M_K)[J91](attr)[a2Q](r4$,function(e){if(e[l6y] === p5m && action){var y3=L4U;y3+=Z_L;y3+=Z_L;action[y3](_this);}})[a2Q](G87,function(e){I6PSh.T_Y();if(e[l6y] === p5m){e[M9P]();}})[n2](h1T,function(e){e[M9P]();if(action){var h9=m35;h9+=I6PSh[203556];h9+=Z_L;h9+=Z_L;action[h9](_this,e);}})[K_](_this[N_F][m9O]);});I6PSh.L61();return this;}function clear(fieldName){var F6N="include";var S8B="splice";var u$G="rde";var o4h="Fields";var T1V="includeFiel";var q4R="dest";var V3P="_fieldName";var u9=S4I;I6PSh.T_Y();u9+=b9o;u9+=z18;var that=this;var sFields=this[z18][u9];if(typeof fieldName === q9q){var T6=T1V;T6+=U7l;var L$=z18;L$+=o70;L$+=m35;L$+=I3I;var W$=M7f;W$+=u$G;W$+=G0h;var A6=q4R;A6+=P2e;var E7=S4I;E7+=F1q;E7+=z4X;that[E7](fieldName)[A6]();delete sFields[fieldName];var orderIdx=$[k9B](fieldName,this[z18][L5d]);this[z18][W$][L$](orderIdx,V4z);var includeIdx=$[k9B](fieldName,this[z18][T6]);if(includeIdx !== -V4z){var v6=F6N;v6+=o4h;this[z18][v6][S8B](includeIdx,V4z);}}else {var g4=V3P;g4+=z18;var E9=I3I;E9+=I6PSh[203556];E9+=m35;E9+=n5K;$[E9](this[g4](fieldName),function(i,name){that[l8T](name);});}return this;}function close(){this[Y5J](M9q);return this;}function create(arg1,arg2,arg3,arg4){var U76="tyle";var x9E="Fie";var h55='initCreate';var U7k="ditFields";var g1=i_c;g1+=H2J;var H9=I6PSh.O47;H9+=Z_L;H9+=G55;H9+=R5K;var Y2=l_J;Y2+=E7X;Y2+=T_k;var R9=z18;R9+=U76;var D8=z4X;D8+=M7f;D8+=y$Q;var U6=j6Z;U6+=I3I;U6+=G0h;var E4=Z77;E4+=j0N;var p9=I3I;p9+=U7k;var W8=z$a;W8+=Z8z;W8+=z18;var _this=this;var that=this;var sFields=this[z18][W8];var count=V4z;if(this[v38](function(){I6PSh.T_Y();var W_=m0C;W_+=I3I;that[W_](arg1,arg2,arg3,arg4);})){return this;}if(typeof arg1 === q3j){count=arg1;arg1=arg2;arg2=arg3;}this[z18][p9]={};for(var i=M_K;i < count;i++){var i3=i_c;i3+=j6P;i3+=z18;var g6=J3X;g6+=x9E;g6+=Z_L;g6+=U7l;this[z18][g6][i]={fields:this[z18][i3]};}var argOpts=this[h8J](arg1,arg2,arg3,arg4);this[z18][d8Z]=E4;this[z18][u_g]=q_s;this[z18][U6]=s4l;this[D8][a7c][R9][Y2]=H9;this[k8H]();this[a1c](this[g1]());$[P1d](sFields,function(name,fieldIn){var o2K="iReset";var w0=z18;w0+=I3I;w0+=D8G;var B7=R8z;B7+=N5F;B7+=o2K;fieldIn[B7]();for(var i=M_K;i < count;i++){var x9=z4X;x9+=f5h;fieldIn[v7i](i,fieldIn[x9]());}fieldIn[w0](fieldIn[V3Z]());});this[x2T](h55,s4l,function(){var A8L="bleM";var F75="_ass";var f7=F75;f7+=x4Z;f7+=A8L;f7+=k$l;_this[f7]();_this[Y1t](argOpts[O58]);argOpts[O3P]();});return this;}function undependent(parent){var z36="pendent";var k1=M7f;k1+=S4I;k1+=S4I;var t9=i_c;t9+=j6P;var R8=x5h;R8+=T_k;if(Array[R8](parent)){for(var i=M_K,ien=parent[D02];i < ien;i++){var Q1=D0V;Q1+=f7A;Q1+=I3I;Q1+=z36;this[Q1](parent[i]);}return this;}$(this[t9](parent)[Q0Z]())[k1](x_W);return this;}function dependent(parent,url,optsIn){var Y$d="endent";var e2m="dep";var d7=I6PSh[428092];d7+=M7f;d7+=z4X;d7+=I3I;var R$=C3s;R$+=Q5C;R$+=G0V;R$+=T5s;var e$=z$a;e$+=I3I;e$+=Z_L;e$+=z4X;var _this=this;if(Array[M1j](parent)){var J7=U3u;J7+=d$e;J7+=n5K;for(var i=M_K,ien=parent[J7];i < ien;i++){var V_=e2m;V_+=Y$d;this[V_](parent[i],url,optsIn);}return this;}var that=this;var parentField=this[e$](parent);var ajaxOpts={dataType:w6m,type:R$};var opts=$[E43]({},{data:s4l,event:N12,postUpdate:s4l,preUpdate:s4l},optsIn);var update=function(json){var u62="po";var o44='message';var X8f="postUpdate";var J30="stUp";var s1Z='error';var B6d="ach";var h_1='disable';var Z$N='val';var Q1J="preUpdate";var b8=a6P;b8+=b9u;var c_=G60;c_+=H7M;var K4=z18;K4+=n5K;K4+=M7f;K4+=N_S;var L3=n5K;L3+=W9R;L3+=z4X;L3+=I3I;var Y5=j$$;Y5+=n5K;var c$=i3G;c$+=R2d;var x1=I3I;x1+=B6d;if(opts[Q1J]){opts[Q1J](json);}$[x1]({errors:s1Z,labels:V91,messages:o44,options:c$,values:Z$N},function(jsonProp,fieldFn){I6PSh.T_Y();if(json[jsonProp]){var t2=I3I;t2+=I6PSh[203556];t2+=m35;t2+=n5K;$[t2](json[jsonProp],function(fieldIn,valIn){var Y_=S4I;Y_+=b9o;I6PSh.T_Y();that[Y_](fieldIn)[fieldFn](valIn);});}});$[Y5]([L3,K4,c_,h_1],function(i,key){I6PSh.T_Y();var s$O="imat";if(json[key]){var I6=N2k;I6+=s$O;I6+=I3I;that[key](json[key],json[I6]);}});if(opts[X8f]){var X6=u62;X6+=J30;X6+=Y$c;X6+=q4b;opts[X6](json);}parentField[b8](M9q);};I6PSh.L61();$(parentField[d7]())[a2Q](opts[i6Z] + x_W,function(e){var o7E="Fi";var J0v="functi";var h7=J0v;h7+=a2Q;var p6=W6s;p6+=z18;var G1=z4X;G1+=I6PSh[203556];G1+=D8G;G1+=I6PSh[203556];var M4=T_K;M4+=D8G;M4+=o7E;M4+=v6c;var j9=U3u;j9+=k$T;var D6=S5A;D6+=G0h;D6+=L45;D6+=D8G;var H_=S4I;H_+=W9R;H_+=I6PSh[428092];H_+=z4X;var m7=j00;m7+=I3I;if($(parentField[m7]())[H_](e[D6])[j9] === M_K){return;}parentField[t55](A7Z);var data={};data[Y4c]=_this[z18][M4]?pluck(_this[z18][M8q],G1):s4l;data[R_s]=data[Y4c]?data[Y4c][M_K]:s4l;data[p6]=_this[N1E]();if(opts[I6PSh.C_e]){var ret=opts[I6PSh.C_e](data);if(ret){data=ret;}}if(typeof url === h7){var k3=V4Q;k3+=W63;var o=url[M5F](_this,parentField[k3](),data,update,e);if(o){var s2=c6s;s2+=s$I;var j6=D8G;j6+=n5K;j6+=I3I;j6+=I6PSh[428092];if(typeof o === I6PSh.k_B && typeof o[j6] === s2){o[u7U](function(resolved){I6PSh.L61();if(resolved){update(resolved);}});}else {update(o);}}}else {var u5=I3I;u5+=n$Z;u5+=D8G;u5+=V77;var o7=I6PSh[203556];o7+=z2S;if($[P_k](url)){var z9=f0a;z9+=f7A;$[z9](ajaxOpts,url);}else {ajaxOpts[Z$v]=url;}$[o7]($[u5](ajaxOpts,{data:data,success:update}));}});return this;}function destroy(){var X1A="niq";var j$T="yController";var y1B='.dte';var J0a="mpla";var C27="templat";var W6=z4X;W6+=M7f;W6+=y$Q;var w9=D0V;w9+=X1A;w9+=D0V;w9+=I3I;var M$=n8Z;M$+=S4I;var m2=b6h;m2+=A8y;m2+=I6PSh[203556];m2+=j$T;var S7=C27;S7+=I3I;if(this[z18][G_6]){var d9=m35;d9+=u1t;d9+=W7J;this[d9]();}this[l8T]();if(this[z18][S7]){var P0=D8G;P0+=I3I;P0+=J0a;P0+=q4b;$(a9B)[O66](this[z18][P0]);}var controller=this[z18][m2];if(controller[a4Z]){controller[a4Z](this);}$(document)[M$](y1B + this[z18][w9]);this[W6]=s4l;this[z18]=s4l;}function disable(name){var N8F="ldNames";var X2Q=U55;X2Q+=N8F;var that=this;$[P1d](this[X2Q](name),function(i,n){that[x00](n)[M6S]();});I6PSh.T_Y();return this;}function display(showIn){var k5N=Y$i;k5N+=U4B;var R_O=M7f;R_O+=u$O;R_O+=C51;if(showIn === undefined){return this[z18][G_6];}return this[showIn?R_O:k5N]();}function displayed(){I6PSh.T_Y();return $[T4P](this[z18][N1U],function(fieldIn,name){return fieldIn[G_6]()?name:s4l;});}function displayNode(){var p_m="ller";var J1g="layContro";var V3D="isp";var p_I=I6PSh[428092];p_I+=G$H;p_I+=I3I;var u$U=z4X;u$U+=V3D;I6PSh.L61();u$U+=J1g;u$U+=p_m;return this[z18][u$U][p_I](this);}function edit(items,arg1,arg2,arg3,arg4){var c5U="rgs";var i2q="rudA";var M9A=y$Q;M9A+=I6PSh[203556];M9A+=W9R;M9A+=I6PSh[428092];var E_9=z$a;E_9+=r4h;E_9+=U7l;var c2_=D6n;c2_+=H3J;var I7l=g8H;I7l+=m35;I7l+=i2q;I7l+=c5U;I6PSh.L61();var M87=W2w;M87+=W9R;M87+=z4X;M87+=d14;var _this=this;var that=this;if(this[M87](function(){var R34=I3I;I6PSh.T_Y();R34+=z4X;R34+=W9R;R34+=D8G;that[R34](items,arg1,arg2,arg3,arg4);})){return this;}var argOpts=this[I7l](arg1,arg2,arg3,arg4);this[c2_](items,this[q5_](E_9,items),M9A,argOpts[O58],function(){var D4b=M7f;D4b+=u$O;D4b+=y$l;_this[J53]();_this[Y1t](argOpts[D4b]);argOpts[O3P]();});return this;}function enable(name){I6PSh.T_Y();var that=this;$[P1d](this[P4D](name),function(i,n){var G3e=C51;G3e+=M3$;I6PSh.L61();G3e+=I6PSh.m9A;that[x00](n)[G3e]();});return this;}function error$1(name,msg){var P2V="gl";var p5l="lErr";var r6f="oba";var wrapper=$(this[N_F][t7C]);if(msg === undefined){var B$a=P2V;B$a+=r6f;B$a+=p5l;B$a+=l8G;var T8k=z4X;T8k+=M7f;T8k+=y$Q;this[O_2](this[T8k][e6S],name,A7Z,function(){var n4U="inFo";I6PSh.L61();var R8E="toggleClass";var l$S="mErro";var r1v=n4U;r1v+=G0h;r1v+=l$S;r1v+=G0h;wrapper[R8E](r1v,name !== undefined && name !== Y97);});this[z18][B$a]=name;}else {var p05=S4I;p05+=W9R;p05+=I3I;p05+=j6P;this[p05](name)[c4M](msg);}return this;}function field(name){var y1z="nown field name - ";var d4x="Unk";var B9L=z$a;I6PSh.T_Y();B9L+=I3I;B9L+=j6P;B9L+=z18;var sFields=this[z18][B9L];if(!sFields[name]){var c7o=d4x;c7o+=y1z;throw new Error(c7o + name);}return sFields[name];}function fields(){var E6_=S4I;E6_+=W9R;E6_+=r4h;E6_+=U7l;I6PSh.T_Y();return $[T4P](this[z18][E6_],function(fieldIn,name){return name;});}function file(name,id){var z29=' in table ';var e5a='Unknown file id ';var u7i=z$a;u7i+=E$O;var tableFromFile=this[u7i](name);var fileFromTable=tableFromFile[id];if(!fileFromTable){throw new Error(e5a + id + z29 + name);}return tableFromFile[id];}function files(name){var A_S='Unknown file table name: ';if(!name){var A1p=S4I;A1p+=W9R;A1p+=Z_L;A1p+=Q5l;return Editor[A1p];}var editorTable=Editor[b1R][name];if(!editorTable){throw new Error(A_S + name);}return editorTable;}function get(name){var that=this;if(!name){name=this[N1U]();}if(Array[M1j](name)){var out_1={};$[P1d](name,function(i,n){I6PSh.T_Y();out_1[n]=that[x00](n)[C2r]();});return out_1;}return this[x00](name)[C2r]();}function hide(names,animate){var G7r=g8H;G7r+=x00;G7r+=a0p;var that=this;$[P1d](this[G7r](names),function(i,n){I6PSh.T_Y();var F0J=U_y;F0J+=J1t;that[x00](n)[F0J](animate);});return this;}function ids(includeHash){I6PSh.L61();if(includeHash === void M_K){includeHash=M9q;}return $[T4P](this[z18][M8q],function(editIn,idSrc){return includeHash === A7Z?r4O + idSrc:idSrc;});}function inError(inNames){var n2O="mError";var X6p="globalEr";var S9G=X6p;S9G+=F5B;var k8V=U0G;k8V+=n2O;var O3D=z4X;O3D+=M7f;O3D+=y$Q;$(this[O3D][k8V]);if(this[z18][S9G]){return A7Z;}var names=this[P4D](inNames);for(var i=M_K,ien=names[D02];i < ien;i++){var C7I=j0N;C7I+=S8J;C7I+=l8G;var Q1r=z$a;Q1r+=Z8z;if(this[Q1r](names[i])[C7I]()){return A7Z;}}return M9q;}function inline(cell,fieldName,opts){var u2y="bject";var H1q="ormOpt";var W7G="isPlainO";var m2d="du";var D63="indivi";var c07='Cannot edit more than one row inline at a time';var F7m='div.DTE_Field';var N7F="_dataSou";var U0p=j0N;U0p+=B3T;U0p+=I3I;var D45=N1Y;D45+=D8G;var f4z=W2w;f4z+=W9R;f4z+=z4X;f4z+=d14;var E8j=Z_L;E8j+=I3I;E8j+=h_a;E8j+=n5K;var f3A=I6PSh.m9A;f3A+=t2h;f3A+=P6n;var Q4n=I6PSh[203556];Q4n+=X1T;Q4n+=R1P;Q4n+=n5K;var o07=D63;o07+=m2d;o07+=W63;var Y_h=N7F;Y_h+=G0h;Y_h+=o6y;var R3f=S4I;R3f+=H1q;R3f+=z3R;var n_f=W7G;n_f+=u2y;var _this=this;var that=this;if($[n_f](fieldName)){opts=fieldName;fieldName=undefined;}opts=$[E43]({},this[z18][R3f][S1i],opts);var editFields=this[Y_h](o07,cell,fieldName);var keys=Object[y1M](editFields);if(keys[D02] > V4z){throw new Error(c07);}var editRow=editFields[keys[M_K]];var hosts=[];for(var _i=M_K,_a=editRow[Q4n];_i < _a[f3A];_i++){var row=_a[_i];hosts[e2n](row);}if($(F7m,hosts)[E8j]){return this;}if(this[f4z](function(){I6PSh.L61();that[S1i](cell,fieldName,opts);})){return this;}this[D45](cell,editFields,U0p,opts,function(){_this[L$S](editFields,opts);});return this;}function inlineCreate(insertPoint,opts){var r86="init";var U0s="_ti";var F6d="ainO";var i7V="Create";var U52='fakeRow';var E4T="bjec";var R1j=r86;R1j+=i7V;var n9L=I3I;n9L+=Z9Y;n9L+=T0P;n9L+=e6W;var h3e=W9R;h3e+=I6PSh[428092];h3e+=l4k;var E5X=I3I;E5X+=n$Z;E5X+=z71;E5X+=z4X;var v$m=P0T;v$m+=f7m;var a2g=I6PSh[203556];a2g+=g$w;a2g+=a2Q;var R2K=y$Q;R2K+=I6PSh[203556];R2K+=W9R;R2K+=I6PSh[428092];var W41=y$Q;W41+=G$H;W41+=I3I;var H6d=i_c;H6d+=Z_L;H6d+=U7l;var C7O=I3I;C7O+=I6PSh[203556];C7O+=H2V;var B5B=U0s;B5B+=z4X;B5B+=d14;var X$X=F$q;X$X+=F6d;X$X+=E4T;X$X+=D8G;var _this=this;if($[X$X](insertPoint)){opts=insertPoint;insertPoint=s4l;}if(this[B5B](function(){I6PSh.L61();_this[s2f](insertPoint,opts);})){return this;}$[C7O](this[z18][H6d],function(name,fieldIn){var n0q=z4X;n0q+=I3I;n0q+=S4I;fieldIn[I0D]();fieldIn[v7i](M_K,fieldIn[n0q]());fieldIn[a$$](fieldIn[V3Z]());});this[z18][W41]=R2K;this[z18][a2g]=v$m;this[z18][k6p]=s4l;this[z18][M8q]=this[q5_](U52,insertPoint);opts=$[E5X]({},this[z18][I3Z][h3e],opts);this[k8H]();this[L$S](this[z18][n9L],opts,function(){var g0b='fakeRowEnd';_this[q5_](g0b);});this[x2T](R1j,s4l);return this;}function message(name,msg){if(msg === undefined){var C60=z4X;C60+=M7f;C60+=y$Q;this[O_2](this[C60][X4i],name);}else {var K3t=Z72;K3t+=V1g;K3t+=I3I;var r13=v$B;r13+=z4X;this[r13](name)[K3t](msg);}I6PSh.L61();return this;}function mode(modeIn){var c0P="Changing from create mode is not supp";var m$y="orted";var y9P="y in an editing mode";var S2h="Not currentl";var i5U=S1D;i5U+=f9m;var W8I=P0T;W8I+=I6PSh[203556];W8I+=D8G;W8I+=I3I;var s2Q=I6PSh[203556];s2Q+=Y_X;if(!modeIn){var V$O=F7H;V$O+=y7l;return this[z18][V$O];}if(!this[z18][u_g]){var R8h=S2h;R8h+=y9P;throw new Error(R8h);}else if(this[z18][s2Q] === W8I && modeIn !== i5U){var O8z=c0P;O8z+=m$y;throw new Error(O8z);}this[z18][u_g]=modeIn;I6PSh.L61();return this;}function modifier(){return this[z18][k6p];}function multiGet(fieldNames){var h8e="multiG";var j1Q=h8e;j1Q+=P22;var M1z=O0L;M1z+=Y$v;M1z+=Q$o;M1z+=d14;var that=this;I6PSh.T_Y();if(fieldNames === undefined){var H3x=i_c;H3x+=j6P;H3x+=z18;fieldNames=this[H3x]();}if(Array[M1z](fieldNames)){var out_2={};$[P1d](fieldNames,function(i,name){var W16="ultiG";var P9I=y$Q;P9I+=W16;I6PSh.T_Y();P9I+=P22;out_2[name]=that[x00](name)[P9I]();});return out_2;}return this[x00](fieldNames)[j1Q]();}function multiSet(fieldNames,valIn){var N6Q="iSet";var s3c="isPlainObj";var r6x=s3c;r6x+=H4F;var that=this;if($[r6x](fieldNames) && valIn === undefined){var n_k=l3i;n_k+=H2V;$[n_k](fieldNames,function(name,value){var k0l=Q8v;k0l+=N6Q;that[x00](name)[k0l](value);});}else {var i1i=y$Q;i1i+=B5h;i1i+=D8G;i1i+=N6Q;this[x00](fieldNames)[i1i](valIn);}return this;}function node(name){var v9T=Z77;I6PSh.L61();v9T+=u$O;var that=this;if(!name){name=this[L5d]();}return Array[M1j](name)?$[v9T](name,function(n){var U0O=e5h;I6PSh.L61();U0O+=z4X;U0O+=I3I;var V40=i_c;V40+=j6P;return that[V40](n)[U0O]();}):this[x00](name)[Q0Z]();}function off(name,fn){I6PSh.T_Y();var C9L="_eventName";$(this)[s5J](this[C9L](name),fn);return this;}function on(name,fn){I6PSh.T_Y();var l5D="tN";var m$I=x2b;m$I+=I6PSh[428092];m$I+=l5D;m$I+=g2A;$(this)[a2Q](this[m$I](name),fn);return this;}function one(name,fn){var X0S="eventName";var z$1=g8H;z$1+=X0S;$(this)[B1$](this[z$1](name),fn);return this;}function open(){var S9x="ai";var s7n="seReg";var R03="itOpt";var C5K="Reorder";var c7G="nest";var g8F="_displa";var H_t="_nestedOpen";var S_q="eope";var g79=y$Q;g79+=S9x;g79+=I6PSh[428092];var j7M=I3I;j7M+=z4X;j7M+=R03;j7M+=z18;var M1a=Z77;M1a+=j0N;var i8h=w2B;i8h+=S_q;i8h+=I6PSh[428092];var k7a=q_$;k7a+=u1t;k7a+=s7n;var s2W=g8F;s2W+=d14;s2W+=C5K;var _this=this;this[s2W]();this[k7a](function(){I6PSh.T_Y();_this[g90](function(){var G2J="ven";var m1m=Z77;m1m+=j0N;var s3e=Y$i;s3e+=M7f;s3e+=z18;s3e+=i9V;var b11=g8H;b11+=I3I;b11+=G2J;b11+=D8G;_this[R0q]();_this[b11](s3e,[m1m]);});});var ret=this[i8h](M1a);if(!ret){return this;}this[H_t](function(){var j9Y="ned";var A52="ope";I6PSh.L61();var f8o=A52;f8o+=j9Y;var x8J=G49;x8J+=V4Q;x8J+=d9H;var u6y=J3X;u6y+=Q$i;u6y+=z18;var V$C=g8H;V$C+=S4I;V$C+=G55;V$C+=A0r;_this[V$C]($[T4P](_this[z18][L5d],function(name){var y7_=z$a;y7_+=r4h;y7_+=U7l;return _this[z18][y7_][name];}),_this[z18][u6y][g1F]);_this[x8J](f8o,[e0p,_this[z18][u_g]]);},this[z18][j7M][c7G]);this[s85](g79,M9q);return this;}function order(setIn){var p7X="sor";var y6H='All fields, and no additional fields, must be provided for ordering.';var S7U=M7f;S7U+=W5P;S7U+=I3I;S7U+=G0h;var T1A=M6P;T1A+=I3I;T1A+=I6PSh[428092];T1A+=z4X;var k2c=p7X;k2c+=D8G;var c3y=z18;c3y+=e6n;var a7f=z18;a7f+=M7f;a7f+=G0h;a7f+=D8G;var G28=z18;G28+=P3T;G28+=m35;G28+=I3I;var d4P=G8b;d4P+=H2Y;if(!setIn){return this[z18][L5d];}if(arguments[D02] && !Array[d4P](setIn)){var b1_=m35;b1_+=I6PSh[203556];b1_+=Z_L;b1_+=Z_L;var Y4E=n7L;Y4E+=W9R;Y4E+=m35;Y4E+=I3I;var t7P=u$O;t7P+=k1h;t7P+=v_y;t7P+=V9Q;setIn=Array[t7P][Y4E][b1_](arguments);}if(this[z18][L5d][G28]()[a7f]()[C3v](l7B) !== setIn[c3y]()[k2c]()[C3v](l7B)){throw new Error(y6H);}$[T1A](this[z18][S7U],setIn);this[a1c]();return this;}function remove(items,arg1,arg2,arg3,arg4){var L$f="emov";var x6S='data';var y0j="tRem";var g3c="tidy";var h0r=j0N;h0r+=W9R;h0r+=y0j;h0r+=d17;var g_G=g8H;g_G+=p4U;g_G+=P0i;var l7G=I6PSh[428092];l7G+=M7f;l7G+=I6PSh[428092];l7G+=I3I;var f8C=z18;f8C+=D8G;f8C+=X1X;var P4N=G0h;P4N+=L$f;P4N+=I3I;var Z1q=S4I;Z1q+=W9R;Z1q+=Z8z;Z1q+=z18;var F6p=I6PSh.m9A;F6p+=I6PSh[428092];F6p+=d$e;F6p+=n5K;var Z4d=g8H;Z4d+=g3c;var _this=this;var that=this;if(this[Z4d](function(){I6PSh.T_Y();that[I22](items,arg1,arg2,arg3,arg4);})){return this;}if(items[F6p] === undefined){items=[items];}var argOpts=this[h8J](arg1,arg2,arg3,arg4);var editFields=this[q5_](Z1q,items);this[z18][u_g]=P4N;this[z18][k6p]=items;this[z18][M8q]=editFields;this[N_F][a7c][f8C][z4i]=l7G;this[k8H]();this[g_G](h0r,[pluck(editFields,L4j),pluck(editFields,x6S),items],function(){var P1L='initMultiRemove';var R7$=G49;R7$+=V4Q;R7$+=I3I;R7$+=P0i;_this[R7$](P1L,[editFields,items],function(){var T2n="leMain";var u8N="ssemb";var B0Q="_for";var j5D="_a";var O6t="mOptio";var u31=B0Q;u31+=O6t;u31+=D3s;var u_b=j5D;u_b+=u8N;u_b+=T2n;_this[u_b]();_this[u31](argOpts[O58]);argOpts[O3P]();var opts=_this[z18][w5o];if(opts[g1F] !== s4l){var D9S=S4I;D9S+=M7f;D9S+=m35;D9S+=A0r;var c5F=e00;c5F+=r2M;c5F+=D3s;$(x2G,_this[N_F][c5F])[z5n](opts[g1F])[D9S]();}});});return this;}function set(setIn,valIn){var M$0=I3I;M$0+=I6PSh[203556];M$0+=m35;M$0+=n5K;I6PSh.L61();var that=this;if(!$[P_k](setIn)){var o={};o[setIn]=valIn;setIn=o;}$[M$0](setIn,function(n,v){var o$j=S4I;o$j+=b9o;that[o$j](n)[a$$](v);});return this;}function show(names,animate){var S4F="ldName";var Y3z=U55;Y3z+=S4F;Y3z+=z18;var D_z=l3i;I6PSh.L61();D_z+=m35;D_z+=n5K;var that=this;$[D_z](this[Y3z](names),function(i,n){var M59=z18;M59+=n5K;M59+=M7f;M59+=N_S;that[x00](n)[M59](animate);});return this;}function submit(successCallback,errorCallback,formatdata,hideIn){var C4v="div.DTE_F";var F2q=C4v;F2q+=b9o;var g8W=m35;g8W+=Z_L;g8W+=g7z;g8W+=Z1i;var O7v=x5P;O7v+=M3I;var R2P=S4I;R2P+=F1q;R2P+=U7l;var _this=this;var fields=this[z18][R2P];var errorFields=[];var errorReady=M_K;var sent=M9q;if(this[z18][O7v] || !this[z18][u_g]){return this;}this[s6B](A7Z);var send=function(){var P5C='initSubmit';if(errorFields[D02] !== errorReady || sent){return;}_this[x2T](P5C,[_this[z18][u_g]],function(result){I6PSh.L61();if(result === M9q){_this[s6B](M9q);return;}sent=A7Z;_this[Z74](successCallback,errorCallback,formatdata,hideIn);});};var active=document[b7_];if($(active)[g8W](F2q)[D02] !== M_K){active[Z7y]();}this[c4M]();$[P1d](fields,function(name,fieldIn){I6PSh.L61();if(fieldIn[p6Z]()){errorFields[e2n](name);}});$[P1d](errorFields,function(i,name){I6PSh.T_Y();fields[name][c4M](Y97,function(){errorReady++;I6PSh.L61();send();});});send();return this;}function table(setIn){var T_6=D8G;T_6+=I6PSh[203556];T_6+=I6PSh.O47;T_6+=I6PSh.m9A;if(setIn === undefined){return this[z18][M6Q];}this[z18][T_6]=setIn;return this;}function template(setIn){var b_n=e_5;b_n+=A8y;b_n+=I6PSh[203556];b_n+=q4b;I6PSh.T_Y();if(setIn === undefined){var N4i=e_5;N4i+=A8y;N4i+=f7m;return this[z18][N4i];}this[z18][b_n]=setIn === s4l?s4l:$(setIn);return this;}function title(titleIn){var H_U="uncti";var h7A="addClas";var P7r="chi";var N9G="ldre";var U03="tag";var Q2A=o2j;Q2A+=I6PSh[203556];var i82=n5K;i82+=D8G;i82+=y$Q;i82+=Z_L;var x7q=m35;x7q+=Z_L;x7q+=I6PSh[203556];x7q+=D8y;I6PSh.T_Y();var X8t=h7A;X8t+=z18;var i8o=D8G;i8o+=I6PSh[203556];i8o+=M3I;var W71=k2s;W71+=T8r;W71+=M4f;var n3G=D8G;n3G+=I6PSh[203556];n3G+=M3I;var Z$i=S4I;Z$i+=H_U;Z$i+=a2Q;var c1_=Y$i;c1_+=I6PSh[203556];c1_+=z18;c1_+=q3V;var p0c=n5K;p0c+=l3i;p0c+=J1t;p0c+=G0h;var F1T=m35;F1T+=Y2H;F1T+=Q5l;var C4I=P7r;C4I+=N9G;C4I+=I6PSh[428092];var header=$(this[N_F][O6e])[C4I](b0G + this[F1T][p0c][t8R]);var titleClass=this[c1_][O6e][X4b];if(titleIn === undefined){var A0E=o2j;A0E+=I6PSh[203556];return header[A0E](p78);}if(typeof titleIn === Z$i){var b5p=D8G;b5p+=I6PSh[203556];b5p+=q4N;b5p+=I3I;var D3a=Y0Q;D3a+=W9R;titleIn=titleIn(this,new DataTable$5[D3a](this[z18][b5p]));}var set=titleClass[n3G]?$(T8r + titleClass[U03] + W71 + titleClass[i8o])[X8t](titleClass[x7q])[i82](titleIn):titleIn;header[f$V](set)[Q2A](p78,titleIn);return this;}function val(fieldIn,value){var y6$=M3I;y6$+=I3I;y6$+=D8G;if(value !== undefined || $[P_k](fieldIn)){var j9V=z18;j9V+=I3I;j9V+=D8G;return this[j9V](fieldIn,value);}return this[y6$](fieldIn);;}function error(msg,tn,thro){var p_W="warn";var r$a=" For more information, please";var L0Y=" refer to https://datatables.net/tn/";var p$q=r$a;p$q+=L0Y;if(thro === void M_K){thro=A7Z;}var display=tn?msg + p$q + tn:msg;if(thro){throw display;}else {console[p_W](display);}}function pairs(data,props,fn){var H5V=z2y;H5V+=Z_L;H5V+=E8w;var i;var ien;I6PSh.T_Y();var dataPoint;props=$[E43]({label:V91,value:H5V},props);if(Array[M1j](data)){var z5m=Z_L;z5m+=C51;z5m+=d$e;z5m+=n5K;for((i=M_K,ien=data[z5m]);i < ien;i++){dataPoint=data[i];if($[P_k](dataPoint)){var R2b=I6PSh[203556];R2b+=D8G;R2b+=h1G;var M21=Z_L;M21+=I6PSh[203556];M21+=p9P;var J69=V4Q;J69+=W63;J69+=D0V;J69+=I3I;fn(dataPoint[props[J69]] === undefined?dataPoint[props[M21]]:dataPoint[props[W6s]],dataPoint[props[j5r]],i,dataPoint[R2b]);}else {fn(dataPoint,dataPoint,i);}}}else {var l6U=l3i;l6U+=H2V;i=M_K;$[l6U](data,function(key,val){I6PSh.T_Y();fn(val,key,i);i++;});}}function upload$1(editor,conf,files,progressCallback,completeCallback){var p7w=I6PSh;var c0t='A server error occurred while uploading the file';var w2h="rors";var K9R="loading fi";var b16="fileReadText";var O1X="onload";p7w.L61();var s9V="Le";var q6x="readAsDataURL";var B6C="_limit";var u6n="rrors";var j6W="errors";var I0J="le</i>";var K34="<i>Up";var o1j=B6C;o1j+=s9V;o1j+=S4I;o1j+=D8G;var f9E=y$Q;f9E+=I6PSh[203556];f9E+=u$O;var q68=K34;q68+=K9R;q68+=I0J;var p7L=l3v;p7L+=y$Q;p7L+=I3I;var e4_=I3I;e4_+=G0h;e4_+=F5B;var w$R=P1t;w$R+=w2h;var D3E=I3I;D3E+=u6n;var reader=new FileReader();var counter=M_K;var ids=[];var generalError=conf[j6W] && conf[D3E][g8H]?conf[w$R][g8H]:c0t;editor[e4_](conf[p7L],Y97);if(typeof conf[C0H] === a27){conf[C0H](files,function(idsIn){completeCallback[M5F](editor,idsIn);});return;}progressCallback(conf,conf[b16] || q68);reader[O1X]=function(e){var G_E="Upload feature cannot use `ajax.data` with an object. Please use it as a function";var B7d="ja";var p3r="No Ajax o";var z_v='upload';var j1w="preUp";var l82="oad";var w5D="pload";var X9k="load";var R8T="g-in";var K8K="isPlainObjec";var w5W="ajaxData";var A5W=" instead.";var x7j='uploadField';var D7N="ainOb";var c3o="nct";var V5z="ajaxD";var l$W="ecified for upload plu";var H8Q="ption sp";var C9p=I6PSh[428092];C9p+=z0l;C9p+=I3I;var e7$=j1w;e7$+=X9k;var y7w=x2b;y7w+=I6PSh[428092];y7w+=D8G;var L1Q=F$q;L1Q+=D7N;L1Q+=Q1N;L1Q+=H4F;var E1l=I6PSh[448144];E1l+=c3o;E1l+=b0Z;E1l+=I6PSh[428092];var g89=z4X;g89+=n0C;g89+=I6PSh[203556];var B2p=F4L;B2p+=G0h;B2p+=t6R;var E40=I6PSh[203556];E40+=z2S;var z8B=K8K;z8B+=D8G;var k3u=h_$;k3u+=n$Z;var G08=I6PSh[203556];G08+=i5o;G08+=f7A;var j8S=X3S;j8S+=I6PSh[428092];j8S+=z4X;var z3u=D0V;z3u+=w5D;var S4P=I6PSh[203556];S4P+=J4U;S4P+=I3I;S4P+=f7A;var data=new FormData();var ajax;data[S4P](E$s,z3u);data[j8S](x7j,conf[X55]);data[G08](z_v,files[counter]);if(conf[w5W]){var W57=V5z;W57+=n0C;W57+=I6PSh[203556];conf[W57](data,files[counter],counter);}if(conf[k3u]){ajax=conf[C0H];}else if($[z8B](editor[z18][E40])){var V1A=h_$;V1A+=n$Z;var t6_=D0V;t6_+=u$O;t6_+=Z_L;t6_+=l82;var o3j=I6PSh[203556];o3j+=Q1N;o3j+=I6PSh[203556];o3j+=n$Z;ajax=editor[z18][o3j][t6_]?editor[z18][C0H][W_W]:editor[z18][V1A];}else if(typeof editor[z18][C0H] === q9q){var y2h=I6PSh[203556];y2h+=B7d;y2h+=n$Z;ajax=editor[z18][y2h];}if(!ajax){var g0H=p3r;g0H+=H8Q;g0H+=l$W;g0H+=R8T;throw new Error(g0H);}if(typeof ajax === B2p){ajax={url:ajax};}if(typeof ajax[g89] === E1l){var d={};var ret=ajax[I6PSh.C_e](d);if(ret !== undefined && typeof ret !== q9q){d=ret;}$[P1d](d,function(key,value){data[O66](key,value);});}else if($[L1Q](ajax[I6PSh.C_e])){var e29=G_E;e29+=A5W;throw new Error(e29);}editor[y7w](e7$,[conf[C9p],files[counter],data],function(preRet){var n1B="uplo";var U4d='post';var F_z='preSubmit.DTE_Upload';var D60=V8C;D60+=D8G;p7w.T_Y();D60+=V77;var V7T=M7f;V7T+=I6PSh[428092];if(preRet === M9q){if(counter < files[D02] - V4z){counter++;reader[q6x](files[counter]);}else {completeCallback[M5F](editor,ids);}return;}var submit=M9q;editor[V7T](F_z,function(){submit=A7Z;p7w.T_Y();return M9q;});$[C0H]($[D60]({},ajax,{contentType:M9q,data:data,dataType:w6m,error:function(xhr){var W0t="uploadXhrEr";var R88="stat";var c4d=W0t;c4d+=F5B;var v9c=G49;v9c+=V4Q;v9c+=C51;v9c+=D8G;var h03=R88;h03+=D0V;h03+=z18;var h8S=P1t;h8S+=G0h;p7w.L61();h8S+=M7f;h8S+=G0h;var Y0X=M7f;Y0X+=Q_4;var errors=conf[j6W];editor[Y0X](F_z);editor[h8S](conf[X55],errors && errors[xhr[h03]]?errors[xhr[U5v]]:generalError);editor[v9c](c4d,[conf[X55],xhr]);progressCallback(conf);},processData:M9q,success:function(json){var I2b="Data";var c9Q="erro";var q1l="URL";var g6i="XhrS";var R8f="read";var s0q="As";var X1F="eSubmit.DTE_Upload";var m_s="uccess";var X0k=D0V;X0k+=w5D;var f3s=D0V;f3s+=A8y;f3s+=M7f;f3s+=e7D;var k4O=c9Q;k4O+=G0h;var u$y=Z_L;u$y+=I3I;u$y+=t2h;u$y+=P6n;var K8b=I6PSh[428092];K8b+=I6PSh[203556];K8b+=y$Q;K8b+=I3I;var V9t=n1B;V9t+=e7D;V9t+=g6i;V9t+=m_s;var i96=g8H;i96+=K8Q;i96+=C51;i96+=D8G;p7w.L61();var J8m=E0y;J8m+=X1F;var s4A=M7f;s4A+=S4I;s4A+=S4I;editor[s4A](J8m);editor[i96](V9t,[conf[K8b],json]);if(json[C_v] && json[C_v][u$y]){var K4t=L4U;K4t+=Z_L;K4t+=Z_L;var t39=I6PSh.m9A;t39+=I6PSh[428092];t39+=k$T;var s_W=S4I;s_W+=y7y;s_W+=z33;var errors=json[s_W];for(var i=M_K,ien=errors[t39];i < ien;i++){editor[c4M](errors[i][X55],errors[i][U5v]);}completeCallback[K4t](editor,ids,A7Z);}else if(json[k4O]){var G_M=P1t;G_M+=G0h;G_M+=M7f;G_M+=G0h;var L0B=I3I;L0B+=q1k;editor[L0B](json[G_M]);completeCallback[M5F](editor,ids,A7Z);}else if(!json[f3s] || !json[X0k][C8O]){var s5p=L4U;s5p+=Z_L;s5p+=Z_L;var U2A=I3I;U2A+=q1k;editor[U2A](conf[X55],generalError);completeCallback[s5p](editor,ids,A7Z);}else {var y2n=I6PSh.m9A;y2n+=t2h;y2n+=P6n;var V0v=z$a;V0v+=Z_L;V0v+=I3I;V0v+=z18;if(json[V0v]){var q0Z=z$a;q0Z+=I6PSh.m9A;q0Z+=z18;$[P1d](json[q0Z],function(table,filesIn){var C94=z$a;C94+=I6PSh.m9A;C94+=z18;var S56=V8C;S56+=i4q;var C3N=z$a;p7w.L61();C3N+=E$O;if(!Editor[C3N][table]){var c5x=S4I;c5x+=W9R;c5x+=E$O;Editor[c5x][table]={};}$[S56](Editor[C94][table],filesIn);});}ids[e2n](json[W_W][C8O]);if(counter < files[y2n] - V4z){var K$a=R8f;K$a+=s0q;K$a+=I2b;K$a+=q1l;counter++;reader[K$a](files[counter]);}else {var v2w=L4U;v2w+=Z_L;v2w+=Z_L;completeCallback[v2w](editor,ids);if(submit){editor[M0d]();}}}progressCallback(conf);},type:U4d,xhr:function(){var t_f="onloaden";var a7p="onprogr";var h0Z="ajaxSettings";var G3U="plo";var H55=D0V;H55+=G3U;H55+=I6PSh[203556];H55+=z4X;var G1L=n$Z;G1L+=n5K;G1L+=G0h;var xhr=$[h0Z][G1L]();if(xhr[H55]){var e4T=t_f;e4T+=z4X;var M6G=n1B;M6G+=e7D;var w2u=a7p;w2u+=T5j;xhr[W_W][w2u]=function(){var A4c="loaded";var A7V='%';var p5d="hCo";var q_3="toFixed";var s9H="mputable";var p5k=':';p7w.T_Y();var M2A=100;var n13="tot";var H9E=L1t;H9E+=p5d;H9E+=s9H;if(e[H9E]){var F8E=n13;F8E+=I6PSh[203556];F8E+=Z_L;var percent=(e[A4c] / e[F8E] * M2A)[q_3](M_K) + A7V;progressCallback(conf,files[D02] === V4z?percent:counter + p5k + files[D02] + X9J + percent);}};xhr[M6G][e4T]=function(){var F0g='Processing';var L2e="cessingText";var y6M=E0y;y6M+=M7f;y6M+=L2e;progressCallback(conf,conf[y6M] || F0g);};}return xhr;}}));});};files=$[f9E](files,function(val){return val;});if(conf[o1j] !== undefined){var E4F=Z_L;E4F+=Z4q;E4F+=D8G;E4F+=n5K;var V$c=c9y;V$c+=Z_L;V$c+=L34;V$c+=I3I;files[V$c](conf[g1r],files[E4F]);}reader[q6x](files[M_K]);}var DataTable$4=$[q8T][S3i];var _inlineCounter=M_K;function _actionClass(){var L0J="addCl";var w5k="acti";var P38="crea";var C0I="addC";var O9e=m35;O9e+=i3h;var Z6$=X$W;Z6$+=j0N;var H2i=P38;H2i+=D8G;H2i+=I3I;I6PSh.L61();var P10=c$X;P10+=y$Q;var q30=w5k;q30+=M7f;q30+=I6PSh[428092];var y27=I6PSh[203556];y27+=m35;y27+=D0l;var O2V=m35;O2V+=D70;O2V+=z18;var classesActions=this[O2V][y27];var action=this[z18][q30];var wrapper=$(this[P10][t7C]);wrapper[z2o]([classesActions[H2i],classesActions[J3X],classesActions[I22]][Z6$](X9J));if(action === O9e){var I9H=P38;I9H+=D8G;I9H+=I3I;var o2A=C0I;o2A+=L1a;o2A+=z18;o2A+=z18;wrapper[o2A](classesActions[I9H]);}else if(action === p6G){var d1z=L0J;d1z+=X8c;wrapper[d1z](classesActions[J3X]);}else if(action === t$7){var r4g=k9Z;r4g+=C73;r4g+=Y2H;wrapper[r4g](classesActions[I22]);}}function _ajax(data,success,error,submitParams){var y7C="editFie";var r2l="epla";var P1u=/_id_/;var v9k="LE";var o$r="idSr";var C0$="rl";var S7f="ST";var z8A="js";var P6N="complete";var C__="rep";var z5C="acement";var U2o="lace";var x1R="lete";var G2Z="replacements";var N6V=/{id}/;var b84="deleteBody";var N33="comp";var S2q="param";var S2J="dele";var b_8="Bo";var M7r='?';var g$K="let";var p4P="indexO";var R7t="DE";var j6L="lainObject";var a0o=h_$;a0o+=n$Z;var l_I=S2J;l_I+=q4b;l_I+=b_8;l_I+=b5B;var m0_=R7t;m0_+=v9k;m0_+=T5s;m0_+=T9F;var z8V=D8G;z8V+=V9Q;var k$j=G0h;k$j+=r2l;k$j+=o6y;var n9I=G0h;n9I+=I3I;n9I+=u$O;n9I+=U2o;var x$O=D0V;x$O+=G0h;x$O+=Z_L;var w1B=D0V;w1B+=G0h;w1B+=Z_L;var B5J=z18;B5J+=J61;var A3g=I2F;A3g+=W9R;A3g+=a2Q;var U_P=W9R;U_P+=z18;U_P+=C3s;U_P+=j6L;var C4T=Q1N;C4T+=M7f;C4T+=j0N;var r7o=o$r;r7o+=m35;var j6J=y7C;j6J+=j6P;j6J+=z18;var D40=I3I;D40+=z4X;D40+=H3J;var K$L=C3s;K$L+=Q5C;K$L+=S7f;var p_B=z8A;p_B+=a2Q;var V$G=f5u;V$G+=I6PSh[428092];var action=this[z18][V$G];var thrown;var opts={complete:[function(xhr,text){var w1F=400;var A21="eText";var o1t="responseJSON";var A7a="ON";var P7g="respo";var Z8X="nul";var w3A="nseText";var k4d="respons";var q6S=204;var S_a="parse";var f5z="sta";var F06="responseJS";var D9Z=G8b;D9Z+=H2Y;var X8H=H9R;X8H+=j6L;var t2Q=Z8X;t2Q+=Z_L;var k9G=P7g;k9G+=w3A;var N2M=f5z;N2M+=B1q;var json=s4l;if(xhr[N2M] === q6S || xhr[k9G] === t2Q){json={};}else {try{var h3h=k4d;h3h+=A21;var j0p=F06;j0p+=A7a;json=xhr[j0p]?xhr[o1t]:JSON[S_a](xhr[h3h]);}catch(e){}}if($[X8H](json) || Array[D9Z](json)){success(json,xhr[U5v] >= w1F,xhr);}else {error(xhr,text,thrown);}}],data:s4l,dataType:p_B,error:[function(xhr,text,err){thrown=err;}],success:[],type:K$L};var a;var ajaxSrc=this[z18][C0H];var id=action === D40 || action === t$7?pluck(this[z18][j6J],r7o)[C4T](f9w):s4l;if($[U_P](ajaxSrc) && ajaxSrc[action]){ajaxSrc=ajaxSrc[action];}if(typeof ajaxSrc === A3g){ajaxSrc[M5F](this,s4l,s4l,data,success,error);return;}else if(typeof ajaxSrc === B5J){var s3A=p4P;s3A+=S4I;if(ajaxSrc[s3A](X9J) !== -V4z){var j_S=D0V;j_S+=C0$;var O42=D8G;O42+=d14;O42+=u$O;O42+=I3I;var h8z=E7X;h8z+=W9R;h8z+=D8G;a=ajaxSrc[h8z](X9J);opts[O42]=a[M_K];opts[j_S]=a[V4z];}else {var h_E=D0V;h_E+=G0h;h_E+=Z_L;opts[h_E]=ajaxSrc;}}else {var K39=o2M;K39+=z4X;var L2$=I3I;L2$+=p5N;L2$+=M7f;L2$+=G0h;var Z1U=N33;Z1U+=g$K;Z1U+=I3I;var N9i=I3I;N9i+=n$Z;N9i+=D8G;N9i+=V77;var optsCopy=$[N9i]({},ajaxSrc || ({}));if(optsCopy[Z1U]){var d0u=N33;d0u+=x1R;var n9E=N33;n9E+=Z_L;n9E+=J_Q;opts[n9E][B$B](optsCopy[P6N]);delete optsCopy[d0u];}if(optsCopy[L2$]){var N8U=P1t;N8U+=G0h;N8U+=M7f;N8U+=G0h;var Y3i=I3I;Y3i+=G0h;Y3i+=G0h;Y3i+=l8G;opts[Y3i][B$B](optsCopy[c4M]);delete optsCopy[N8U];}opts=$[K39]({},opts,optsCopy);}if(opts[G2Z]){var t7d=C__;t7d+=Z_L;t7d+=z5C;t7d+=z18;var b31=I3I;b31+=I6PSh[203556];b31+=m35;b31+=n5K;$[b31](opts[t7d],function(key,repl){var x7G='}';var C5v='{';var y5k=D0V;y5k+=G0h;y5k+=Z_L;I6PSh.T_Y();var e5A=g9M;e5A+=Z_L;opts[e5A]=opts[y5k][C4c](C5v + key + x7G,repl[M5F](this,key,id,action,data));});}opts[w1B]=opts[x$O][n9I](P1u,id)[k$j](N6V,id);if(opts[I6PSh.C_e]){var E$F=S4I;E$F+=D0V;E$F+=I6PSh[11413];E$F+=I6PSh[428092];var isFn=typeof opts[I6PSh.C_e] === E$F;var newData=isFn?opts[I6PSh.C_e](data):opts[I6PSh.C_e];data=isFn && newData?newData:$[E43](A7Z,data,newData);}opts[I6PSh.C_e]=data;if(opts[z8V] === m0_ && (opts[l_I] === undefined || opts[b84] === A7Z)){var V$a=j0N;V$a+=z4X;V$a+=V8C;V$a+=Z0b;var j9N=o2j;j9N+=I6PSh[203556];var params=$[S2q](opts[j9N]);opts[Z$v]+=opts[Z$v][V$a](M7r) === -V4z?M7r + params:M3w + params;delete opts[I6PSh.C_e];}$[a0o](opts);}function _animate(target,style,time,callback){var Y_B="stop";var Y6$="ni";var N5p="ani";var i5y=N5p;i5y+=Z77;i5y+=D8G;i5y+=I3I;var w5e=S4I;w5e+=I6PSh[428092];I6PSh.L61();if($[w5e][i5y]){var g0z=I6PSh[203556];g0z+=Y6$;g0z+=y$Q;g0z+=f7m;target[Y_B]()[g0z](style,time,callback);}else {var E8L=S4I;E8L+=y2S;E8L+=Y_X;var F$r=Z_L;F$r+=q6l;var m5Y=m35;m5Y+=z18;m5Y+=z18;target[m5Y](style);var scope=target[F$r] && target[D02] > V4z?target[M_K]:target;if(typeof time === E8L){var t05=m35;t05+=W63;t05+=Z_L;time[t05](scope);}else if(callback){callback[M5F](scope);}}}function _assembleMain(){var x0O="bodyContent";var p1E="utt";var F1r=h2V;F1r+=U5m;var T0L=Y_1;T0L+=z4X;var r9X=H3h;r9X+=W5B;var I4X=I6PSh.O47;I4X+=p1E;I4X+=o16;var b5S=I6PSh[203556];b5S+=u$O;b5S+=I$c;b5S+=f7A;var S9a=W5Y;S9a+=e7D;S9a+=I3I;S9a+=G0h;var dom=this[N_F];$(dom[t7C])[g$Q](dom[S9a]);$(dom[U7x])[b5S](dom[e6S])[O66](dom[I4X]);$(dom[x0O])[r9X](dom[X4i])[T0L](dom[F1r]);}function _blur(){var Z4R='preBlur';var D8N="onBlur";var R4w="_ev";var c6x=C3q;c6x+=W7J;var y$L=R4w;I6PSh.L61();y$L+=C51;y$L+=D8G;var n0A=J3X;n0A+=Q5C;n0A+=W2D;var opts=this[z18][n0A];var onBlur=opts[D8N];if(this[y$L](Z4R) === M9q){return;}if(typeof onBlur === a27){onBlur(this);}else if(onBlur === T8p){this[M0d]();}else if(onBlur === c6x){var r$P=n5f;r$P+=g7z;r$P+=I3I;this[r$P]();}}function _clearDynamicInfo(errorsOnly){var S7A="v.";var v4T=z4X;v4T+=M7f;v4T+=y$Q;var o9m=l_J;o9m+=S7A;var T9r=S4I;T9r+=W9R;T9r+=r4h;T9r+=z4X;var r9l=m35;r9l+=L1a;r9l+=D8y;r9l+=Q5l;if(errorsOnly === void M_K){errorsOnly=M9q;}if(!this[z18]){return;}var errorClass=this[r9l][T9r][c4M];var fields=this[z18][N1U];$(o9m + errorClass,this[v4T][t7C])[z2o](errorClass);$[P1d](fields,function(name,field){var e2T="essag";var C$i=I3I;C$i+=G0h;C$i+=m2S;C$i+=G0h;field[C$i](Y97);if(!errorsOnly){var U$3=y$Q;U$3+=e2T;U$3+=I3I;field[U$3](Y97);}});this[c4M](Y97);if(!errorsOnly){var U_c=z2X;U_c+=z18;U_c+=V1g;U_c+=I3I;this[U_c](Y97);}}function _close(submitComplete,mode){var Q_P="eClose";var s2e="ayed";var K72="Icb";var o28='closed';var s_6="Cb";var N1L=m35;N1L+=x3f;var N_r=x2b;N_r+=P0i;var K6g=A$6;K6g+=s2e;var I2Y=M7f;I2Y+=S4I;I2Y+=S4I;var t4d=D1u;t4d+=b5B;var u0h=m35;u0h+=x3f;u0h+=s_6;var I70=E0y;I70+=Q_P;var closed;if(this[x2T](I70) === M9q){return;}if(this[z18][u0h]){var j4L=Y$i;j4L+=U4B;j4L+=s_6;closed=this[z18][j4L](submitComplete,mode);this[z18][f6I]=s4l;}if(this[z18][Z2F]){var C8p=Y$i;C8p+=U4B;C8p+=K72;this[z18][C8p]();this[z18][Z2F]=s4l;}$(t4d)[I2Y](P8m);this[z18][K6g]=M9q;this[N_r](N1L);if(closed){var G79=g8H;G79+=i6Z;this[G79](o28,[closed]);}}function _closeReg(fn){I6PSh.L61();this[z18][f6I]=fn;}function _crudArgs(arg1,arg2,arg3,arg4){var j_r="boo";var l3c="main";var D$y=I3I;D$y+=p1w;D$y+=f7A;var N4B=j_r;N4B+=Z_L;N4B+=l3i;N4B+=I6PSh[428092];var that=this;var title;var buttons;var show;var opts;if($[P_k](arg1)){opts=arg1;}else if(typeof arg1 === N4B){show=arg1;opts=arg2;;}else {title=arg1;buttons=arg2;show=arg3;opts=arg4;;}if(show === undefined){show=A7Z;}if(title){var i_T=D8G;i_T+=H3J;i_T+=I6PSh.m9A;that[i_T](title);}if(buttons){that[m9O](buttons);}return {maybeOpen:function(){I6PSh.L61();if(show){var K7X=M7f;K7X+=b7A;that[K7X]();}},opts:$[D$y]({},this[z18][I3Z][l3c],opts)};}function _dataSource(name){var s_f="Sources";var h6M="rce";var G7z="taSou";var t4F=k9T;t4F+=N3k;var P6p=Y$c;P6p+=G7z;P6p+=h6M;P6p+=z18;var k3l=Y$c;k3l+=S5A;k3l+=I6PSh.s6U;k3l+=I6PSh.m9A;var j3L=Y$c;j3L+=D8G;j3L+=I6PSh[203556];j3L+=s_f;var t4i=D8G;t4i+=M3$;t4i+=Z_L;t4i+=I3I;var args=[];for(var _i=V4z;_i < arguments[D02];_i++){args[_i - V4z]=arguments[_i];}var dataSource=this[z18][t4i]?Editor[j3L][k3l]:Editor[P6p][t4F];var fn=dataSource[name];if(fn){return fn[u4W](this,args);}}function _displayReorder(includeFields){var w4i="formContent";var f29="ndTo";var a6S="displayOrde";var k7c=a6S;k7c+=G0h;var K0E=g8H;K0E+=I3I;K0E+=m5T;K0E+=P0i;var Q7M=y$Q;Q7M+=k$l;var q8P=y$Q;q8P+=M7f;q8P+=J1t;I6PSh.L61();var U0X=e_5;U0X+=w6r;U0X+=q4b;var Z94=l8G;Z94+=J1t;Z94+=G0h;var _this=this;var formContent=$(this[N_F][w4i]);var fields=this[z18][N1U];var order=this[z18][Z94];var template=this[z18][U0X];var mode=this[z18][q8P] || e0p;if(includeFields){this[z18][m9u]=includeFields;}else {includeFields=this[z18][m9u];}formContent[V2F]()[F_w]();$[P1d](order,function(i,name){var X2_="itor-";var Y_K="editor-field[name=";var j0O="_weakInArray";var B16="after";I6PSh.L61();var c6T="template=\"";var K4Q="[data-ed";if(_this[j0O](name,includeFields) !== -V4z){if(template && mode === e0p){var M$8=e5h;M$8+=z4X;M$8+=I3I;var N83=h92;N83+=C51;N83+=z4X;var e2H=t_4;e2H+=e95;var j4D=K4Q;j4D+=X2_;j4D+=c6T;var k24=t_4;k24+=e95;var l8l=Y_K;l8l+=t_4;template[Q7u](l8l + name + k24)[B16](fields[name][Q0Z]());template[Q7u](j4D + name + e2H)[N83](fields[name][M$8]());}else {var X_V=I6PSh[203556];X_V+=u$O;X_V+=I$c;X_V+=f7A;formContent[X_V](fields[name][Q0Z]());}}});if(template && mode === Q7M){var u_E=H3h;u_E+=u$O;u_E+=I3I;u_E+=f29;template[u_E](formContent);}this[K0E](k7c,[this[z18][G_6],this[z18][u_g],formContent]);}function _edit(items,editFields,type,formOptions,setupDone){var U5a="editDat";var F8B="toStrin";var q39='initEdit';I6PSh.T_Y();var p93="rra";var W65=Y$c;W65+=S5A;var C3x=z18;C3x+=e6n;var i6v=I3I;i6v+=z4X;i6v+=W9R;i6v+=D8G;var l3g=U5a;l3g+=I6PSh[203556];var X0$=z$a;X0$+=r4h;X0$+=U7l;var _this=this;var fields=this[z18][X0$];var usedFields=[];var includeInOrder;var editData={};this[z18][M8q]=editFields;this[z18][l3g]=editData;this[z18][k6p]=items;this[z18][u_g]=i6v;this[N_F][a7c][T_A][z4i]=A$T;this[z18][d8Z]=type;this[k8H]();$[P1d](fields,function(name,field){var Z1L="Re";var o$M=Q8v;o$M+=W9R;o$M+=G1w;o$M+=U7l;var S7o=l4G;S7o+=Z1L;S7o+=W7J;S7o+=D8G;field[S7o]();includeInOrder=M9q;editData[name]={};$[P1d](editFields,function(idSrc,edit){var b3M="nullDefau";var E4y="tiSet";var U2i="mDat";var l8f=S4I;l8f+=y7y;l8f+=Z_L;l8f+=U7l;if(edit[l8f][name]){var R8W=m2S;R8W+=N_S;var t4a=z18;t4a+=m35;t4a+=M7f;t4a+=I$c;var S0n=n7L;S0n+=L34;S0n+=I3I;var v11=D99;v11+=W5t;var a89=b3M;a89+=N5F;var L3s=Q4y;L3s+=M7f;L3s+=U2i;L3s+=I6PSh[203556];var val=field[L3s](edit[I6PSh.C_e]);var nullDefault=field[a89]();editData[name][idSrc]=val === s4l?Y97:Array[v11](val)?val[S0n]():val;if(!formOptions || formOptions[t4a] === R8W){var H_o=P2p;H_o+=L$_;H_o+=p1b;H_o+=z18;var A4h=z4X;A4h+=I3I;A4h+=S4I;field[v7i](idSrc,val === undefined || nullDefault && val === s4l?field[A4h]():val,M9q);if(!edit[x6G] || edit[H_o][name]){includeInOrder=A7Z;}}else {if(!edit[x6G] || edit[x6G][name]){var q8i=y$Q;q8i+=B5h;q8i+=E4y;field[q8i](idSrc,val === undefined || nullDefault && val === s4l?field[V3Z]():val,M9q);includeInOrder=A7Z;}}}});field[a9J]();if(field[o$M]()[D02] !== M_K && includeInOrder){usedFields[e2n](name);}});var currOrder=this[L5d]()[C3x]();for(var i=currOrder[D02] - V4z;i >= M_K;i--){var d84=F8B;d84+=M3I;var I1K=j0N;I1K+=U5V;I1K+=p93;I1K+=d14;if($[I1K](currOrder[i][d84](),usedFields) === -V4z){var M6u=z18;M6u+=A8y;M6u+=W9R;M6u+=o6y;currOrder[M6u](i,V4z);}}this[a1c](currOrder);this[x2T](q39,[pluck(editFields,L4j)[M_K],pluck(editFields,W65)[M_K],items,type],function(){var B9u="Mult";var R6Y="iEdit";var G3Q=j0N;G3Q+=H3J;G3Q+=B9u;G3Q+=R6Y;_this[x2T](G3Q,[editFields,items,type],function(){setupDone();});});}function _event(trigger,args,promiseComplete){var V6J="result";var Z2k="triggerH";var x57="Ev";var t3A="Cance";var h$E="andler";var z2r="Eve";var o$Q='pre';if(args === void M_K){args=[];}if(promiseComplete === void M_K){promiseComplete=undefined;}if(Array[M1j](trigger)){var T3n=L1t;T3n+=n5K;for(var i=M_K,ien=trigger[T3n];i < ien;i++){this[x2T](trigger[i],args);}}else {var M2S=x57;M2S+=C51;M2S+=D8G;var e=$[M2S](trigger);$(this)[M$6](e,args);var result=e[V6J];if(trigger[Y$p](o$Q) === M_K && result === M9q){var H6T=t3A;H6T+=J$i;var y$g=z2r;y$g+=P0i;var n_$=Z2k;n_$+=h$E;$(this)[n_$]($[y$g](trigger + H6T),args);}if(promiseComplete){if(result && typeof result === I6PSh.k_B && result[u7U]){var i7J=P6n;i7J+=I3I;i7J+=I6PSh[428092];result[i7J](promiseComplete);}else {promiseComplete(result);}}return result;}}function _eventName(input){var k51="match";var k0w=/^on([A-Z])/;var f2u=3;var b$_="toLowerCase";var d1Q=X$W;d1Q+=W9R;d1Q+=I6PSh[428092];I6PSh.T_Y();var P1B=z18;P1B+=A8y;P1B+=W9R;P1B+=D8G;var name;var names=input[P1B](X9J);for(var i=M_K,ien=names[D02];i < ien;i++){name=names[i];var onStyle=name[k51](k0w);if(onStyle){var A3k=Z90;A3k+=A8J;A3k+=t6R;name=onStyle[V4z][b$_]() + name[A3k](f2u);}names[i]=name;}return names[d1Q](X9J);}function _fieldFromNode(node){var L$2=z$a;L$2+=I3I;L$2+=H2J;var foundField=s4l;$[P1d](this[z18][L$2],function(name,field){if($(field[Q0Z]())[Q7u](node)[D02]){foundField=field;}});return foundField;}function _fieldNames(fieldNames){var S_n=D99;S_n+=W5t;if(fieldNames === undefined){var y_n=S4I;y_n+=W9R;y_n+=r4h;y_n+=U7l;return this[y_n]();}else if(!Array[S_n](fieldNames)){return [fieldNames];}return fieldNames;}function _focus(fieldsIn,focus){var r8q="tFocus";I6PSh.L61();var X1f="div.DTE";var k3A='jq:';var m5E=/^jq:/;var d_l=z18;d_l+=I3I;d_l+=r8q;var r4y=Z77;r4y+=u$O;var _this=this;if(this[z18][u_g] === t$7){return;}var field;var fields=$[r4y](fieldsIn,function(fieldOrName){I6PSh.L61();var Q2a="stri";var q77=x00;q77+=z18;var S6o=Q2a;S6o+=t2h;return typeof fieldOrName === S6o?_this[z18][q77][fieldOrName]:fieldOrName;});if(typeof focus === q3j){field=fields[focus];}else if(focus){if(focus[Y$p](k3A) === M_K){var z$C=W5q;z$C+=A8y;z$C+=R1P;z$C+=I3I;var s_v=X1f;s_v+=N5T;field=$(s_v + focus[z$C](m5E,Y97));}else {field=this[z18][N1U][focus];}}else {document[b7_][Z7y]();}this[z18][d_l]=field;if(field){var M9k=h2V;M9k+=n4I;field[M9k]();}}function _formOptions(opts){var w7v="canReturnSubmit";var f78='.dteInline';var e3i="eyd";var l4S="boole";var Q1X="strin";var V5G="messag";var C_R="wh";var s6h="ctio";var b2A="seIc";var M98=Y$i;M98+=M7f;M98+=b2A;M98+=I6PSh.O47;var F5v=M7f;F5v+=I6PSh[428092];var h$Z=R5K;h$Z+=e3i;h$Z+=j1_;var a3q=M7f;a3q+=I6PSh[428092];var c8u=l4S;c8u+=N2k;var E52=I6PSh.O47;E52+=D0V;E52+=X2n;E52+=D3s;var F$R=k2_;F$R+=D8y;F$R+=V1g;F$R+=I3I;var A8T=f2W;A8T+=s6h;A8T+=I6PSh[428092];var a_0=D8G;a_0+=J7y;a_0+=I3I;var V1l=Q1X;V1l+=M3I;var X$1=F6t;X$1+=D8G;X$1+=Z_L;X$1+=I3I;var D8z=i9V;D8z+=H3J;D8z+=Q$i;D8z+=z18;var _this=this;var that=this;var inlineCount=_inlineCounter++;var namespace=f78 + inlineCount;this[z18][D8z]=opts;this[z18][H2u]=inlineCount;if(typeof opts[X$1] === V1l || typeof opts[a_0] === A8T){var M3o=D8G;M3o+=H3J;M3o+=Z_L;M3o+=I3I;this[M3o](opts[X4b]);opts[X4b]=A7Z;}if(typeof opts[M_B] === q9q || typeof opts[F$R] === a27){var q8a=V5G;q8a+=I3I;this[q8a](opts[M_B]);opts[M_B]=A7Z;}if(typeof opts[E52] !== c8u){var g2U=R14;g2U+=X2n;g2U+=D3s;this[m9O](opts[m9O]);opts[g2U]=A7Z;}$(document)[a3q](h$Z + namespace,function(e){I6PSh.T_Y();var a4y="preve";var b4A="eElement";var X1s="Sub";var A_$="faul";var c2Q="ntDe";var G9i="canReturn";var d5s="_fieldFromNode";var V96=C_R;V96+=W9R;V96+=m35;V96+=n5K;if(e[V96] === p5m && _this[z18][G_6]){var D$Z=R1P;D$Z+=F6t;D$Z+=V4Q;D$Z+=b4A;var el=$(document[D$Z]);if(el){var h$g=G9i;h$g+=X1s;h$g+=F2R;var field=_this[d5s](el);if(field && typeof field[h$g] === a27 && field[w7v](el)){var P98=a4y;P98+=c2Q;P98+=A_$;P98+=D8G;e[P98]();}}}});$(document)[F5v](r4$ + namespace,function(e){var P$n="onEsc";var T9p="onRe";var u2s="can";var g6H="onR";var i5_="urn";var y6x=39;var H8l="turn";var U64="romNode";var v1D="_fieldF";var d1n="nReturn";var y1X='.DTE_Form_Buttons';var C2c=27;var m2s="ReturnSub";var d4u="eventDefaul";var y2e=37;var m1b=l_J;m1b+=a49;m1b+=d14;m1b+=i9V;var y4B=C_R;y4B+=W9R;y4B+=H2V;var el=$(document[b7_]);if(e[y4B] === p5m && _this[z18][m1b]){var H$j=u2s;H$j+=m2s;H$j+=F2R;var L5x=v1D;L5x+=U64;var field=_this[L5x](el);if(field && typeof field[H$j] === a27 && field[w7v](el)){var t$1=g6H;t$1+=I3I;t$1+=D8G;t$1+=i5_;var z_c=T9p;z_c+=H8l;if(opts[z_c] === T8p){e[M9P]();_this[M0d]();}else if(typeof opts[t$1] === a27){var O4h=M7f;O4h+=d1n;var H7T=E0y;H7T+=d4u;H7T+=D8G;e[H7T]();opts[O4h](_this,e);}}}else if(e[l6y] === C2c){var j3U=m35;j3U+=x3f;var V2R=I6PSh.O47;V2R+=Z_L;V2R+=D0V;V2R+=G0h;e[M9P]();if(typeof opts[P$n] === a27){opts[P$n](that,e);}else if(opts[P$n] === V2R){that[Z7y]();}else if(opts[P$n] === j3U){var n6E=m35;n6E+=u1t;n6E+=z18;n6E+=I3I;that[n6E]();}else if(opts[P$n] === T8p){that[M0d]();}}else if(el[g2j](y1X)[D02]){var i78=N_S;i78+=U_y;i78+=H2V;var H0r=C_R;H0r+=W9R;H0r+=m35;H0r+=n5K;if(e[H0r] === y2e){var K5F=u$O;K5F+=G0h;K5F+=I3I;K5F+=V4Q;el[K5F](x2G)[K90](r$v);}else if(e[i78] === y6x){var h98=I6PSh[428092];h98+=M6P;el[h98](x2G)[K90](r$v);}}});this[z18][M98]=function(){var x2S="keydow";var c1e=x2S;c1e+=I6PSh[428092];var i4h=M7f;i4h+=Q_4;$(document)[i4h](c1e + namespace);$(document)[s5J](r4$ + namespace);};return namespace;}function _inline(editFields,opts,closeCb){var t$j="dg";var U6h='px"';var R$H="span></div>";var m1R="lass=\"DTE_Processing_Indicator\"><span></";var z1C="contents";var Z7p='style="width:';var B2$="ton";var p$Z="repla";var k05="liner";var H3j="ormOp";var p$m='" ';var o1N="erAgen";var v1f="e/";var f2O="nc";var o$P="clas";var F6m="formErr";var a38='.';var f22="nl";var C9K="div cla";var y5c=S4I;y5c+=M7f;y5c+=n4I;var P9y=D4r;P9y+=m35;P9y+=D0V;P9y+=z18;var I0g=m35;I0g+=I6PSh[203556];I0g+=f2O;I0g+=r4h;var y9M=U_B;y9M+=I6PSh.O47;y9M+=F2R;var Y96=W9R;Y96+=f22;Y96+=x9m;var A0Y=g8H;A0Y+=S4I;A0Y+=H3j;A0Y+=D0l;var p0l=n0C;p0l+=I4x;var U$9=R5K;U$9+=v72;U$9+=z18;var E4N=o$P;E4N+=z18;E4N+=Q5l;var _this=this;if(closeCb === void M_K){closeCb=s4l;}var closed=M9q;var classes=this[E4N][S1i];var keys=Object[U$9](editFields);var editRow=editFields[keys[M_K]];var lastAttachPoint;var elements=[];for(var i=M_K;i < editRow[p0l][D02];i++){var n3D=n0C;n3D+=I4x;var A6B=V0L;A6B+=z18;A6B+=n5K;var name_1=editRow[n96][i][M_K];elements[A6B]({field:this[z18][N1U][name_1],name:name_1,node:$(editRow[n3D][i])});}var namespace=this[A0Y](opts);var ret=this[b$Q](Y96);if(!ret){return this;}for(var _i=M_K,elements_1=elements;_i < elements_1[D02];_i++){var a3B=I6PSh.O47;a3B+=s7c;a3B+=B2$;a3B+=z18;var i8S=j00;i8S+=I3I;var C9o=F6m;C9o+=l8G;var d0x=z4X;d0x+=M7f;d0x+=y$Q;var v0q=I6PSh[428092];v0q+=M7f;v0q+=z4X;v0q+=I3I;var x7Q=i_c;x7Q+=Z_L;x7Q+=z4X;var x88=I6PSh[203556];x88+=J4U;x88+=C51;x88+=z4X;var o2u=O1l;o2u+=M7f;o2u+=D3s;var o77=T8r;o77+=C9K;o77+=e0U;var L74=W_w;L74+=l_J;L74+=j_g;var m1C=D9H;m1C+=m1R;m1C+=R$H;var F0j=t_4;F0j+=k2s;var t1a=f02;t1a+=I$c;t1a+=G0h;var R5Z=T9F;R5Z+=t$j;R5Z+=v1f;var O1n=D0V;O1n+=z18;O1n+=o1N;O1n+=D8G;var el=elements_1[_i];var node=el[Q0Z];el[V2F]=node[z1C]()[F_w]();var style=navigator[O1n][Y$p](R5Z) !== -V4z?Z7p + node[U6d]() + U6h:Y97;node[O66]($(i8r + classes[t1a] + F0j + i8r + classes[k05] + p$m + style + c_j + m1C + L74 + o77 + classes[o2u] + j9u + j7p));node[Q7u](b0G + classes[k05][C4c](/ /g,a38))[x88](el[x7Q][v0q]())[O66](this[d0x][C9o]);lastAttachPoint=el[x00][i8S]();if(opts[a3B]){var d7s=I6PSh.O47;d7s+=D0V;d7s+=E4p;d7s+=z18;var O4s=z4X;O4s+=M7f;O4s+=y$Q;var J84=p$Z;J84+=m35;J84+=I3I;var d$R=z4X;d$R+=W9R;d$R+=V4Q;d$R+=p$7;node[Q7u](d$R + classes[m9O][J84](/ /g,a38))[O66](this[O4s][d7s]);}}var submitClose=this[a_R](y9M,opts,lastAttachPoint);var cancelClose=this[a_R](I0g,opts,lastAttachPoint);this[m7D](function(submitComplete,action){var M1q="Each";var U3p=g8u;U3p+=W9R;U3p+=T3E;var b7t=Y$i;b7t+=W9R;b7t+=V4x;var q7N=M7f;q7N+=Q_4;closed=A7Z;$(document)[q7N](b7t + namespace);if(!submitComplete || action !== p6G){var M5R=h2V;M5R+=G0h;M5R+=M1q;elements[M5R](function(el){var N5Y="eta";var J8U=U9w;J8U+=z4X;J8U+=G0h;J8U+=C51;var F8C=I6PSh[428092];F8C+=M7f;F8C+=J1t;var i4T=z4X;i4T+=N5Y;i4T+=H2V;var a9U=I6PSh[428092];a9U+=M7f;a9U+=J1t;el[a9U][z1C]()[i4T]();el[F8C][O66](el[J8U]);});}submitClose();cancelClose();_this[R0q]();I6PSh.T_Y();if(closeCb){closeCb();}return U3p;;});setTimeout(function(){var d03="ddBa";var v4x='andSelf';var F2B='mousedown';var b2b="keydo";var p9Q=b2b;p9Q+=N_S;p9Q+=I6PSh[428092];var u$e=M7f;u$e+=I6PSh[428092];var b8z=M7f;b8z+=I6PSh[428092];var o_5=I6PSh[203556];o_5+=d03;o_5+=m35;I6PSh.L61();o_5+=R5K;if(closed){return;}var back=$[I6PSh.K$4][o_5]?a2I:v4x;var target;$(document)[b8z](F2B + namespace,function(e){I6PSh.L61();var A_K="targe";var u_F=A_K;u_F+=D8G;target=e[u_F];})[u$e](p9Q + namespace,function(e){target=e[x0g];})[a2Q](h1T + namespace,function(e){var N44='owns';var w3L="peF";var I8g="inAr";var isIn=M9q;for(var _i=M_K,elements_2=elements;_i < elements_2[D02];_i++){var C_b=u$O;C_b+=Z5g;C_b+=y$l;var P9u=I8g;P9u+=Q$o;P9u+=d14;var y2u=s8i;y2u+=w3L;y2u+=I6PSh[428092];var m8R=i_c;m8R+=Z_L;m8R+=z4X;var el=elements_2[_i];if(el[m8R][y2u](N44,target) || $[P9u](el[Q0Z][M_K],$(target)[C_b]()[back]()) !== -V4z){isIn=A7Z;}}if(!isIn){_this[Z7y]();}});},M_K);this[P9y]($[T4P](elements,function(el){I6PSh.L61();return el[x00];}),opts[y5c]);this[s85](Q5L,A7Z);}function _inputTrigger(type,opts,insertPoint){var a9h="ice";var g4H='Html';var V2z="closest";var d2$="k.dte-";var K6B="childNodes";var Z4i="Tr";var O3Z=h92;O3Z+=C51;O3Z+=z4X;var R5w=L4U;R5w+=G1R;var T8m=n7L;T8m+=a9h;var B2F=Z_L;B2F+=C51;B2F+=M3I;B2F+=P6n;var K4G=D8G;K4G+=G0h;var q7j=Y$i;q7j+=L34;q7j+=d2$;var y_9=Z4i;y_9+=Y6b;y_9+=L45;y_9+=G0h;var _this=this;var trigger=opts[type + y_9];var html=opts[type + g4H];var event=q7j + type;var tr=$(insertPoint)[V2z](K4G);if(trigger === undefined){return function(){};}if(typeof trigger === q3j){var x1T=m35;x1T+=f_b;var kids=tr[x1T]();trigger=trigger < M_K?kids[kids[D02] + trigger]:kids[trigger];}var children=$(trigger,tr)[B2F]?Array[F8j][T8m][R5w]($(trigger,tr)[M_K][K6B]):[];$(children)[F_w]();var triggerEl=$(trigger,tr)[a2Q](event,function(e){var L1V="ancel";var E9X=m35;E9X+=L1V;e[o3Z]();if(type === E9X){var Q_f=m35;Q_f+=Z_L;Q_f+=M7f;Q_f+=W7J;_this[Q_f]();}else {_this[M0d]();}})[O3Z](html);return function(){var Z0Q="mp";var P_j=H3h;P_j+=u$O;P_j+=C51;P_j+=z4X;var G3t=I3I;G3t+=Z0Q;I6PSh.T_Y();G3t+=b8l;var U4y=M7f;U4y+=S4I;U4y+=S4I;triggerEl[U4y](event)[G3t]()[P_j](children);};}function _optionsUpdate(json){var b88=k9A;b88+=b0Z;b88+=I6PSh[428092];b88+=z18;var that=this;if(json[b88]){var u3U=v$B;u3U+=U7l;$[P1d](this[z18][u3U],function(name,field){var Q75="pdate";var G5x=j5p;G5x+=M7f;I6PSh.L61();G5x+=I6PSh[428092];G5x+=z18;if(json[G5x][name] !== undefined){var c63=i_c;c63+=j6P;var fieldInst=that[c63](name);if(fieldInst && fieldInst[V_w]){var s3N=D0V;s3N+=Q75;fieldInst[s3N](json[z06][name]);}}});}}function _message(el,msg,title,fn){var x2Y="oveA";var c1o="unc";var E1q="adeOut";var I2g="fa";var O4J=S4I;O4J+=c1o;O4J+=f8e;O4J+=I6PSh[428092];var s8H=S4I;s8H+=I6PSh[428092];var canAnimate=$[s8H][I9O]?A7Z:M9q;if(title === undefined){title=M9q;}if(!fn){fn=function(){};}if(typeof msg === O4J){var z7Q=U5V;z7Q+=u$O;z7Q+=W9R;msg=msg(this,new DataTable$4[z7Q](this[z18][M6Q]));}el=$(el);if(canAnimate){var L17=z18;L17+=r2M;L17+=u$O;el[L17]();}if(!msg){if(this[z18][G_6] && canAnimate){var I8o=S4I;I8o+=E1q;el[I8o](function(){el[f$V](Y97);fn();});}else {var L1Z=I6PSh[428092];L1Z+=M7f;L1Z+=I6PSh[428092];L1Z+=I3I;el[f$V](Y97)[X45](M4M,L1Z);fn();}if(title){var g25=K4p;g25+=x2Y;g25+=Y4S;el[g25](p78);}}else {var s7W=z4i;s7W+=i9V;fn();if(this[z18][s7W] && canAnimate){var D7h=I2g;D7h+=J1t;D7h+=F6_;var K7g=n5K;K7g+=D8G;K7g+=y$Q;K7g+=Z_L;el[K7g](msg)[D7h]();}else {var H_9=m35;H_9+=z18;H_9+=z18;el[f$V](msg)[H_9](M4M,A$T);}if(title){var x_o=I6PSh[203556];x_o+=D8G;x_o+=D8G;x_o+=G0h;el[x_o](p78,msg);}}}function _multiInfo(){var M$m="ludeF";var B0x="isMu";var n9c="multiInfoShown";var o_A="inc";var d7I=o_A;d7I+=M$m;d7I+=e6W;var D3I=S4I;D3I+=b9o;D3I+=z18;I6PSh.L61();var fields=this[z18][D3I];var include=this[z18][d7I];var show=A7Z;var state;if(!include){return;}for(var i=M_K,ien=include[D02];i < ien;i++){var w7b=B0x;w7b+=Z_L;w7b+=t5c;var field=fields[include[i]];var multiEditable=field[U$P]();if(field[w7b]() && multiEditable && show){state=A7Z;show=M9q;}else if(field[B5y]() && !multiEditable){state=A7Z;}else {state=M9q;}fields[include[i]][n9c](state);}}function _nestedClose(cb){var D_Q="_show";var B4_="dte";var G$f="callback";var L6l="displayControll";var disCtrl=this[z18][V4P];var show=disCtrl[D_Q];I6PSh.T_Y();if(!show || !show[D02]){if(cb){cb();}}else if(show[D02] > V4z){var O9a=M7f;O9a+=u$O;O9a+=I3I;O9a+=I6PSh[428092];var j8R=L6l;j8R+=P1t;var c_F=u$O;c_F+=M7f;c_F+=u$O;show[c_F]();var last=show[show[D02] - V4z];if(cb){cb();}this[z18][j8R][O9a](last[B4_],last[O66],last[G$f]);}else {var F_v=Z_L;F_v+=Z4q;F_v+=D8G;F_v+=n5K;var v4v=m35;v4v+=Z_L;v4v+=U4B;this[z18][V4P][v4v](this,cb);show[F_v]=M_K;}}function _nestedOpen(cb,nest){var Q8B="ntrolle";var v_7="ho";var A9j="how";var t53="displayCont";var S6f="displayC";var Q_K="rol";var l7v=o_O;l7v+=C51;var l48=S6f;l48+=M7f;l48+=Q8B;l48+=G0h;var C2L=g8H;C2L+=M$S;var a3I=g8H;a3I+=M0f;a3I+=s7d;var j0r=t53;j0r+=Q_K;j0r+=I6PSh.m9A;j0r+=G0h;var disCtrl=this[z18][j0r];if(!disCtrl[a3I]){var z03=y6a;z03+=A9j;disCtrl[z03]=[];}if(!nest){var L_2=y6a;L_2+=v_7;L_2+=N_S;disCtrl[L_2][D02]=M_K;}disCtrl[C2L][e2n]({append:this[N_F][t7C],callback:cb,dte:this});this[z18][l48][l7v](this,this[N_F][t7C],cb);}function _postopen(type,immediate){I6PSh.T_Y();var O1G='submit.editor-internal';var Z0W="submit.edit";var p1M="nal";var x5v="or-inter";var n5x="reFocus";var n9m="_multiI";var o_d="captu";var m0L=M7f;m0L+=u$O;m0L+=C51;var Q0W=n9m;Q0W+=q12;Q0W+=M7f;var u5e=y$Q;u5e+=I6PSh[203556];u5e+=j0N;var y2A=Z0W;y2A+=x5v;y2A+=p1M;var F8_=S4I;F8_+=q$X;var c1V=c$X;c1V+=y$Q;var F07=o_d;F07+=n5x;var _this=this;var focusCapture=this[z18][V4P][F07];if(focusCapture === undefined){focusCapture=A7Z;}$(this[c1V][F8_])[s5J](O1G)[a2Q](y2A,function(e){e[M9P]();});if(focusCapture && (type === u5e || type === v7S)){$(a9B)[a2Q](P8m,function(){var N3r="Focus";var D_h=".D";var U1H="TE";var Z9_='.DTE';var y7U="setFocus";I6PSh.L61();var l4Y=D_h;l4Y+=U1H;l4Y+=Q97;var I4k=U3u;I4k+=d$e;I4k+=n5K;if($(document[b7_])[g2j](Z9_)[I4k] === M_K && $(document[b7_])[g2j](l4Y)[D02] === M_K){var u1z=z18;u1z+=P22;u1z+=N3r;if(_this[z18][u1z]){var i69=S4I;i69+=M7f;i69+=m35;i69+=A0r;_this[z18][y7U][i69]();}}});}this[Q0W]();this[x2T](m0L,[type,this[z18][u_g]]);if(immediate){this[x2T](S2i,[type,this[z18][u_g]]);}return A7Z;}function _preopen(type){var m_q="cb";var R1m="_clearDynamicI";var Q$x="nce";var E35="rDy";var s23="_clea";var K1p="lO";var T74="micInfo";var q0B="loseIc";var R6K="preO";var h_S=l_J;h_S+=E7X;h_S+=I6PSh[203556];h_S+=U$m;var P3b=R1m;P3b+=Z8p;var Z51=R6K;Z51+=b7A;var s6Y=g8H;s6Y+=i6Z;if(this[s6Y](Z51,[type,this[z18][u_g]]) === M9q){var d3K=H72;d3K+=m7Y;d3K+=m_q;var W0W=m35;W0W+=q0B;W0W+=I6PSh.O47;var V_C=R14;V_C+=I6PSh.O47;V_C+=H7M;var w$7=y$Q;w$7+=M7f;w$7+=J1t;var x3l=W9R;x3l+=I6PSh[428092];x3l+=Z_L;x3l+=x9m;var s3x=y$Q;s3x+=M7f;s3x+=z4X;s3x+=I3I;var V0r=I6PSh[203556];V0r+=m35;V0r+=F6t;V0r+=a2Q;var e8l=L4U;e8l+=Q$x;e8l+=K1p;e8l+=b7A;var x4H=G49;x4H+=V4Q;x4H+=I3I;x4H+=P0i;var X_8=s23;X_8+=E35;X_8+=l3v;X_8+=T74;this[X_8]();this[x4H](e8l,[type,this[z18][V0r]]);if((this[z18][s3x] === x3l || this[z18][w$7] === V_C) && this[z18][W0W]){this[z18][Z2F]();}this[z18][d3K]=s4l;return M9q;}this[P3b](A7Z);this[z18][h_S]=type;return A7Z;}function _processing(processing){var R6M='div.DTE';var V3j="toggleC";var i84=Y81;i84+=D8y;i84+=W9R;i84+=t2h;var a$z=a6P;a$z+=b9u;var F1z=V3j;F1z+=Z_L;F1z+=u6d;F1z+=z18;var c9i=N_S;c9i+=u15;c9i+=I3I;c9i+=G0h;var r4l=F7H;r4l+=W9R;r4l+=m5T;var c5J=x2V;c5J+=D8y;c5J+=I3I;c5J+=z18;var procClass=this[c5J][t55][r4l];$([R6M,this[N_F][c9i]])[F1z](procClass,processing);this[z18][a$z]=processing;this[x2T](i84,[processing]);}function _noProcessing(args){var x1o='processing-field';var h$5=S4I;h$5+=e6W;var processing=M9q;$[P1d](this[z18][h$5],function(name,field){I6PSh.T_Y();var t6O=x5P;t6O+=M3I;if(field[t6O]()){processing=A7Z;}});if(processing){var O2K=a2Q;O2K+=I3I;this[O2K](x1o,function(){I6PSh.T_Y();if(this[J8n](args) === A7Z){var s5g=H3h;s5g+=u$O;s5g+=k0u;var Q6k=g8H;Q6k+=Z90;Q6k+=F2R;this[Q6k][s5g](this,args);}});}return !processing;}function _submit(successCallback,errorCallback,formatdata,hide){var W20="ang";var c9F='preSubmit';var c6y="plete";var K1N="tFields";var J_v='allIfChanged';var F$u="onCom";var T3j=16;var i0y="editData";var h6S="onNam";var S5L="Co";var Z$H='Field is still processing';var R82=G49;R82+=V4Q;R82+=d9H;var c3a=m5v;c3a+=V4Q;c3a+=I3I;var s$9=I3I;s$9+=l_J;s$9+=D8G;var u3w=m35;u3w+=G0h;u3w+=l3i;u3w+=q4b;var N1w=I6PSh[203556];N1w+=g$w;N1w+=h6S;N1w+=I3I;var Y84=R1P;Y84+=D8G;Y84+=b0Z;Y84+=I6PSh[428092];var T0l=T_K;T0l+=D8G;T0l+=Q$i;T0l+=z18;var J$A=i9V;J$A+=W9R;J$A+=K1N;var _this=this;var changed=M9q;var allData={};var changedData={};var setBuilder=dataSet;var fields=this[z18][N1U];var editCount=this[z18][H2u];var editFields=this[z18][J$A];var editData=this[z18][i0y];var opts=this[z18][T0l];var changedSubmit=opts[M0d];var submitParamsLocal;if(this[J8n](arguments) === M9q){var S2$=I3I;S2$+=p5N;S2$+=M7f;S2$+=G0h;Editor[S2$](Z$H,T3j,M9q);return;}var action=this[z18][Y84];var submitParams={data:{}};submitParams[this[z18][N1w]]=action;if(action === u3w || action === s$9){var L0g=H2V;L0g+=W20;L0g+=I3I;L0g+=z4X;var o2Q=I6PSh[203556];o2Q+=G1R;var C1W=l3i;C1W+=m35;C1W+=n5K;$[C1W](editFields,function(idSrc,edit){var G4P="isEmptyObject";var allRowData={};var changedRowData={};$[P1d](fields,function(name,field){var i1P="G";var k2j="alFromDa";var b7n="are";var C_7=/\[.*$/;var J9C='[]';var X$A='-many-count';var b8D=i_c;b8D+=Z_L;b8D+=U7l;if(edit[b8D][name] && field[g9k]()){var Y3I=m35;Y3I+=n8t;Y3I+=u$O;Y3I+=b7n;var Z6U=I3I;Z6U+=z4X;Z6U+=H3J;var d42=z18;d42+=J61;var Y0f=l4G;Y0f+=i1P;Y0f+=P22;var multiGet=field[Y0f]();var builder=setBuilder(name);if(multiGet[idSrc] === undefined){var H5g=o2j;H5g+=I6PSh[203556];var r5V=V4Q;r5V+=k2j;r5V+=S5A;var originalVal=field[r5V](edit[H5g]);builder(allRowData,originalVal);return;}var value=multiGet[idSrc];var manyBuilder=Array[M1j](value) && typeof name === d42 && name[Y$p](J9C) !== -V4z?setBuilder(name[C4c](C_7,Y97) + X$A):s4l;builder(allRowData,value);if(manyBuilder){manyBuilder(allRowData,value[D02]);}if(action === Z6U && (!editData[name] || !field[Y3I](value,editData[name][idSrc]))){builder(changedRowData,value);changed=A7Z;if(manyBuilder){var b4e=Z_L;b4e+=I3I;b4e+=t2h;b4e+=P6n;manyBuilder(changedRowData,value[b4e]);}}}});if(!$[G4P](allRowData)){allData[idSrc]=allRowData;}if(!$[G4P](changedRowData)){changedData[idSrc]=changedRowData;}});if(action === q_s || changedSubmit === o2Q || changedSubmit === J_v && changed){var G0i=z4X;G0i+=I6PSh[203556];G0i+=S5A;submitParams[G0i]=allData;}else if(changedSubmit === L0g && changed){var b8S=z4X;b8S+=n0C;b8S+=I6PSh[203556];submitParams[b8S]=changedData;}else {var v2W=x2b;v2W+=P0i;var F17=w2B;F17+=j17;F17+=b9u;var C$u=a2Q;C$u+=S5L;C$u+=y$Q;C$u+=c6y;this[z18][u_g]=s4l;if(opts[K_0] === o$d && (hide === undefined || hide)){this[Y5J](M9q);}else if(typeof opts[C$u] === a27){var s1Q=F$u;s1Q+=A8y;s1Q+=P22;s1Q+=I3I;opts[s1Q](this);}if(successCallback){var x9n=C7E;x9n+=Z_L;successCallback[x9n](this);}this[F17](M9q);this[v2W](c6I);return;}}else if(action === c3a){var K6h=I3I;K6h+=I6PSh[203556];K6h+=H2V;$[K6h](editFields,function(idSrc,edit){var I9T=Y$c;I9T+=S5A;submitParams[I9T][idSrc]=edit[I6PSh.C_e];});}submitParamsLocal=$[E43](A7Z,{},submitParams);if(formatdata){formatdata(submitParams);}this[R82](c9F,[submitParams,action],function(result){var L_P="_submitTable";if(result === M9q){var u2M=w2B;u2M+=M7f;u2M+=E6k;u2M+=t6R;_this[u2M](M9q);}else {var submitWire=_this[z18][C0H]?_this[s$6]:_this[L_P];submitWire[M5F](_this,submitParams,function(json,notGood,xhr){var g3X="_submitSuccess";I6PSh.T_Y();var B5K=f5u;B5K+=I6PSh[428092];_this[g3X](json,notGood,submitParams,submitParamsLocal,_this[z18][B5K],editCount,hide,successCallback,errorCallback,xhr);},function(xhr,err,thrown){var u7f=g8H;u7f+=z18;u7f+=H33;u7f+=y3y;_this[u7f](xhr,err,thrown,errorCallback,submitParams,_this[z18][u_g]);},submitParams);}});}function _submitTable(data,success,error,submitParams){var A$8='fields';var f$c='individual';var Z1p="odifier";var r6U=C8O;r6U+=G0V;r6U+=G0h;r6U+=m35;var action=data[u_g];var out={data:[]};var idGet=dataGet(this[z18][C5i]);var idSet=dataSet(this[z18][r6U]);if(action !== t$7){var N7P=z4X;N7P+=n0C;N7P+=I6PSh[203556];var X4j=I3I;X4j+=I6PSh[203556];X4j+=m35;X4j+=n5K;var h0n=y$Q;h0n+=Z1p;var a5G=y$Q;a5G+=k$l;var K4R=y$Q;K4R+=M7f;K4R+=z4X;K4R+=I3I;var originalData_1=this[z18][K4R] === a5G?this[q5_](A$8,this[h0n]()):this[q5_](f$c,this[k6p]());$[X4j](data[N7P],function(key,vals){var f8R="oStri";var Z4t=V0L;Z4t+=z18;Z4t+=n5K;var N6g=z4X;N6g+=I6PSh[203556];N6g+=D8G;N6g+=I6PSh[203556];var p83=m35;p83+=i3h;var toSave;var extender=extend;I6PSh.L61();if(action === p6G){var rowData=originalData_1[key][I6PSh.C_e];toSave=extender({},rowData,A7Z);toSave=extender(toSave,vals,A7Z);}else {toSave=extender({},vals,A7Z);}var overrideId=idGet(toSave);if(action === p83 && overrideId === undefined){var u7v=D8G;u7v+=f8R;u7v+=I6PSh[428092];u7v+=M3I;idSet(toSave,+new Date() + key[u7v]());}else {idSet(toSave,overrideId);}out[N6g][Z4t](toSave);});}success(out);}function _submitSuccess(json,notGood,submitParams,submitParamsLocal,action,editCount,hide,successCallback,errorCallback,xhr){var t6e='id';var u28="postCre";var O_1="ource";var M9T="_data";var e_6="_dataSourc";var H_X="_processin";var M8u="mplete";var x0q='postRemove';var g7N="itSuccess";var T9L="_da";var q6R="aSource";var D$X="<b";var c2c="subm";var X1g="r>";var q1j="bmitUnsuccessful";var E7J="mple";var H6E="Source";var F_5="taSource";var o3$="tO";var e2R="onCo";var K_L='preRemove';var x6t="ors";var N$W='preCreate';var h7k='prep';var X0c="vent";var t1u="_dataS";var k1T="urce";var U8m="Comple";var m7I="ataSo";var F$8="setD";var z6w="submitCo";var F0i='commit';var u3m="postE";var o2v=z6w;o2v+=M8u;var U7u=g8H;U7u+=K8Q;U7u+=d9H;var m84=H_X;m84+=M3I;var G5u=S4I;G5u+=b9o;G5u+=S8J;G5u+=x6t;var n9Z=i_c;n9Z+=z33;var d6A=P1t;d6A+=m2S;d6A+=G0h;I6PSh.T_Y();var K2P=I3I;K2P+=l_J;K2P+=o3$;K2P+=W2D;var s_x=i_c;s_x+=Z_L;s_x+=z4X;s_x+=z18;var _this=this;var that=this;var setData;var fields=this[z18][s_x];var opts=this[z18][K2P];var modifier=this[z18][k6p];this[x2T](w0_,[json,submitParams,action,xhr]);if(!json[d6A]){var f44=I3I;f44+=G0h;f44+=G0h;f44+=l8G;json[f44]=Y97;}if(!json[n9Z]){json[C_v]=[];}if(notGood || json[c4M] || json[G5u][D02]){var B$7=U_B;B$7+=q1j;var v5P=D$X;v5P+=X1g;var r94=Q1N;r94+=M7f;r94+=W9R;r94+=I6PSh[428092];var G43=I3I;G43+=q1k;var i_D=I3I;i_D+=q1k;var globalError_1=[];if(json[i_D]){var J$5=I3I;J$5+=G0h;J$5+=F5B;globalError_1[e2n](json[J$5]);}$[P1d](json[C_v],function(i,err){var k46="Er";var p2x=': ';var N1m="Unknown fiel";var d5b='Error';var e2S="ldErr";var e9U="nFie";var w0c="osition";var a0j="onFi";var M3s="d: ";var o6b="bodyCont";var z97="onFieldError";var t6g="eldError";var field=fields[err[X55]];if(!field){var x6H=I6PSh[428092];x6H+=g2A;var I2f=N1m;I2f+=M3s;throw new Error(I2f + err[x6H]);}else if(field[G_6]()){var m5l=F4L;m5l+=I6PSh[203556];m5l+=B1q;var N$X=I3I;N$X+=G0h;N$X+=m2S;N$X+=G0h;field[N$X](err[m5l] || d5b);if(i === M_K){var I1u=a0j;I1u+=t6g;var w8x=M7f;w8x+=e9U;w8x+=e2S;w8x+=l8G;if(opts[w8x] === r$v){var U0l=u$O;U0l+=w0c;var c7d=o6b;c7d+=d9H;_this[L9U]($(_this[N_F][c7d]),{scrollTop:$(field[Q0Z]())[U0l]()[e8Q]},A6q);field[g1F]();}else if(typeof opts[I1u] === a27){opts[z97](_this,err);}}}else {var D9x=k46;D9x+=G0h;D9x+=l8G;var m$A=I6PSh[428092];m$A+=I6PSh[203556];m$A+=k2_;globalError_1[e2n](field[m$A]() + p2x + (err[U5v] || D9x));}});this[G43](globalError_1[r94](v5P));this[x2T](B$7,[json]);if(errorCallback){errorCallback[M5F](that,json);}}else {var Z25=c2c;Z25+=g7N;var G7a=K4p;G7a+=M7f;G7a+=V4Q;G7a+=I3I;var K8a=m35;K8a+=W5q;K8a+=n0C;K8a+=I3I;var v8o=z4X;v8o+=I6PSh[203556];v8o+=S5A;var store={};if(json[v8o] && (action === K8a || action === p6G)){var u6I=e_6;u6I+=I3I;var v4P=U3u;v4P+=M3I;v4P+=P6n;var B8b=u$O;B8b+=G0h;B8b+=I3I;B8b+=u$O;var U3A=G3n;U3A+=m7I;U3A+=k1T;this[U3A](B8b,action,modifier,submitParamsLocal,json,store);for(var _i=M_K,_a=json[I6PSh.C_e];_i < _a[v4P];_i++){var s9f=I3I;s9f+=z4X;s9f+=H3J;var T5Y=F$8;T5Y+=I6PSh[203556];T5Y+=S5A;var j8B=g8H;j8B+=p4U;j8B+=I6PSh[428092];j8B+=D8G;var j2O=T9L;j2O+=F_5;var data=_a[_i];setData=data;var id=this[j2O](t6e,data);this[j8B](T5Y,[json,data,action]);if(action === q_s){var W8n=u28;W8n+=f7m;var J4N=S1D;J4N+=f9m;var x7g=G3n;x7g+=I6PSh[203556];x7g+=D8G;x7g+=q6R;var a8v=g8H;a8v+=p4U;a8v+=P0i;this[a8v](N$W,[json,data,id]);this[x7g](q_s,fields,data,store);this[x2T]([J4N,W8n],[json,data,id]);}else if(action === s9f){var k9n=u3m;k9n+=z4X;k9n+=W9R;k9n+=D8G;var v9H=I3I;v9H+=z4X;v9H+=W9R;v9H+=D8G;var Y6C=t1u;Y6C+=O_1;var b6N=E0y;b6N+=I3I;b6N+=T9F;b6N+=Z9Y;this[x2T](b6N,[json,data,id]);this[Y6C](v9H,modifier,fields,data,store);this[x2T]([p6G,k9n],[json,data,id]);}}this[u6I](F0i,action,modifier,json[I6PSh.C_e],store);}else if(action === G7a){var o4Z=C8O;o4Z+=z18;var l4Q=G49;l4Q+=X0c;var x8S=W5q;x8S+=y$Q;x8S+=d17;var U3r=M9T;U3r+=H6E;var p$t=W9R;p$t+=U7l;this[q5_](h7k,action,modifier,submitParamsLocal,json,store);this[x2T](K_L,[json,this[p$t]()]);this[U3r](x8S,modifier,fields,store);this[l4Q]([t$7,x0q],[json,this[o4Z]()]);this[q5_](F0i,action,modifier,json[I6PSh.C_e],store);}if(editCount === this[z18][H2u]){var W_u=c6s;W_u+=s$I;var e4g=e2R;e4g+=E7J;e4g+=q4b;var D8M=m35;D8M+=u1t;D8M+=z18;D8M+=I3I;var B1n=I6PSh[203556];B1n+=m35;B1n+=D8G;B1n+=y7l;var sAction=this[z18][B1n];this[z18][u_g]=s4l;if(opts[K_0] === D8M && (hide === undefined || hide)){this[Y5J](json[I6PSh.C_e]?A7Z:M9q,sAction);}else if(typeof opts[e4g] === W_u){var x0A=a2Q;x0A+=U8m;x0A+=q4b;opts[x0A](this);}}if(successCallback){successCallback[M5F](that,json);}this[x2T](Z25,[json,setData,action]);}this[m84](M9q);this[U7u](o2v,[json,setData,action]);}function _submitError(xhr,err,thrown,errorCallback,submitParams,action){var W01="ubmitErr";var O8n="yst";var j_M=z18;I6PSh.T_Y();j_M+=W01;j_M+=l8G;var d8k=z18;d8k+=O8n;d8k+=x4Z;var W2s=I3I;W2s+=G0h;W2s+=G0h;W2s+=l8G;this[x2T](w0_,[s4l,submitParams,action,xhr]);this[W2s](this[H6x][c4M][d8k]);this[s6B](M9q);if(errorCallback){var q2T=m35;q2T+=I6PSh[203556];q2T+=G1R;errorCallback[q2T](this,xhr,err,thrown);}this[x2T]([j_M,c6I],[xhr,err,thrown,submitParams]);}function _tidy(fn){var m$P="proc";var c$H="tComplet";var Q9x="oFeatures";var y4j="verSide";var j7Y="ttings";var Z73=B_Q;Z73+=H7M;var V_5=b6h;V_5+=u$O;V_5+=L$_;var Y5o=m$P;Y5o+=Q5l;Y5o+=b9u;var C8u=D8G;C8u+=I6PSh[203556];C8u+=q4N;C8u+=I3I;var T6P=S4I;T6P+=I6PSh[428092];var y5V=D8G;y5V+=I6PSh[203556];y5V+=H7M;var _this=this;var dt=this[z18][y5V]?new $[T6P][S3i][w58](this[z18][C8u]):s4l;var ssp=M9q;if(dt){var q_4=I6PSh.O47;q_4+=G0V;q_4+=P1t;q_4+=y4j;var C0O=z18;C0O+=I3I;C0O+=j7Y;ssp=dt[C0O]()[M_K][Q9x][q_4];}if(this[z18][Y5o]){var w5R=Z90;w5R+=A1l;w5R+=c$H;w5R+=I3I;var i73=M7f;i73+=I6PSh[428092];i73+=I3I;this[i73](w5R,function(){I6PSh.T_Y();if(ssp){var U8l=z4X;U8l+=C_q;dt[B1$](U8l,fn);}else {setTimeout(function(){fn();},c5d);}});return A7Z;}else if(this[z4i]() === Q5L || this[V_5]() === Z73){this[B1$](o$d,function(){if(!_this[z18][t55]){setTimeout(function(){I6PSh.L61();if(_this[z18]){fn();}},c5d);}else {var u39=M7f;u39+=I6PSh[428092];u39+=I3I;_this[u39](c6I,function(e,json){if(ssp && json){dt[B1$](D$8,fn);}else {setTimeout(function(){if(_this[z18]){fn();}},c5d);}});}})[Z7y]();return A7Z;}return M9q;}function _weakInArray(name,arr){var W3r=L1t;W3r+=n5K;for(var i=M_K,ien=arr[W3r];i < ien;i++){if(name == arr[i]){return i;}}I6PSh.T_Y();return -V4z;}var fieldType={create:function(){},disable:function(){},enable:function(){},get:function(){},set:function(){}};var DataTable$3=$[f$2][S3i];function _buttonText(conf,textIn){var P7o="uploadText";var W3h="file...";var s7C="upload button";var Z4D="oose ";var j9D=n5K;j9D+=D8G;j9D+=y$Q;j9D+=Z_L;var w_w=E4t;w_w+=p$7;w_w+=s7C;var G5w=z$a;G5w+=I6PSh[428092];G5w+=z4X;if(textIn === s4l || textIn === undefined){var w5c=E63;w5c+=Z4D;w5c+=W3h;textIn=conf[P7o] || w5c;}conf[u9f][G5w](w_w)[j9D](textIn);}function _commonUpload(editor,conf,dropCallback,multiple){var e8k='dragover';var C4L="op span";var V83='Drag and drop a file here to upload';var H_k="row ";var s7P='input[type=file]';var Y39='<div class="editor_upload">';var D2J="dra";var y3C="e\">";var E4w="gleave dragex";var J9b="Hide\">";var M1N="<div cl";var L1$="opText";var l7T="las";var T6p="FileR";var Q3t='noDrop';var F2l="\"eu_tabl";var v6R="<div class=\"render";var m_$="></but";var A1i="<div class=\"cell clearValu";var m5m=".dro";var k8A='over';var s0R='></input>';var U3Z='<div class="cell">';var o8P="second\">";var O6f="=file]";var w_t='"></button>';var W7x="eader";var f1_="dClass";var v_e='<div class="cell limitHide">';var E3_='<div class="drop"><span></span></div>';var L20='<input type="file" ';var q3h="n>";var g$E="dragDrop";var k0H="buttonInternal";var i0g="abled";var w1n="<button";var I5k="s=\"row\">";var l4u="input[t";var r4Q=" class=";var T_5="<div class=\"cell upload ";var a6z='<button class="';var I6I="ed\"></div>";var N9J="afeId";var z4Y="gDr";var P73=e$e;P73+=s7c;var v3W=M7f;v3W+=I6PSh[428092];var K4D=T6p;K4D+=W7x;var J39=I6PSh[203556];J39+=Y4S;var K$o=g8H;K$o+=I3I;K$o+=I6PSh[428092];K$o+=i0g;var z1i=T8r;z1i+=q0p;z1i+=W9R;z1i+=j_g;var p7$=r0s;p7$+=j_g;var h04=v6R;h04+=I6I;var s6s=T8r;s6s+=M4f;s6s+=T3N;var V1n=M1N;V1n+=U$G;V1n+=H_k;V1n+=o8P;var u1m=t_4;u1m+=m_$;u1m+=r2M;u1m+=q3h;var N8n=w1n;N8n+=M_X;var o4J=A1i;o4J+=y3C;var s$r=l4G;s$r+=u$O;s$r+=Z_L;s$r+=I3I;var E1s=T_5;E1s+=S$l;E1s+=J9b;var F7p=D9H;F7p+=l7T;F7p+=I5k;var r33=j6f;r33+=r4Q;r33+=F2l;r33+=y3C;var L7t=m35;L7t+=D70;L7t+=z18;if(multiple === void M_K){multiple=M9q;}var btnClass=editor[L7t][a7c][k0H];var container=$(Y39 + r33 + F7p + E1s + a6z + btnClass + w_t + L20 + (multiple?s$r:Y97) + s0R + j7p + o4J + N8n + btnClass + u1m + j7p + j7p + V1n + v_e + E3_ + s6s + U3Z + h04 + p7$ + z1i + j7p + j7p);conf[u9f]=container;conf[K$o]=A7Z;if(conf[C8O]){var z2N=W9R;z2N+=z4X;var C$r=z18;C$r+=N9J;var g$B=W9R;g$B+=z4X;var s2n=I6PSh[203556];s2n+=D8G;s2n+=D8G;s2n+=G0h;var F2_=z$a;F2_+=I6PSh[428092];F2_+=z4X;container[F2_](s7P)[s2n](g$B,Editor[C$r](conf[z2N]));}if(conf[J39]){var w4_=n0C;w4_+=h1G;var m2G=n0C;m2G+=h1G;var M7d=l4u;M7d+=V9Q;M7d+=O6f;container[Q7u](M7d)[m2G](conf[w4_]);}_buttonText(conf);if(window[K4D] && conf[g$E] !== M9q){var W4c=M7f;W4c+=I$c;W4c+=I6PSh[428092];var o5f=M7f;o5f+=I6PSh[428092];var z5D=D2J;z5D+=E4w;z5D+=H3J;var z3d=M7f;z3d+=I6PSh[428092];var o0z=z4X;o0z+=G0h;o0z+=M7f;o0z+=u$O;var s1j=M7f;s1j+=I6PSh[428092];var z6$=E4t;z6$+=m5m;z6$+=u$O;var q14=S4I;q14+=j0N;q14+=z4X;var w5u=D2J;w5u+=z4Y;w5u+=L1$;var c4k=E4t;c4k+=p$7;c4k+=E8U;c4k+=C4L;var T4z=z$a;T4z+=I6PSh[428092];T4z+=z4X;container[T4z](c4k)[E_a](conf[w5u] || V83);var dragDrop_1=container[q14](z6$);dragDrop_1[s1j](o0z,function(e){var h0V="oa";var J$Q="_en";var l6c="dataTransfer";var E6M="iginalEve";var t0c=J$Q;t0c+=i0g;if(conf[t0c]){var s7$=l8G;s7$+=E6M;s7$+=P0i;var z4V=i3G;z4V+=Z_L;z4V+=h0V;z4V+=z4X;Editor[z4V](editor,conf,e[s7$][l6c][b1R],_buttonText,dropCallback);dragDrop_1[z2o](k8A);}return M9q;})[z3d](z5D,function(e){var v1B="_enabl";var B1U=v1B;B1U+=i9V;if(conf[B1U]){var f6V=M7f;f6V+=V4Q;f6V+=I3I;f6V+=G0h;dragDrop_1[z2o](f6V);}return M9q;})[a2Q](e8k,function(e){if(conf[j7m]){dragDrop_1[k5t](k8A);}I6PSh.T_Y();return M9q;});editor[o5f](W4c,function(){var n_i='dragover.DTE_Upload drop.DTE_Upload';var t$_=I6PSh.O47;t$_+=M7f;t$_+=z4X;t$_+=d14;$(t$_)[a2Q](n_i,function(e){return M9q;});})[a2Q](o$d,function(){var v6Z="r.DTE_Upload drop.DTE_Upload";var A4Y="dragove";var F2T=A4Y;I6PSh.L61();F2T+=v6Z;var T7i=n8Z;T7i+=S4I;$(a9B)[T7i](F2T);});}else {var v1a=S4I;v1a+=W9R;v1a+=I6PSh[428092];v1a+=z4X;var o0v=I6PSh[203556];o0v+=z4X;o0v+=f1_;container[o0v](Q3t);container[O66](container[v1a](L8d));}container[Q7u](w_P)[v3W](h1T,function(e){e[M9P]();if(conf[j7m]){var h6j=z18;h6j+=I3I;h6j+=D8G;upload[h6j][M5F](editor,conf,Y97);}});container[Q7u](s7P)[a2Q](P73,function(){var F0k="uploa";var o5b="iles";var n_q=S4I;n_q+=o5b;var f5y=F0k;I6PSh.L61();f5y+=z4X;Editor[f5y](editor,conf,this[n_q],_buttonText,function(ids,error){var H$w="put[type=";var y9A="ile]";var n7a=j0N;n7a+=H$w;n7a+=S4I;n7a+=y9A;if(!error){var g_1=C7E;g_1+=Z_L;dropCallback[g_1](editor,ids);}I6PSh.T_Y();container[Q7u](n7a)[M_K][W6s]=Y97;});});return container;}function _triggerChange(input){I6PSh.L61();setTimeout(function(){var L4z="gger";var p1t=D8G;p1t+=y9J;p1t+=L4z;input[p1t](N12,{editor:A7Z,editorSet:A7Z});;},M_K);}var baseFieldType=$[F30](A7Z,{},fieldType,{canReturnSubmit:function(conf,node){I6PSh.T_Y();return A7Z;},disable:function(conf){var k8F="disab";I6PSh.L61();var E2p=k8F;E2p+=Z_L;E2p+=i9V;conf[u9f][W1Z](E2p,A7Z);},enable:function(conf){var l49=b6h;l49+=I6PSh[203556];l49+=S6$;var O8T=u$O;O8T+=G0h;O8T+=M7f;O8T+=u$O;var M_h=g8H;M_h+=j0N;M_h+=u$O;M_h+=s7c;conf[M_h][O8T](l49,M9q);},get:function(conf){I6PSh.T_Y();var s5f=w8_;s5f+=U5$;return conf[s5f][N1E]();},set:function(conf,val){conf[u9f][N1E](val);_triggerChange(conf[u9f]);}});var hidden={create:function(conf){var e42="put/";var U8j="<in";I6PSh.L61();var t5A=g8H;t5A+=V4Q;t5A+=W63;var g0O=U8j;g0O+=e42;g0O+=k2s;conf[u9f]=$(g0O);conf[t5A]=conf[W6s];return s4l;},get:function(conf){I6PSh.T_Y();var N_b=g8H;N_b+=N1E;return conf[N_b];},set:function(conf,val){var q0g=x9l;I6PSh.L61();q0g+=D8G;var d8S=z45;d8S+=Z_L;var oldVal=conf[I7j];conf[d8S]=val;conf[q0g][N1E](val);if(oldVal !== val){var l7S=g8H;l7S+=j0N;l7S+=u$O;l7S+=s7c;_triggerChange(conf[l7S]);}}};var readonly=$[E43](A7Z,{},baseFieldType,{create:function(conf){var L5o='readonly';var i7c=g8H;i7c+=b2t;var k7p=I6PSh[203556];k7p+=D8G;k7p+=h1G;var U0z=D8G;U0z+=I3I;U0z+=n$Z;U0z+=D8G;var O5L=C$a;O5L+=S4I;O5L+=s_j;var H6w=I3I;H6w+=g62;H6w+=I3I;H6w+=f7A;var d9o=d52;d9o+=s09;conf[d9o]=$(F9n)[J91]($[H6w]({id:Editor[O5L](conf[C8O]),readonly:L5o,type:U0z},conf[k7p] || ({})));return conf[i7c][M_K];}});var text=$[X0R](A7Z,{},baseFieldType,{create:function(conf){var b6M=D8G;b6M+=M6P;var b6V=I6PSh[203556];b6V+=D8G;b6V+=h1G;conf[u9f]=$(F9n)[b6V]($[E43]({id:Editor[i4D](conf[C8O]),type:b6M},conf[J91] || ({})));return conf[u9f][M_K];}});var password=$[c5r](A7Z,{},baseFieldType,{create:function(conf){var w$o='password';var A6O="input/>";var A0D=W9R;A0D+=z4X;var C78=o2M;C78+=z4X;var H_Z=T8r;H_Z+=A6O;var w3b=g8H;w3b+=W9R;w3b+=I6PSh[428092];w3b+=U5$;conf[w3b]=$(H_Z)[J91]($[C78]({id:Editor[i4D](conf[A0D]),type:w$o},conf[J91] || ({})));return conf[u9f][M_K];}});var textarea=$[O4X](A7Z,{},baseFieldType,{canReturnSubmit:function(conf,node){I6PSh.T_Y();return M9q;},create:function(conf){var T00="<textare";var u3o="a>";var c0d="rea>";var v_G="</texta";var S_Y=d52;S_Y+=w3z;S_Y+=D0V;S_Y+=D8G;var Q9L=W9R;Q9L+=z4X;var x29=T00;x29+=u3o;x29+=v_G;x29+=c0d;var D22=d52;D22+=I6PSh[428092];D22+=u$O;D22+=s7c;conf[D22]=$(x29)[J91]($[E43]({id:Editor[i4D](conf[Q9L])},conf[J91] || ({})));return conf[S_Y][M_K];}});var select=$[E43](A7Z,{},baseFieldType,{_addOptions:function(conf,opts,append){var h$s="aceho";var a6N="placeholderValue";var t_o="lder";var n7c="hidden";var A_p="isa";var u8g="derD";var Y8A="lderValue";var o5R="placeho";var Z7z="placehol";var K4I="lderDi";var S7C=k9A;S7C+=b0Z;I6PSh.L61();S7C+=D3s;var e6l=g8H;e6l+=j0N;e6l+=V0L;e6l+=D8G;if(append === void M_K){append=M9q;}var elOpts=conf[e6l][M_K][S7C];var countOffset=M_K;if(!append){elOpts[D02]=M_K;if(conf[L3N] !== undefined){var d3Z=A8y;d3Z+=h$s;d3Z+=K4I;d3Z+=c10;var l_l=Z7z;l_l+=u8g;l_l+=A_p;l_l+=S6$;var M8X=o5R;M8X+=t_o;var B5E=o5R;B5E+=Y8A;var placeholderValue=conf[B5E] !== undefined?conf[a6N]:Y97;countOffset+=V4z;elOpts[M_K]=new Option(conf[M8X],placeholderValue);var disabled=conf[l_l] !== undefined?conf[d3Z]:A7Z;elOpts[M_K][n7c]=disabled;elOpts[M_K][H76]=disabled;elOpts[M_K][w$G]=placeholderValue;}}else {countOffset=elOpts[D02];}if(opts){Editor[D_9](opts,conf[l9B],function(val,label,i,attr){I6PSh.L61();var Y1E=G49;Y1E+=l_J;Y1E+=m5_;var option=new Option(label,val);option[Y1E]=val;if(attr){var t4U=I6PSh[203556];t4U+=Y4S;$(option)[t4U](attr);}elOpts[i + countOffset]=option;});}},create:function(conf){var F$i="ipOp";var T1r="ge.dt";var Z9G="han";var u4_='<select></select>';var z6W="saf";var R_D=g8H;R_D+=W9R;R_D+=s09;var L8K=F$i;I6PSh.T_Y();L8K+=y$l;var w1b=M7f;w1b+=N1B;w1b+=y7l;w1b+=z18;var x9V=N_W;x9V+=Q$i;x9V+=y7l;x9V+=z18;var o9C=m35;o9C+=Z9G;o9C+=T1r;o9C+=I3I;var D9v=M7f;D9v+=I6PSh[428092];var u7s=W9R;u7s+=z4X;var B7P=z6W;B7P+=s_j;var Y3G=o2M;Y3G+=z4X;var t1Q=I6PSh[203556];t1Q+=D8G;t1Q+=D8G;t1Q+=G0h;var a4k=d52;a4k+=I6PSh[428092];a4k+=U5$;conf[a4k]=$(u4_)[t1Q]($[Y3G]({id:Editor[B7P](conf[u7s]),multiple:conf[q$y] === A7Z},conf[J91] || ({})))[D9v](o9C,function(e,d){var g3d=I3I;g3d+=l_J;g3d+=D8G;I6PSh.T_Y();g3d+=l8G;if(!d || !d[g3d]){var l7Q=M3I;l7Q+=I3I;l7Q+=D8G;conf[R48]=select[l7Q](conf);}});select[x9V](conf,conf[w1b] || conf[L8K]);return conf[R_D][M_K];},destroy:function(conf){var L57='change.dte';var C5w=M7f;C5w+=S4I;I6PSh.L61();C5w+=S4I;conf[u9f][C5w](L57);},get:function(conf){var v9a="oi";var j6r='option:selected';var s3Y=S4I;s3Y+=j0N;s3Y+=z4X;var val=conf[u9f][s3Y](j6r)[T4P](function(){var E53="r_va";var B_A=N1Y;B_A+=r2M;I6PSh.L61();B_A+=E53;B_A+=Z_L;return this[B_A];})[T7a]();if(conf[q$y]){var e7Q=Q1N;e7Q+=v9a;e7Q+=I6PSh[428092];return conf[c1g]?val[e7Q](conf[c1g]):val;}I6PSh.T_Y();return val[D02]?val[M_K]:s4l;},set:function(conf,val,localUpdate){var T9P='option';var S7d="sA";var m13="lect";var D2I=Z_L;D2I+=I3I;D2I+=h_a;D2I+=n5K;var g_V=Q8v;g_V+=W35;var J_w=g8H;J_w+=j0N;J_w+=U5$;var V4b=W9R;V4b+=S7d;V4b+=G0h;V4b+=H2Y;var R3b=y$Q;R3b+=F2E;R3b+=Z_L;R3b+=I3I;if(!localUpdate){conf[R48]=val;}if(conf[R3b] && conf[c1g] && !Array[M1j](val)){var z77=z18;z77+=J61;val=typeof val === z77?val[u1h](conf[c1g]):[];}else if(!Array[V4b](val)){val=[val];}var i;var len=val[D02];var found;var allFound=M9q;var options=conf[u9f][Q7u](T9P);conf[J_w][Q7u](T9P)[P1d](function(){var o5V="ele";var D0S="cted";var P4X=z18;P4X+=o5V;P4X+=D0S;I6PSh.T_Y();found=M9q;for(i=M_K;i < len;i++){var o85=G49;o85+=l_J;o85+=R7Z;o85+=I7j;if(this[o85] == val[i]){found=A7Z;allFound=A7Z;break;}}this[P4X]=found;});if(conf[L3N] && !allFound && !conf[g_V] && options[D2I]){var P7R=W7J;P7R+=m13;P7R+=i9V;options[M_K][P7R]=A7Z;}if(!localUpdate){_triggerChange(conf[u9f]);}return allFound;},update:function(conf,options,append){var E_O="_lastS";var Q$2=g8H;I6PSh.L61();Q$2+=j0N;Q$2+=U5$;var s0G=E_O;s0G+=P22;select[S5S](conf,options,append);var lastSet=conf[s0G];if(lastSet !== undefined){var i8A=z18;i8A+=P22;select[i8A](conf,lastSet,A7Z);}_triggerChange(conf[Q$2]);}});var checkbox=$[E43](A7Z,{},baseFieldType,{_addOptions:function(conf,opts,append){if(append === void M_K){append=M9q;}var jqInput=conf[u9f];var offset=M_K;if(!append){jqInput[H5n]();}else {var E7p=W9R;E7p+=I6PSh[428092];E7p+=u$O;E7p+=s7c;offset=$(E7p,jqInput)[D02];}if(opts){var Y3R=U3I;Y3R+=W9R;Y3R+=G0h;Y3R+=z18;Editor[Y3R](opts,conf[l9B],function(val,label,i,attr){var b$c="input:";var t7w='" type="checkbox" />';var n7U="att";var p9X=n7U;p9X+=G0h;var d13=T8r;d13+=D$L;d13+=j_g;var H2T=t_4;H2T+=k2s;var x_K=W9R;x_K+=z4X;var f5j=U3h;f5j+=V4Q;f5j+=k2s;var B_a=h92;B_a+=V77;jqInput[B_a](f5j + J$4 + Editor[i4D](conf[x_K]) + y6k + (i + offset) + t7w + z0M + Editor[i4D](conf[C8O]) + y6k + (i + offset) + H2T + label + Y86 + d13);$(e$9,jqInput)[p9X](f6w,val)[M_K][w$G]=val;if(attr){var q8K=I6PSh[203556];q8K+=Y4S;var T$R=b$c;T$R+=L1a;T$R+=F4L;$(T$R,jqInput)[q8K](attr);}});}},create:function(conf){var o$W="ptio";var s1F='<div></div>';var X1d=d52;X1d+=I6PSh[428092];X1d+=U5$;var r2w=N_W;r2w+=Q5C;r2w+=o$W;r2w+=D3s;conf[u9f]=$(s1F);checkbox[r2w](conf,conf[z06] || conf[x5N]);return conf[X1d][M_K];},disable:function(conf){I6PSh.T_Y();var A1X=j0N;A1X+=V0L;A1X+=D8G;conf[u9f][Q7u](A1X)[W1Z](K2B,A7Z);},enable:function(conf){var v4h=E0y;v4h+=M7f;v4h+=u$O;var y_i=S4I;y_i+=W9R;y_i+=I6PSh[428092];y_i+=z4X;conf[u9f][y_i](X5f)[v4h](K2B,M9q);},get:function(conf){var d$N="sepa";var H4C="ato";var R9I="uns";var H$Q="separato";var l0p="nsele";var H88="ush";var Q9d="ctedV";var e1m="input:c";I6PSh.T_Y();var c5Q="electedVal";var g1f=H$Q;g1f+=G0h;var o6Q=X$W;o6Q+=j0N;var Y5c=d$N;Y5c+=G0h;Y5c+=H4C;Y5c+=G0h;var L0x=D0V;L0x+=l0p;L0x+=Q9d;L0x+=N$k;var Q_m=e1m;Q_m+=x16;var K20=C$m;K20+=s7c;var out=[];var selected=conf[K20][Q7u](Q_m);if(selected[D02]){var u6T=l3i;u6T+=m35;u6T+=n5K;selected[u6T](function(){var q1V=g8H;q1V+=I3I;q1V+=l_J;q1V+=m5_;out[e2n](this[q1V]);});}else if(conf[L0x] !== undefined){var e9r=R9I;e9r+=c5Q;e9r+=D0V;e9r+=I3I;var T4R=u$O;T4R+=H88;out[T4R](conf[e9r]);}return conf[Y5c] === undefined || conf[c1g] === s4l?out:out[o6Q](conf[g1f]);},set:function(conf,val){var w8o='|';var o80=W9R;o80+=S5b;var y4D=A8J;y4D+=W9R;y4D+=t2h;var L3d=W9R;L3d+=S5b;var R1v=W9R;R1v+=I6PSh[428092];R1v+=u$O;R1v+=s7c;var jqInputs=conf[u9f][Q7u](R1v);I6PSh.T_Y();if(!Array[L3d](val) && typeof val === y4D){var L6s=z18;L6s+=A8y;L6s+=W9R;L6s+=D8G;val=val[L6s](conf[c1g] || w8o);}else if(!Array[o80](val)){val=[val];}var i;var len=val[D02];var found;jqInputs[P1d](function(){found=M9q;for(i=M_K;i < len;i++){var j_j=b6s;j_j+=g8H;j_j+=N1E;if(this[j_j] == val[i]){found=A7Z;break;}}I6PSh.T_Y();this[K$N]=found;});_triggerChange(jqInputs);},update:function(conf,options,append){var m$S=W7J;m$S+=D8G;var currVal=checkbox[C2r](conf);checkbox[S5S](conf,options,append);checkbox[m$S](conf,currVal);}});var radio=$[i89](A7Z,{},baseFieldType,{_addOptions:function(conf,opts,append){var O9l="option";var f5i="sPair";var Q9I=w8_;Q9I+=U5$;if(append === void M_K){append=M9q;}var jqInput=conf[Q9I];var offset=M_K;if(!append){jqInput[H5n]();}else {var o3f=I6PSh.m9A;o3f+=I6PSh[428092];o3f+=d$e;o3f+=n5K;offset=$(X5f,jqInput)[o3f];}if(opts){var q9H=O9l;q9H+=f5i;Editor[D_9](opts,conf[q9H],function(val,label,i,attr){var M93="type=\"radio\" name=\"";var l5P='" />';var k1e="feI";var x7V=":last";var X6I="editor_val";var r8P="safe";var W4Q="\" ";var M75=g8H;M75+=X6I;var K8T=I6PSh[203556];K8T+=D8G;K8T+=D8G;K8T+=G0h;var x35=M0u;x35+=D8G;x35+=x7V;var u9Y=r0s;u9Y+=j_g;var m7f=t_4;m7f+=k2s;var L3U=C$a;L3U+=k1e;L3U+=z4X;var R4z=W4Q;R4z+=M93;var k9y=W9R;k9y+=z4X;var B9D=r8P;B9D+=S28;var B7a=T8r;B7a+=l_J;B7a+=V4Q;B7a+=k2s;jqInput[O66](B7a + J$4 + Editor[B9D](conf[k9y]) + y6k + (i + offset) + R4z + conf[X55] + l5P + z0M + Editor[L3U](conf[C8O]) + y6k + (i + offset) + m7f + label + Y86 + u9Y);$(x35,jqInput)[K8T](f6w,val)[M_K][M75]=val;if(attr){var H2g=I6PSh[203556];H2g+=D8G;H2g+=D8G;H2g+=G0h;$(e$9,jqInput)[H2g](attr);}});}},create:function(conf){var c99="dOp";var g6g=" />";var D2A=d52;D2A+=w3z;D2A+=D0V;D2A+=D8G;var Z4$=M7f;Z4$+=I6PSh[428092];var G29=o_O;G29+=D8G;G29+=W9R;G29+=o16;var h$A=F1O;h$A+=c99;h$A+=D8G;h$A+=z3R;var a_H=T8r;a_H+=l_J;a_H+=V4Q;a_H+=g6g;var n_g=d52;n_g+=I6PSh[428092];n_g+=u$O;n_g+=s7c;conf[n_g]=$(a_H);radio[h$A](conf,conf[G29] || conf[x5N]);this[Z4$](v14,function(){var u$L=W9R;u$L+=t1U;u$L+=D8G;var w1d=S4I;w1d+=W9R;w1d+=I6PSh[428092];w1d+=z4X;var e$u=g8H;I6PSh.T_Y();e$u+=b2t;conf[e$u][w1d](u$L)[P1d](function(){var z6z=U_p;z6z+=n5K;z6z+=b5m;z6z+=i9V;if(this[z6z]){this[K$N]=A7Z;}});});return conf[D2A][M_K];},disable:function(conf){var L8G="fin";I6PSh.L61();var e1X=W9R;e1X+=I6PSh[428092];e1X+=u$O;e1X+=s7c;var C4p=L8G;C4p+=z4X;conf[u9f][C4p](e1X)[W1Z](K2B,A7Z);},enable:function(conf){var A0M=l_J;A0M+=z18;A0M+=I6PSh[203556];A0M+=S6$;var d6Z=g8H;d6Z+=M0u;d6Z+=D8G;conf[d6Z][Q7u](X5f)[W1Z](A0M,M9q);},get:function(conf){var i8O="nselectedValue";var v6k="unselectedValue";I6PSh.T_Y();var R6e='input:checked';var R5v=D0V;R5v+=i8O;var el=conf[u9f][Q7u](R6e);if(el[D02]){return el[M_K][w$G];}return conf[v6k] !== undefined?conf[R5v]:undefined;},set:function(conf,val){var W0N=":checked";var e4C=W9R;e4C+=s09;e4C+=W0N;var l58=S4I;l58+=j0N;l58+=z4X;conf[u9f][l58](X5f)[P1d](function(){var t$o="_preChecked";var c9H="chec";this[t$o]=M9q;if(this[w$G] == val){this[K$N]=A7Z;this[t$o]=A7Z;}else {var W1X=U_p;W1X+=x16;var E3F=c9H;E3F+=L4q;E3F+=z4X;this[E3F]=M9q;this[W1X]=M9q;}});_triggerChange(conf[u9f][Q7u](e4C));},update:function(conf,options,append){var j6p='[value="';var s_q="filter";var x2d=z2y;x2d+=Z_L;x2d+=D0V;x2d+=I3I;var B9x=U3u;B9x+=M3I;B9x+=P6n;var u0F=t_4;u0F+=e95;var N_H=z18;N_H+=I3I;N_H+=D8G;var B0m=W9R;B0m+=w3z;B0m+=D0V;B0m+=D8G;var d11=S4I;d11+=V1c;I6PSh.L61();var w2n=g8H;w2n+=j0N;w2n+=U5$;var m9T=M3I;m9T+=I3I;m9T+=D8G;var currVal=radio[m9T](conf);radio[S5S](conf,options,append);var inputs=conf[w2n][d11](B0m);radio[N_H](conf,inputs[s_q](j6p + currVal + u0F)[B9x]?currVal:inputs[z5n](M_K)[J91](x2d));}});var datetime=$[E43](A7Z,{},baseFieldType,{create:function(conf){var S$h="rict";var y3o="ateTi";var k0F="ict";var e57="quired";var s$Z="momentLocale";var g8t='<input />';var M$a="Da";var H$o="yFormat";var D3K="datetime";var B8V="keyInput";var B0J="_closeFn";var Q64="teT";var y7c="_pic";var h2E="oca";var r5D="trict";var H7h="ntStr";var w2q="locale";var y64="DateTime library is re";var v6f="momentStrict";var v9J=n5f;v9J+=M7f;v9J+=m4s;I6PSh.T_Y();v9J+=I6PSh[428092];var w3Z=Y$i;w3Z+=M7f;w3Z+=W7J;var l8W=M7f;l8W+=I6PSh[428092];var J8s=W9R;J8s+=N8G;var C31=P2p;C31+=L1a;C31+=H$o;var z_E=d52;z_E+=t1U;z_E+=D8G;var l9d=Q97;l9d+=y3o;l9d+=y$Q;l9d+=I3I;var J5J=y7c;J5J+=R5K;J5J+=P1t;var U_k=z18;U_k+=r5D;var t_P=o_O;t_P+=D8G;t_P+=z18;var Y3M=L5w;Y3M+=k2_;Y3M+=H7h;Y3M+=k0F;var z8d=M7f;z8d+=N1B;z8d+=z18;var R75=M$a;R75+=Q64;R75+=r36;R75+=I3I;var e8A=W9R;e8A+=z4X;var v5x=z18;v5x+=P55;v5x+=I3I;v5x+=S28;var k5d=I6PSh[203556];k5d+=X1T;k5d+=G0h;conf[u9f]=$(g8t)[k5d]($[E43](A7Z,{id:Editor[v5x](conf[e8A]),type:Q7r},conf[J91]));if(!DataTable$3[R75]){var R9R=y64;R9R+=e57;Editor[c4M](R9R,s_l);}if(conf[s$Z] && !conf[z8d][w2q]){var O5V=Z_L;O5V+=h2E;O5V+=Z_L;O5V+=I3I;var r5d=M7f;r5d+=W2D;conf[r5d][O5V]=conf[s$Z];}if(conf[Y3M] && !conf[t_P][U_k]){var j51=F4L;j51+=S$h;conf[O58][j51]=conf[v6f];}conf[J5J]=new DataTable$3[l9d](conf[z_E],$[E43]({format:conf[C31] || conf[o33],i18n:this[J8s][D3K]},conf[O58]));conf[B0J]=function(){I6PSh.T_Y();conf[J8S][L5O]();};if(conf[B8V] === M9q){var y_z=g8H;y_z+=e$e;y_z+=s7c;conf[y_z][a2Q](D5a,function(e){var N_G="ventDef";var c4e="pre";var s_G=c4e;s_G+=N_G;s_G+=V7g;s_G+=N5F;e[s_G]();});}this[l8W](w3Z,conf[v9J]);return conf[u9f][M_K];},destroy:function(conf){var W78="picker";var l4W="oy";var p5Z=J1t;p5Z+=z18;p5Z+=h1G;p5Z+=l4W;var O$A=g8H;O$A+=W78;var x7d=M7f;x7d+=S4I;x7d+=S4I;var M8U=C$m;M8U+=s7c;var v1r=q_$;v1r+=u1t;v1r+=m4s;v1r+=I6PSh[428092];var X9T=H72;X9T+=I3I;var Y6Q=M7f;Y6Q+=S4I;Y6Q+=S4I;this[Y6Q](X9T,conf[v1r]);conf[M8U][x7d](D5a);conf[O$A][p5Z]();},errorMessage:function(conf,msg){var K4A="_pick";var J4x="errorMsg";var F80=K4A;F80+=P1t;conf[F80][J4x](msg);},get:function(conf){var U6o="wir";var U6b="eFormat";var b7x=U6o;b7x+=U6b;var d2H=N1E;d2H+=T0P;d2H+=q$X;d2H+=n0C;var a2E=N_S;a2E+=L4G;a2E+=A3J;I6PSh.T_Y();a2E+=N81;return conf[a2E]?conf[J8S][d2H](conf[b7x]):conf[u9f][N1E]();},maxDate:function(conf,max){var p4i=Z77;p4i+=n$Z;conf[J8S][p4i](max);},minDate:function(conf,min){I6PSh.T_Y();var S09=y$Q;S09+=j0N;conf[J8S][S09](min);},owns:function(conf,node){var r8W="owns";return conf[J8S][r8W](node);},set:function(conf,val){var f3F="_p";var T50="tri";var v6v="valFormat";var y0F="reF";var y4k="wireFormat";var F2D=g8H;F2D+=j0N;F2D+=U5$;var Y1$=A7n;Y1$+=A7n;var X5j=a5U;X5j+=n$Z;X5j+=Z0b;var t6A=z18;t6A+=T50;t6A+=I6PSh[428092];t6A+=M3I;if(typeof val === t6A && val && val[X5j](Y1$) !== M_K && conf[y4k]){var s5R=E1o;s5R+=y0F;s5R+=N81;var A$1=f3F;A$1+=W9R;A$1+=V4x;A$1+=P1t;conf[A$1][v6v](conf[s5R],val);}else {conf[J8S][N1E](val);}_triggerChange(conf[F2D]);}});var upload=$[E5Z](A7Z,{},baseFieldType,{canReturnSubmit:function(conf,node){return M9q;},create:function(conf){var editor=this;var container=_commonUpload(editor,conf,function(val){var L2v="tUplo";I6PSh.L61();var y4R="pos";var g9L=y4R;g9L+=L2v;g9L+=e7D;var U2h=m35;U2h+=I6PSh[203556];U2h+=Z_L;U2h+=Z_L;var q9_=W7J;q9_+=D8G;upload[q9_][U2h](editor,conf,val[M_K]);editor[x2T](g9L,[conf[X55],val[M_K]]);});I6PSh.T_Y();return container;},disable:function(conf){var o11=W9R;o11+=w3z;o11+=s7c;var N3U=z$a;N3U+=I6PSh[428092];N3U+=z4X;var J0i=d52;J0i+=I6PSh[428092];J0i+=V0L;J0i+=D8G;conf[J0i][N3U](o11)[W1Z](K2B,A7Z);conf[j7m]=M9q;},enable:function(conf){var A4B=l_J;A4B+=c10;var V5J=w8_;V5J+=U5$;conf[V5J][Q7u](X5f)[W1Z](A4B,M9q);conf[j7m]=A7Z;},get:function(conf){var i3k=g8H;i3k+=z2y;i3k+=Z_L;return conf[i3k];},set:function(conf,val){var w7J="<span";var j9q="spa";var k1k="ear";var X2g="clearTex";var s1d="FileText";var l0j="noCl";var S1O="o file";var z1$='noClear';var E5b=l8T;E5b+=T5s;E5b+=I3I;E5b+=g62;var k1Q=V4Q;k1Q+=I6PSh[203556];k1Q+=Z_L;var P24=A1x;I6PSh.L61();P24+=W63;conf[P24]=val;conf[u9f][k1Q](Y97);var container=conf[u9f];if(conf[z4i]){var rendered=container[Q7u](L8d);if(conf[I7j]){var a_a=l_J;a_a+=E7X;a_a+=T_k;rendered[f$V](conf[a_a](conf[I7j]));}else {var k4T=W_w;k4T+=j9q;k4T+=I6PSh[428092];k4T+=k2s;var Z6G=b3S;Z6G+=S1O;var K82=e5h;K82+=s1d;var F9B=w7J;F9B+=k2s;var F8w=H3h;F8w+=I$c;F8w+=f7A;var j4C=x4Z;j4C+=u$O;j4C+=b8l;rendered[j4C]()[F8w](F9B + (conf[K82] || Z6G) + k4T);}}var button=container[Q7u](w_P);if(val && conf[E5b]){var v6z=l0j;v6z+=k1k;var v1O=X2g;v1O+=D8G;button[f$V](conf[v1O]);container[z2o](v6z);}else {container[k5t](z1$);}conf[u9f][Q7u](X5f)[M$6](Z8L,[conf[I7j]]);}});var uploadMany=$[E43](A7Z,{},baseFieldType,{_showHide:function(conf){var l0g="limi";var z$8='div.limitHide';var z2f="_container";var n4C=Z_L;n4C+=q6l;var G1k=l0g;G1k+=D8G;var R0v=g8H;R0v+=z2y;R0v+=Z_L;var G7v=P2p;G7v+=Z_L;G7v+=I6PSh[203556];G7v+=d14;if(!conf[S$l]){return;}conf[z2f][Q7u](z$8)[X45](G7v,conf[R0v][D02] >= conf[S$l]?M2k:A$T);conf[g1r]=conf[G1k] - conf[I7j][n4C];},canReturnSubmit:function(conf,node){return M9q;},create:function(conf){var A4H='multi';var A6t="ton.remove";var q$R=g8H;I6PSh.L61();q$R+=w6k;var t2W=I6PSh.O47;t2W+=s7c;t2W+=A6t;var editor=this;var container=_commonUpload(editor,conf,function(val){var R7S="concat";var T_Q='postUpload';var L42=b2g;L42+=D8G;var i1Z=A1x;i1Z+=W63;var k4R=g8H;k4R+=V4Q;k4R+=I6PSh[203556];I6PSh.L61();k4R+=Z_L;var V4O=z45;V4O+=Z_L;conf[V4O]=conf[k4R][R7S](val);uploadMany[a$$][M5F](editor,conf,conf[i1Z]);editor[L42](T_Q,[conf[X55],conf[I7j]]);},A7Z);container[k5t](A4H)[a2Q](h1T,t2W,function(e){var Y_T='idx';var R5m="stopPro";var i2D="paga";var C9r=R5m;C9r+=i2D;C9r+=f8e;C9r+=I6PSh[428092];e[C9r]();if(conf[j7m]){var y6c=m35;y6c+=W63;y6c+=Z_L;var k5g=W7J;k5g+=D8G;var v1v=E7X;v1v+=L34;v1v+=I3I;var r8t=Y$c;r8t+=D8G;r8t+=I6PSh[203556];var idx=$(this)[r8t](Y_T);conf[I7j][v1v](idx,V4z);uploadMany[k5g][y6c](editor,conf,conf[I7j]);}});conf[q$R]=container;return container;},disable:function(conf){var q2w=E0y;q2w+=o_O;var u8Z=W9R;I6PSh.T_Y();u8Z+=I6PSh[428092];u8Z+=U5$;var n3a=x9l;n3a+=D8G;conf[n3a][Q7u](u8Z)[q2w](K2B,A7Z);conf[j7m]=M9q;},enable:function(conf){var m9s="nabled";var j2C=G49;j2C+=m9s;var l1R=z4X;l1R+=W9R;l1R+=c10;conf[u9f][Q7u](X5f)[W1Z](l1R,M9q);conf[j2C]=A7Z;},get:function(conf){var c1W=g8H;c1W+=z2y;c1W+=Z_L;return conf[c1W];},set:function(conf,val){var g5F="Upload collections ";var w2z="must have an array as a value";var M9D="isplay";var C4J="/ul>";var Y70=" fil";var W91='</span>';var Q3w="l>";var i5L="<u";var h9w="howHi";var p4M="noFileTex";var p0P='<span>';I6PSh.T_Y();var M9h=y6a;M9h+=h9w;M9h+=J1t;var I39=z4X;I39+=M9D;var x14=d52;x14+=t1U;x14+=D8G;var z9T=z2y;z9T+=Z_L;var i$o=A1x;i$o+=I6PSh[203556];i$o+=Z_L;var l$Z=W9R;l$Z+=z18;l$Z+=M6v;l$Z+=T_k;if(!val){val=[];}if(!Array[l$Z](val)){var N65=g5F;N65+=w2z;throw new Error(N65);}conf[i$o]=val;conf[u9f][z9T](Y97);var that=this;var container=conf[x14];if(conf[I39]){var e0I=x4Z;e0I+=u$O;e0I+=D8G;e0I+=d14;var q20=z$a;q20+=I6PSh[428092];q20+=z4X;var rendered=container[q20](L8d)[e0I]();if(val[D02]){var t49=l3i;t49+=H2V;var j5n=i5L;j5n+=Q3w;j5n+=T8r;j5n+=C4J;var list_1=$(j5n)[c7x](rendered);$[t49](val,function(i,file){var w7L="<butt";var u44='">&times;</button>';var s$k='</li>';var E2B="on class=\"";var S69=" remove\" d";var c09="ata-idx=";var x$D='<li>';var display=conf[z4i](file,i);if(display !== s4l){var X2P=S69;X2P+=c09;X2P+=t_4;var H5A=S4I;H5A+=q$X;var T6I=N5T;T6I+=w7L;T6I+=E2B;var e$w=I6PSh[203556];e$w+=i5o;e$w+=I6PSh[428092];e$w+=z4X;list_1[e$w](x$D + display + T6I + that[y9n][H5A][i1S] + X2P + i + u44 + s$k);}});}else {var I_X=b3S;I_X+=M7f;I_X+=Y70;I_X+=Q5l;var S8o=p4M;S8o+=D8G;rendered[O66](p0P + (conf[S8o] || I_X) + W91);}}uploadMany[M9h](conf);conf[u9f][Q7u](X5f)[M$6](Z8L,[conf[I7j]]);}});var datatable=$[E43](A7Z,{},baseFieldType,{_addOptions:function(conf,options,append){var Z4A="aw";var W1z="lea";var e4K=E8U;e4K+=Z4A;var g17=I6PSh[203556];g17+=z4X;g17+=z4X;var W5w=G0h;W5w+=M7f;W5w+=N_S;W5w+=z18;if(append === void M_K){append=M9q;}var dt=conf[r$Z];if(!append){var D2Z=m35;D2Z+=W1z;D2Z+=G0h;dt[D2Z]();}dt[W5w][g17](options)[e4K]();},_jumpToFirst:function(conf,editor){var F_Q="appli";var q7f="ppl";var j07="ollBody";var K1g="mber";var j2t="div.dataT";var D1t="tain";var c2Z="nu";var E4f="ables_scr";var l1J="ied";var o3k=M2_;o3k+=P6n;var S9K=L8a;S9K+=I6PSh[428092];S9K+=D1t;S9K+=P1t;var w$F=j2t;w$F+=E4f;w$F+=j07;var U2I=E8U;U2I+=I6PSh[203556];I6PSh.T_Y();U2I+=N_S;var O1e=c2Z;O1e+=K1g;var b13=W9R;b13+=I6PSh[428092];b13+=z4X;b13+=V8C;var y$P=I6PSh[203556];y$P+=q7f;y$P+=l1J;var C1l=G0h;C1l+=M7f;C1l+=N_S;var dt=conf[r$Z];var idx=dt[C1l]({order:y$P,selected:A7Z})[b13]();var page=M_K;if(typeof idx === O1e){var N2a=S4I;N2a+=Z_L;N2a+=M5h;N2a+=G0h;var r0N=E3J;r0N+=I3I;r0N+=z18;var N2A=F_Q;N2A+=i9V;var R9z=R_s;R9z+=z18;var x7M=W9R;x7M+=I6PSh[428092];x7M+=S4I;x7M+=M7f;var p5a=u$O;p5a+=V1g;p5a+=I3I;var pageLen=dt[p5a][x7M]()[D02];var pos=dt[R9z]({order:N2A})[r0N]()[Y$p](idx);page=pageLen > M_K?Math[N2a](pos / pageLen):M_K;}dt[f1L](page)[U2I](M9q);var container=$(w$F,dt[M6Q]()[S9K]());var scrollTo=function(){var e9f='applied';var b90="position";var y$_=D8G;y$_+=M7f;y$_+=u$O;var node=dt[R_s]({order:e9f,selected:A7Z})[Q0Z]();var height=container[Y0e]();var top=$(node)[b90]()[y$_];if(top > height - c5d){container[O6c](top);}};if(container[o3k]){var D8r=I6PSh.m9A;D8r+=t2h;D8r+=D8G;D8r+=n5K;var E8_=e6H;E8_+=d14;var L8M=u$O;L8M+=t8o;L8M+=I3I;L8M+=l72;if(container[L8M](E8_)[D8r]){scrollTo();}else {var E9q=M7f;E9q+=u$O;E9q+=I3I;E9q+=I6PSh[428092];editor[B1$](E9q,function(){scrollTo();});}}},create:function(conf){var z6g="ple";var E_c='Search';var l_A="_addOpt";var f55='<table>';var l24='100%';var z7G="B";var F5_="endT";var c5y="fo\">";var y4I="user-sel";var l7k="ubmitCom";var D1I='<div>';var j6X="tr>";var w2D="<div class=\"DTE_Field_Type_datatable_in";var Z8D="be";var L3f="onsPair";var R$w="Cla";var v0a="t>";var m1s='Label';var Z6Q='init.dt';var J_z="<tfoo";var B8k="tableClass";var A$t="ptionsPa";var w5s=M7f;w5s+=u$O;w5s+=D0l;var O1K=l_A;O1K+=z3R;var Z5e=y4I;Z5e+=H4F;var w50=M7f;w50+=I6PSh[428092];var y3W=M7f;y3W+=I6PSh[428092];var q_a=L8a;q_a+=q12;q_a+=Y6b;var w6V=z$a;w6V+=z7G;w6V+=D8G;w6V+=u$O;var Z0w=V8C;Z0w+=q4b;Z0w+=f7A;var F8a=M7f;F8a+=I6PSh[428092];var t6n=E1o;t6n+=z4X;t6n+=P6n;var q2S=k9Z;q2S+=R$w;q2S+=z18;q2S+=z18;var h2K=w2D;h2K+=c5y;var y7p=j5p;y7p+=L3f;var P8M=L1a;P8M+=Z8D;P8M+=Z_L;var P$C=o2M;P$C+=z4X;var b7O=M7f;b7O+=A$t;b7O+=L4G;var _this=this;conf[b7O]=$[P$C]({label:P8M,value:f6w},conf[y7p]);var table=$(f55);var container=$(D1I)[O66](table);var side=$(h2K);if(conf[U7x]){var i_h=H3h;i_h+=u$O;i_h+=F5_;i_h+=M7f;var V_e=S4I;V_e+=M5h;V_e+=P_4;var Q5O=T8r;Q5O+=j6X;var Y5n=J_z;Y5n+=v0a;$(Y5n)[O66](Array[M1j](conf[U7x])?$(Q5O)[O66]($[T4P](conf[U7x],function(str){var M$p="<th";var m9d=M$p;m9d+=k2s;I6PSh.T_Y();return $(m9d)[f$V](str);})):conf[V_e])[i_h](table);}var dt=table[q2S](datatable[B8k])[t6n](l24)[F8a](Z6Q,function(e,settings){var Q5r='div.dataTables_info';var N0B="t-but";var V1I="v.dataTables_filter";var U7Q=".d";var f1a="nT";var S5r="tainer";var M0m=h92;M0m+=C51;M0m+=z4X;var J5i=E4t;J5i+=U7Q;J5i+=N0B;J5i+=H4w;var D1m=l_J;D1m+=V1I;var v_K=W9R;v_K+=I6PSh[428092];v_K+=W9R;v_K+=D8G;var Z_l=f93;Z_l+=S5r;var I9G=S5A;I9G+=q4N;I9G+=I3I;var E47=f1a;E47+=B4T;E47+=I3I;if(settings[E47] !== table[M_K]){return;}var api=new DataTable$3[w58](settings);var containerNode=$(api[I9G](undefined)[Z_l]());DataTable$3[q0k][v_K](api);side[O66](containerNode[Q7u](D1m))[O66](containerNode[Q7u](J5i))[M0m](containerNode[Q7u](Q5r));})[a4U]($[Z0w]({buttons:[],columns:[{data:conf[l9B][j5r],title:m1s}],deferRender:A7Z,dom:w6V,language:{paginate:{next:c_j,previous:S0M},search:Y97,searchPlaceholder:E_c},lengthChange:M9q,select:{style:conf[q$y]?q8E:v8a}},conf[q_a]));this[y3W](v14,function(){var s9x="sear";var M6q="ust";var u2b="olumns";var G4S="arch";var R9B=e7D;R9B+=Q1N;R9B+=M6q;var V4A=m35;V4A+=u2b;var R$2=s9x;R$2+=H2V;if(dt[R$2]()){var X44=z4X;X44+=C_q;var b5$=z18;b5$+=I3I;b5$+=G4S;dt[b5$](Y97)[X44]();}dt[V4A][R9B]();});dt[w50](Z5e,function(){var n5q="containe";I6PSh.L61();var R7v=n5q;R7v+=G0h;_triggerChange($(conf[r$Z][M6Q]()[R7v]()));});if(conf[g1l]){var P0d=z18;P0d+=l7k;P0d+=z6g;P0d+=q4b;var U5z=M7f;U5z+=I6PSh[428092];var z79=T_K;z79+=r2M;z79+=G0h;var g6u=S5A;g6u+=I6PSh.O47;g6u+=I6PSh.m9A;var a2X=i9V;a2X+=V$N;a2X+=G0h;conf[a2X][g6u](dt);conf[z79][U5z](P0d,function(e,json,data,action){var s6n='refresh';var K41="pToFir";var r2s="_jum";var c47=r2s;c47+=K41;c47+=F4L;var G9o=K4p;G9o+=d17;var M0H=I3I;M0H+=z4X;I6PSh.T_Y();M0H+=H3J;if(action === q_s){var C18=z4X;C18+=n0C;C18+=I6PSh[203556];var _loop_1=function(dp){var U1D="selec";var c33=U1D;c33+=D8G;dt[Y4c](function(idx,d){I6PSh.L61();return d === dp;})[c33]();};for(var _i=M_K,_a=json[C18];_i < _a[D02];_i++){var dp=_a[_i];_loop_1(dp);}}else if(action === M0H || action === G9o){_this[q5_](s6n);}datatable[c47](conf,_this);});}conf[r$Z]=dt;datatable[O1K](conf,conf[w5s] || []);return {input:container,side:side};},disable:function(conf){var Y9E=I6PSh[428092];Y9E+=M7f;I6PSh.T_Y();Y9E+=I6PSh[428092];Y9E+=I3I;var w0b=l_J;w0b+=E7X;w0b+=T_k;var X79=m35;X79+=z18;X79+=z18;var Q$S=i1S;Q$S+=z18;var B94=I6PSh[203556];B94+=u$O;B94+=W9R;var T0s=W7J;T0s+=Z_L;T0s+=I3I;T0s+=e$P;conf[r$Z][T0s][T_A](B94);conf[r$Z][Q$S]()[w6k]()[X79](w0b,Y9E);},dt:function(conf){var e4A=z4X;I6PSh.T_Y();e4A+=D8G;return conf[e4A];},enable:function(conf){var r_2="ult";var a1x="nta";var u7X=L8a;u7X+=a1x;u7X+=z2Q;var X1I=z4X;X1I+=D8G;var e51=y$Q;e51+=r_2;e51+=W35;var j8A=z4X;j8A+=D8G;conf[j8A][q0k][T_A](conf[e51]?q8E:v8a);conf[X1I][m9O]()[u7X]()[X45](M4M,A$T);},get:function(conf){var I89="pluck";var i$j="toA";var z4E=i$j;z4E+=G0h;z4E+=G0h;z4E+=T_k;var b9G=V4Q;b9G+=I6PSh[203556];b9G+=Z_L;b9G+=E8w;var y67=z4X;y67+=I6PSh[203556];y67+=D8G;y67+=I6PSh[203556];var rows=conf[r$Z][Y4c]({selected:A7Z})[y67]()[I89](conf[l9B][b9G])[z4E]();return conf[c1g] || !conf[q$y]?rows[C3v](conf[c1g] || f9w):rows;},set:function(conf,val,localUpdate){var M2Q="desel";var t3l="_jumpToFirst";var E2q="parator";var A6J="sele";var y3P="ec";var N36=A6J;N36+=m35;N36+=D8G;var c4$=G0h;c4$+=M7f;c4$+=E9G;var R_i=M2Q;R_i+=y3P;R_i+=D8G;var j7z=N1E;j7z+=E8w;var Z4_=W9R;Z4_+=S5b;var j1D=x5h;j1D+=T_k;var U6U=W7J;U6U+=E2q;var B6N=y$Q;B6N+=F2E;B6N+=Z_L;B6N+=I3I;if(conf[B6N] && conf[U6U] && !Array[j1D](val)){var Q4P=F4L;Q4P+=G0h;Q4P+=t6R;val=typeof val === Q4P?val[u1h](conf[c1g]):[];}else if(!Array[Z4_](val)){val=[val];}var valueFn=dataGet(conf[l9B][j7z]);conf[r$Z][Y4c]({selected:A7Z})[R_i]();conf[r$Z][c4$](function(idx,data,node){var Y74="xO";var M3S=V1c;M3S+=I3I;M3S+=Y74;M3S+=S4I;return val[M3S](valueFn(data)) !== -V4z;})[N36]();datatable[t3l](conf,this);I6PSh.L61();if(!localUpdate){var b_m=z4X;b_m+=D8G;_triggerChange($(conf[b_m][M6Q]()[w6k]()));}},tableClass:Y97,update:function(conf,options,append){var B5S="stS";var g4b="_la";var F5I="dOpt";var S_l=S5A;S_l+=I6PSh.O47;S_l+=Z_L;S_l+=I3I;var Z55=z4X;Z55+=D8G;var M2O=g4b;M2O+=B5S;M2O+=P22;var U0I=F1O;U0I+=F5I;U0I+=W9R;U0I+=o16;datatable[U0I](conf,options,append);var lastSet=conf[M2O];if(lastSet !== undefined){var M0K=z18;M0K+=I3I;M0K+=D8G;datatable[M0K](conf,lastSet,A7Z);}_triggerChange($(conf[Z55][S_l]()[w6k]()));}});var defaults={className:Y97,compare:s4l,data:Y97,def:Y97,entityDecode:A7Z,fieldInfo:Y97,getFormatter:s4l,id:Y97,label:Y97,labelInfo:Y97,message:Y97,multiEditable:A7Z,name:s4l,nullDefault:M9q,setFormatter:s4l,submit:A7Z,type:Q7r};var DataTable$2=$[G5F][S3i];var Field=(function(){var O4b=I6PSh;var L75="formatters";var l3h="type";var a6F="peFn";var q_f="ultiValueCheck";var B2l="ntainer";var l1V="llDefaul";var q4J="slideD";var j26="orma";var L$e="isable";var F5k="totype";var e0c="mul";var L8Z="enable";var M1Z="slice";var W9F="host";var T$O="Inf";var t9I="_error";var c75="pare";var I_G="ultiVa";var L7O="labelInfo";var Q81="ms";var w$E="ultiR";var G_r="compare";var w$L="proto";var T$2="rea";var Z9v="totyp";var k5m="multiRestore";var M$y="Value";var E03="otyp";var O_l="oty";var I7_="essa";var l1W="protot";var u8f="_typeFn";var b0h="oto";var V$Z="ontrol";var i32="prot";var y3H="otype";var K5Z="ototype";var x3t="multiIds";var I$g="slideUp";var F0D="_msg";var Q0M="multiInfoSh";var I3t="eset";var U09="multiReturn";var V4Z="Node";var x5w="ototyp";var r39="rototyp";var o6F="lue";var E9R="multiValue";var e01=D1y;e01+=j26;e01+=D8G;var w2g=t9I;w2g+=V4Z;var J13=i32;J13+=y3H;var L9V=s8i;L9V+=a6F;var p7t=E0y;p7t+=v_y;p7t+=E03;p7t+=I3I;var f2w=g8H;f2w+=y$Q;f2w+=q_f;var F0a=y$Q;F0a+=w$E;F0a+=I3t;var C9M=E0y;C9M+=K5Z;var Z1e=Q0M;Z1e+=j1_;var x1X=u$O;x1X+=m2S;x1X+=r2M;x1X+=l3h;var i8H=E0y;i8H+=M7f;i8H+=F5k;var B$s=u$O;B$s+=m2S;B$s+=D8G;B$s+=y3H;var Q30=V4Q;Q30+=I6PSh[203556];Q30+=Z_L;var r3m=u$O;r3m+=k1h;r3m+=M7f;r3m+=l3h;var p8X=z18;p8X+=n5K;p8X+=M7f;p8X+=N_S;var A62=u$O;A62+=G0h;A62+=j17;A62+=b9u;var k$U=I6PSh[428092];k$U+=D0V;k$U+=l1V;k$U+=D8G;var k1z=I6PSh[428092];k1z+=n$W;var b1T=u$O;b1T+=r39;b1T+=I3I;var L44=I6PSh[428092];L44+=I6PSh[203556];L44+=y$Q;L44+=I3I;var P6V=E0y;P6V+=b0h;P6V+=D8G;P6V+=V9Q;var E39=e0c;E39+=F6t;E39+=o_m;E39+=D8G;var X6H=l1W;X6H+=V9Q;var i53=u$O;i53+=G0h;i53+=a_e;i53+=V9Q;var h88=Z72;h88+=G8k;var v0G=Z_L;v0G+=I6PSh[203556];v0G+=I6PSh.O47;v0G+=r4h;var D7B=E0y;D7B+=K5Z;var Z8s=n5K;Z8s+=C8O;Z8s+=I3I;var j2H=l1W;j2H+=V9Q;var y8d=S4I;y8d+=M7f;y8d+=m35;y8d+=A0r;var r$k=W9R;r$k+=I6PSh[428092];r$k+=V0L;r$k+=D8G;var s14=E0y;s14+=v_y;s14+=O_l;s14+=I$c;var l8X=o_D;l8X+=r2M;l8X+=l3h;var B3x=i_c;B3x+=j6P;B3x+=T$O;B3x+=M7f;var A2p=E0y;A2p+=x5w;A2p+=I3I;var K6p=G60;K6p+=S6$;var Z4N=u$O;O4b.T_Y();Z4N+=m2S;Z4N+=F5k;var D1D=w$L;D1D+=b8l;D1D+=I$c;var s2z=E0y;s2z+=M7f;s2z+=Z9v;s2z+=I3I;var u69=z4X;u69+=L$e;var Z$g=w$L;Z$g+=l3h;var C42=z4X;C42+=I3I;C42+=S4I;function Field(options,classes,host){var R3m='input-control';var N6W="sg-";var n8w="typ";var V3t="ide";var z7I='<div data-dte-e="msg-multi" class="';var h2L="<sp";var g_l="restore";var D2$="ternalI18";var R6O="ti-info\"";var C5E="iv>";var m6q="<div data-dte-e=\"mu";var b8K='<div data-dte-e="msg-error" class="';var g5J="-multi";var z8$="</d";var Z_Y="dte-e=\"msg-label\" class=\"";var L3X="s=\"";var D$w="typePrefix";var G7k='field-processing';var N2v="ti-value\" cl";var D9d="Error adding ";var U_b="ulti";var U3J="<span d";var k5F='msg-info';var x4l="e=\"msg-";var r2m="inf";var i8x="field - unknown field type ";var y0U="oDa";var n6i="eldTy";var N6C="ix";var C2J="sg";var Q8F='" for="';var t$b='<div data-dte-e="input-control" class="';var b9C="DTE_Fi";var M0p='<div data-dte-e="msg-message" class="';var w7m="dInfo";var P0o='<div data-dte-e="input" class="';var z1p="put-c";var t_0="g-e";var e4F="mD";var a6d="</sp";var H8g='msg-message';var O_a="<div data-dte-e=\"field-processing\" clas";var W86="iInfo";var X4k="<div data-";var g2L="ti-val";var N$h="an></span></div>";var C2l="msg-";var L6Z="ata-dte-e=\"mul";var c8C="inputControl";var E2f="<div data-dte";var u1x="side";var s9X="namePref";var w6x='<label data-dte-e="label" class="';var t26='msg-label';var T21="valT";var Z_C="eld_";var q8U="fe";var x5f="info\" class=\"";var l8b=D8G;l8b+=d14;l8b+=u$O;l8b+=I3I;var c1j=L4I;c1j+=m35;c1j+=R5K;var f2Y=m35;f2Y+=P3T;f2Y+=m35;f2Y+=R5K;var q44=R8z;q44+=Z_L;q44+=D8G;q44+=W9R;var a8C=y$Q;a8C+=C2J;a8C+=g5J;var C_G=e0c;C_G+=g2L;C_G+=D0V;C_G+=I3I;var U$J=L1a;U$J+=p9P;var a1A=Q81;a1A+=t_0;a1A+=q1k;var g8a=S1D;g8a+=f9m;var m60=z8$;m60+=C5E;var U1O=k9q;U1O+=h2L;U1O+=N$h;var c1i=u$O;c1i+=m2S;c1i+=E6k;c1i+=t6R;var k5P=O_a;k5P+=L3X;var O5B=W_w;O5B+=l_J;O5B+=j_g;var D6x=z$a;D6x+=r4h;D6x+=w7m;var t$C=t_4;t$C+=k2s;var B2c=E2f;B2c+=A7n;B2c+=x4l;B2c+=x5f;var r8$=Z72;r8$+=I6PSh[203556];r8$+=M3I;r8$+=I3I;var p8V=C2l;p8V+=y$Q;p8V+=I7_;p8V+=L45;var h2P=y$Q;h2P+=N6W;h2P+=I5r;h2P+=l8G;var c8Z=a6d;c8Z+=I6PSh[203556];c8Z+=I6PSh[428092];c8Z+=k2s;var o$f=r2m;o$f+=M7f;var C_K=t_4;C_K+=k2s;var b6B=Q8v;b6B+=W86;var b4v=U3J;b4v+=L6Z;b4v+=R6O;b4v+=M_X;var K_Z=D8G;K_Z+=H3J;K_Z+=Z_L;K_Z+=I3I;var O38=t_4;O38+=k2s;var a88=y$Q;a88+=U_b;a88+=M$y;var E8k=m6q;E8k+=Z_L;E8k+=N2v;E8k+=U$G;var I3c=h8T;I3c+=D$L;I3c+=V4Q;I3c+=k2s;var T88=j5r;T88+=F6_;T88+=h2V;var O$y=X4k;O$y+=Z_Y;var D3G=t_4;D3G+=k2s;var T52=C$a;T52+=q8U;T52+=S28;var S3G=Z_L;S3G+=I6PSh[203556];S3G+=I6PSh.O47;S3G+=r4h;var E4E=s9X;E4E+=N6C;var y8E=D8G;y8E+=d14;y8E+=u$O;y8E+=I3I;var j4l=J7K;j4l+=J4U;j4l+=I3I;j4l+=G0h;var b_V=z4X;b_V+=I6PSh[203556];b_V+=D8G;b_V+=I6PSh[203556];var U9C=T21;U9C+=y0U;U9C+=D8G;U9C+=I6PSh[203556];var M3U=Q4y;M3U+=M7f;M3U+=e4F;M3U+=F4y;var I55=Y$c;I55+=D8G;I55+=I6PSh[203556];var W_J=W9R;W_J+=z4X;var y4y=D8G;y4y+=d14;y4y+=u$O;y4y+=I3I;var B$8=z$a;B$8+=n6i;B$8+=I$c;B$8+=z18;var x2$=n8w;x2$+=I3I;var E67=j0N;E67+=D2$;E67+=I6PSh[428092];var that=this;var multiI18n=host[E67]()[l4G];var opts=$[E43](A7Z,{},Field[B9K],options);if(!Editor[u$d][opts[x2$]]){var j6V=b8l;j6V+=u$O;j6V+=I3I;var c1u=D9d;c1u+=i8x;throw new Error(c1u + opts[j6V]);}this[z18]={classes:classes,host:host,multiIds:[],multiValue:M9q,multiValues:{},name:opts[X55],opts:opts,processing:M9q,type:Editor[B$8][opts[y4y]]};if(!opts[W_J]){var l0y=I6PSh[428092];l0y+=g2A;var h4m=b9C;h4m+=Z_C;opts[C8O]=h4m + opts[l0y];}if(opts[I55] === Y97){var Z5$=l3v;Z5$+=y$Q;Z5$+=I3I;opts[I6PSh.C_e]=opts[Z5$];}this[M3U]=function(d){var S0v="dito";var X7t=I3I;X7t+=S0v;X7t+=G0h;var z7z=z4X;z7z+=I6PSh[203556];z7z+=D8G;O4b.T_Y();z7z+=I6PSh[203556];return dataGet(opts[z7z])(d,X7t);};this[U9C]=dataSet(opts[b_V]);var template=$(i8r + classes[j4l] + X9J + classes[D$w] + opts[y8E] + X9J + classes[E4E] + opts[X55] + X9J + opts[i0W] + r1W + w6x + classes[S3G] + Q8F + Editor[T52](opts[C8O]) + D3G + opts[j5r] + O$y + classes[t26] + r1W + opts[T88] + j7p + Y86 + P0o + classes[b2t] + r1W + t$b + classes[c8C] + I3c + E8k + classes[a88] + O38 + multiI18n[K_Z] + b4v + classes[b6B] + C_K + multiI18n[o$f] + c8Z + j7p + z7I + classes[k5m] + r1W + multiI18n[g_l] + j7p + b8K + classes[h2P] + j9u + M0p + classes[p8V] + r1W + opts[r8$] + j7p + B2c + classes[k5F] + t$C + opts[D6x] + j7p + O5B + k5P + classes[c1i] + U1O + m60);var input=this[u8f](g8a,opts);var side=s4l;if(input && input[u1x]){var q3$=W9R;q3$+=w3z;q3$+=D0V;q3$+=D8G;var y$4=z18;y$4+=V3t;side=input[y$4];input=input[q3$];}if(input !== s4l){var C_B=j0N;C_B+=z1p;C_B+=V$Z;el(C_B,template)[g$Q](input);}else {template[X45](M4M,M2k);}this[N_F]={container:template,fieldError:el(a1A,template),fieldInfo:el(k5F,template),fieldMessage:el(H8g,template),inputControl:el(R3m,template),label:el(U$J,template)[O66](side),labelInfo:el(t26,template),multi:el(C_G,template),multiInfo:el(V9C,template),multiReturn:el(a8C,template),processing:el(G7k,template)};this[N_F][q44][a2Q](f2Y,function(){O4b.T_Y();var Q$K="donly";var V7D=T$2;V7D+=Q$K;if(that[z18][O58][U$P] && !template[D5s](classes[H76]) && opts[l3h] !== V7D){var n9N=h2V;n9N+=m35;n9N+=A0r;var R2f=V4Q;R2f+=I6PSh[203556];R2f+=Z_L;that[R2f](Y97);that[n9N]();}});this[N_F][U09][a2Q](c1j,function(){that[k5m]();});$[P1d](this[z18][l8b],function(name,fn){O4b.L61();if(typeof fn === a27 && that[name] === undefined){that[name]=function(){var t58="unshi";var c$h=s8i;c$h+=u$O;c$h+=A3J;c$h+=I6PSh[428092];var q6i=t58;q6i+=G8X;var args=Array[F8j][M1Z][M5F](arguments);args[q6i](name);var ret=that[c$h][u4W](that,args);return ret === undefined?that:ret;};}});}Field[F8j][C42]=function(set){var O9S='default';var s5O="fau";var a8H=M7f;a8H+=W2D;var opts=this[z18][a8H];if(set === undefined){var E2r=f2W;E2r+=Y_X;var E_l=J1t;E_l+=s5O;E_l+=N5F;var def=opts[E_l] !== undefined?opts[O9S]:opts[V3Z];return typeof def === E2r?def():def;}opts[V3Z]=set;return this;};Field[Z$g][u69]=function(){var l2N=z4X;l2N+=O0L;l2N+=M3$;O4b.T_Y();l2N+=I6PSh.m9A;var Y9s=g8H;Y9s+=l3h;Y9s+=T0P;Y9s+=I6PSh[428092];var t9U=z4X;t9U+=n8t;this[t9U][w6k][k5t](this[z18][y9n][H76]);this[Y9s](l2N);return this;};Field[s2z][G_6]=function(){var w3D="rent";var J4c=I6PSh[428092];J4c+=M7f;J4c+=T3E;var N2s=b6h;N2s+=u$O;N2s+=L1a;N2s+=d14;var E6G=I6PSh.O47;E6G+=t4_;var M9C=U3I;M9C+=w3D;M9C+=z18;var Y2y=G0D;Y2y+=k$l;Y2y+=P1t;var container=this[N_F][Y2y];return container[M9C](E6G)[D02] && container[X45](N2s) !== J4c?A7Z:M9q;};Field[D1D][L8Z]=function(toggle){var P8T="Cl";var W06=G60;W06+=q4N;W06+=I3I;var c4C=m5v;c4C+=m5T;c4C+=P8T;c4C+=X8c;var a64=z4X;a64+=M7f;a64+=y$Q;if(toggle === void M_K){toggle=A7Z;}if(toggle === M9q){return this[M6S]();}this[a64][w6k][c4C](this[z18][y9n][H76]);this[u8f](W06);O4b.L61();return this;};Field[Z4N][K6p]=function(){var P56="ontain";var u5C="sab";var q_b="hasCl";var E6j=l_J;E6j+=u5C;E6j+=Z_L;E6j+=i9V;var E3Z=q_b;E3Z+=X8c;var S1e=m35;S1e+=P56;S1e+=I3I;S1e+=G0h;var s24=z4X;s24+=M7f;s24+=y$Q;O4b.T_Y();return this[s24][S1e][E3Z](this[z18][y9n][E6j]) === M9q;};Field[F8j][c4M]=function(msg,fn){var v5B="fieldE";var I5m="rrorMessage";var g4K=v5B;g4K+=G0h;g4K+=G0h;g4K+=l8G;var M4G=z4X;M4G+=M7f;M4G+=y$Q;var q85=g8H;q85+=Q81;q85+=M3I;var r1w=I3I;r1w+=I5m;var y1y=x2V;y1y+=z18;y1y+=q3V;var classes=this[z18][y1y];if(msg){this[N_F][w6k][k5t](classes[c4M]);}else {var q84=Q__;q84+=Z_L;q84+=u6d;q84+=z18;var N9q=G0D;N9q+=I6PSh[203556];N9q+=z2Q;this[N_F][N9q][q84](classes[c4M]);}this[u8f](r1w,msg);return this[q85](this[M4G][g4K],msg,fn);};Field[A2p][B3x]=function(msg){var M6j="fieldI";var t0O="_ms";var J5Z=M6j;J5Z+=Z8p;var P8k=t0O;P8k+=M3I;return this[P8k](this[N_F][J5Z],msg);};Field[l8X][B5y]=function(){var Z7V="ltiIds";var v7G=I6PSh.m9A;v7G+=I6PSh[428092];v7G+=d$e;v7G+=n5K;O4b.L61();var T43=y$Q;T43+=D0V;T43+=Z7V;return this[z18][E9R] && this[z18][T43][v7G] !== V4z;};Field[s14][p6Z]=function(){var P8V="contain";var v45=I5r;v45+=l8G;var C7f=P8V;C7f+=P1t;var Z2m=z4X;Z2m+=M7f;Z2m+=y$Q;return this[Z2m][C7f][D5s](this[z18][y9n][v45]);};Field[F8j][r$k]=function(){var j9j="t, textarea";var j0l="lec";var a8L="input, ";var k47=a8L;k47+=W7J;k47+=j0l;k47+=j9j;var B1O=j0N;B1O+=V0L;B1O+=D8G;return this[z18][l3h][B1O]?this[u8f](X5f):$(k47,this[N_F][w6k]);};Field[F8j][y8d]=function(){var s12="ocu";var I09="xta";var W0V="input, select, te";var z9_=S4I;z9_+=s12;z9_+=z18;var R9V=b8l;R9V+=I$c;if(this[z18][R9V][z9_]){var W8C=S4I;W8C+=M7f;W8C+=n4I;this[u8f](W8C);}else {var G$K=W0V;G$K+=I09;G$K+=T$2;$(G$K,this[N_F][w6k])[g1F]();}return this;};Field[F8j][C2r]=function(){var m$H='get';var e_t="etFormatt";var G1S="sMul";var j$5=M3I;O4b.L61();j$5+=e_t;j$5+=P1t;var f7S=g8H;f7S+=o33;var I5H=W9R;I5H+=G1S;I5H+=t5c;if(this[I5H]()){return undefined;}return this[f7S](this[u8f](m$H),this[z18][O58][j$5]);};Field[j2H][Z8s]=function(animate){var U6V="splay";var d8q="slideU";var B2n=d8q;B2n+=u$O;var t7c=S4I;t7c+=I6PSh[428092];var K87=n5K;K87+=M7f;K87+=z18;K87+=D8G;var M25=m35;M25+=w2_;M25+=k$l;M25+=P1t;var v49=z4X;v49+=M7f;v49+=y$Q;var el=this[v49][M25];if(animate === undefined){animate=A7Z;}if(this[z18][K87][z4i]() && animate && $[t7c][B2n]){el[I$g]();}else {var r8O=I6PSh[428092];r8O+=M7f;r8O+=I6PSh[428092];r8O+=I3I;var G9R=l_J;G9R+=U6V;el[X45](G9R,r8O);}return this;};Field[D7B][v0G]=function(str){var u2p="labelIn";var d20=u2p;d20+=h2V;var H47=m_c;H47+=r4h;var label=this[N_F][H47];var labelInfo=this[N_F][d20][F_w]();if(str === undefined){var X7Z=n5K;X7Z+=D8G;X7Z+=y$Q;X7Z+=Z_L;return label[X7Z]();}label[f$V](str);label[O66](labelInfo);return this;};Field[F8j][L7O]=function(msg){var T2J=z4X;O4b.L61();T2J+=M7f;T2J+=y$Q;var S$k=g8H;S$k+=Q81;S$k+=M3I;return this[S$k](this[T2J][L7O],msg);};Field[F8j][h88]=function(msg,fn){var R8b="fieldM";var C9N=R8b;C9N+=I7_;C9N+=L45;return this[F0D](this[N_F][C9N],msg,fn);};Field[i53][T2G]=function(id){var e1k="V";var Q7s="iIds";O4b.T_Y();var z2P="Multi";var F67="ltiValues";var L_T=O0L;L_T+=z2P;L_T+=e1k;L_T+=N$k;var h94=y$Q;h94+=B5h;h94+=D8G;h94+=Q7s;var d3U=R8z;d3U+=F67;var value;var multiValues=this[z18][d3U];var multiIds=this[z18][h94];var isMultiValue=this[L_T]();if(id === undefined){var fieldVal=this[N1E]();value={};for(var _i=M_K,multiIds_1=multiIds;_i < multiIds_1[D02];_i++){var multiId=multiIds_1[_i];value[multiId]=isMultiValue?multiValues[multiId]:fieldVal;}}else if(isMultiValue){value=multiValues[id];}else {value=this[N1E]();}return value;};Field[X6H][k5m]=function(){this[z18][E9R]=A7Z;this[a9J]();};Field[F8j][E39]=function(id,val,recalc){var p8_="ltiValueCheck";var N0A="ultiValu";var P$B="_mu";var y5g=y$Q;y5g+=I_G;y5g+=o6F;var c3R=y$Q;c3R+=N0A;c3R+=Q5l;if(recalc === void M_K){recalc=A7Z;}var that=this;var multiValues=this[z18][c3R];var multiIds=this[z18][x3t];if(val === undefined){val=id;id=undefined;}var set=function(idSrc,valIn){var o0D="setForm";var L5X="tter";O4b.L61();var y9V=o0D;y9V+=I6PSh[203556];y9V+=L5X;var X4s=g8H;X4s+=S4I;X4s+=q$X;X4s+=n0C;var o_9=W9R;o_9+=I6PSh[428092];o_9+=Y$v;o_9+=H2Y;if($[o_9](idSrc,multiIds) === -V4z){multiIds[e2n](idSrc);}multiValues[idSrc]=that[X4s](valIn,that[z18][O58][y9V]);};if($[P_k](val) && id === undefined){$[P1d](val,function(idSrc,innerVal){O4b.T_Y();set(idSrc,innerVal);});}else if(id === undefined){var u0X=I3I;u0X+=R1P;u0X+=n5K;$[u0X](multiIds,function(i,idSrc){set(idSrc,val);});}else {set(id,val);}this[z18][y5g]=A7Z;if(recalc){var e_F=P$B;e_F+=p8_;this[e_F]();}return this;};Field[P6V][L44]=function(){var x45=I6PSh[428092];x45+=g2A;return this[z18][O58][x45];};Field[b1T][k1z]=function(){var q5V=L8a;q5V+=B2l;O4b.L61();var x_m=z4X;x_m+=M7f;x_m+=y$Q;return this[x_m][q5V][M_K];};Field[F8j][k$U]=function(){var t2V="nullDefault";var J9R=o_O;J9R+=D8G;J9R+=z18;O4b.T_Y();return this[z18][J9R][t2V];};Field[F8j][A62]=function(set){var C05="rocessing-field";var K03="processi";var G$G="nternalE";var z5F=u$O;z5F+=C05;var Z52=W9R;Z52+=G$G;Z52+=V4Q;Z52+=d9H;var l4t=n5K;l4t+=M7f;l4t+=F4L;var D1R=K03;D1R+=I6PSh[428092];D1R+=M3I;var i3E=i7l;i3E+=I3I;var I7D=I6PSh.O47;I7D+=Z_L;I7D+=M7f;I7D+=V4x;var Q3_=m35;Q3_+=z18;Q3_+=z18;var x5A=u$O;O4b.T_Y();x5A+=G0h;x5A+=B1A;var X0v=z4X;X0v+=M7f;X0v+=y$Q;if(set === undefined){return this[z18][t55];}this[X0v][x5A][Q3_](M4M,set?I7D:i3E);this[z18][D1R]=set;this[z18][l4t][Z52](z5F,[set]);return this;};Field[F8j][a$$]=function(val,multiCheck){var L7D="_m";var e59="entityDecode";var R0z="eFn";var F49="_typ";var T7I="ultiValue";var P9w="setFormatter";var t7R="tiVal";var x22='set';var y5P="Check";var j66=e0c;j66+=t7R;j66+=E8w;O4b.L61();if(multiCheck === void M_K){multiCheck=A7Z;}var decodeFn=function(d){var f20="eplac";var J$k='\'';var o9a='\n';var G1r='£';var Y2i='"';var Q4v="eplace";var P6i="plac";var s6r=G0h;s6r+=I3I;s6r+=P6i;s6r+=I3I;var L0z=G0h;O4b.L61();L0z+=Q4v;var h4f=G0h;h4f+=f20;h4f+=I3I;return typeof d !== q9q?d:d[h4f](/&gt;/g,c_j)[C4c](/&lt;/g,S0M)[C4c](/&amp;/g,M3w)[C4c](/&quot;/g,Y2i)[C4c](/&#163;/g,G1r)[L0z](/&#0?39;/g,J$k)[s6r](/&#0?10;/g,o9a);};this[z18][j66]=M9q;var decode=this[z18][O58][e59];if(decode === undefined || decode === A7Z){if(Array[M1j](val)){var S_f=I6PSh.m9A;S_f+=t2h;S_f+=P6n;for(var i=M_K,ien=val[S_f];i < ien;i++){val[i]=decodeFn(val[i]);}}else {val=decodeFn(val);}}if(multiCheck === A7Z){var V4j=L7D;V4j+=T7I;V4j+=y5P;var H31=g8H;H31+=D8G;H31+=Q5h;H31+=R0z;var q6g=D4r;q6g+=U5m;q6g+=I6PSh[203556];q6g+=D8G;val=this[q6g](val,this[z18][O58][P9w]);this[H31](x22,val);this[V4j]();}else {var e62=F49;e62+=R0z;this[e62](x22,val);}return this;};Field[F8j][p8X]=function(animate,toggle){var q7J="deDow";var B2A=q4J;B2A+=j1_;var O$s=n5K;O$s+=M7f;O$s+=F4L;var D$h=L8a;D$h+=B2l;if(animate === void M_K){animate=A7Z;}if(toggle === void M_K){toggle=A7Z;}if(toggle === M9q){return this[L5O](animate);}var el=this[N_F][D$h];if(this[z18][O$s][z4i]() && animate && $[I6PSh.K$4][B2A]){var k3$=n7L;k3$+=W9R;k3$+=q7J;k3$+=I6PSh[428092];el[k3$]();}else {var x4f=l_J;x4f+=a49;x4f+=d14;el[X45](x4f,Y97);;}return this;};Field[r3m][V_w]=function(options,append){var L6c="upda";var U30=i3G;U30+=R2d;if(append === void M_K){append=M9q;}if(this[z18][l3h][U30]){var q7p=L6c;q7p+=q4b;this[u8f](q7p,options,append);}return this;};Field[F8j][Q30]=function(val){var X6B=z18;X6B+=I3I;X6B+=D8G;var e6E=M3I;e6E+=I3I;e6E+=D8G;O4b.L61();return val === undefined?this[e6E]():this[X6B](val);};Field[F8j][G_r]=function(value,original){var t8z="com";var B6P=t8z;B6P+=c75;var i6z=M7f;i6z+=u$O;i6z+=D8G;i6z+=z18;O4b.L61();var compare=this[z18][i6z][B6P] || deepCompare;return compare(value,original);};Field[F8j][T4x]=function(){var L24=o2j;L24+=I6PSh[203556];var n$m=M7f;n$m+=u$O;O4b.L61();n$m+=D8G;n$m+=z18;return this[z18][n$m][L24];};Field[B$s][a4Z]=function(){O4b.L61();var f3W="des";var Q2y="ypeFn";var A8i=f3W;A8i+=D8G;A8i+=P2e;var o0w=g8H;o0w+=D8G;o0w+=Q2y;this[N_F][w6k][I22]();this[o0w](A8i);return this;};Field[i8H][U$P]=function(){O4b.L61();var I2e="itable";var W15="ltiEd";var X1R=R8z;X1R+=W15;X1R+=I2e;return this[z18][O58][X1R];};Field[F8j][x3t]=function(){return this[z18][x3t];};Field[x1X][Z1e]=function(show){var S4k="multiInfo";var S7n="bloc";var n9l=S7n;n9l+=R5K;var v2O=m35;v2O+=z18;v2O+=z18;this[N_F][S4k][v2O]({display:show?n9l:M2k});};Field[C9M][F0a]=function(){var b5G=y$Q;b5G+=I_G;b5G+=o6F;b5G+=z18;var d3x=e0c;d3x+=F6t;d3x+=G1w;d3x+=U7l;this[z18][d3x]=[];this[z18][b5G]={};};Field[F8j][g9k]=function(){var j05=z18;O4b.L61();j05+=H33;return this[z18][O58][j05];};Field[F8j][F0D]=function(el,msg,fn){var h6h="htm";var y3S="terna";var D3j="lSett";var j2g=N2k;j2g+=o0Y;var p3I=W9R;p3I+=z18;var U4x=c75;U4x+=P0i;var L4L=f2W;L4L+=m35;L4L+=s$I;if(msg === undefined){return el[f$V]();}O4b.L61();if(typeof msg === L4L){var c5e=j0N;c5e+=y3S;c5e+=D3j;c5e+=w$p;var editor=this[z18][W9F];msg=msg(editor,new DataTable$2[w58](editor[c5e]()[M6Q]));}if(el[U4x]()[p3I](X7v) && $[I6PSh.K$4][j2g]){var g1w=h6h;g1w+=Z_L;el[g1w](msg);if(msg){var F7Z=q4J;F7Z+=j1_;el[F7Z](fn);;}else {el[I$g](fn);}}else {var E5f=l_J;E5f+=a49;E5f+=d14;var D$c=n5K;D$c+=D8S;el[D$c](msg || Y97)[X45](E5f,msg?A$T:M2k);if(fn){fn();}}return this;};Field[F8j][f2w]=function(){var Q40="ltiI";var u57="internalMu";var A60="oMulti";var u6C="ltiVa";var h3P="togg";var f1Q="ock";var j$s="isMulti";var n7i="leClas";var M01="multiValues";var W0q="internal";var c6K="inputC";var e$y="multiNoEdit";var V31="I18n";var H1S="Control";var I6j="lti";var s4m=u57;s4m+=I6j;s4m+=l9P;var L$i=h3P;L$i+=n7i;L$i+=z18;var y7$=R8z;y7$+=Z_L;y7$+=D8G;y7$+=W9R;var n4_=I6PSh[428092];n4_+=A60;var L2R=j0N;L2R+=S4I;L2R+=M7f;var P1T=R8z;P1T+=Q40;P1T+=q12;P1T+=M7f;var P67=W0q;P67+=V31;var c9e=I6PSh.O47;c9e+=u1t;c9e+=V4x;var V_V=m35;V_V+=z18;O4b.L61();V_V+=z18;var H03=c$X;H03+=y$Q;var J28=j$s;J28+=M$y;var x_7=R8z;x_7+=u6C;x_7+=o6F;var f$h=R8z;f$h+=Q40;f$h+=U7l;var last;var ids=this[z18][f$h];var values=this[z18][M01];var isMultiValue=this[z18][x_7];var isMultiEditable=this[z18][O58][U$P];var val;var different=M9q;if(ids){for(var i=M_K;i < ids[D02];i++){val=values[ids[i]];if(i > M_K && !deepCompare(val,last)){different=A7Z;break;}last=val;}}if(different && isMultiValue || !isMultiEditable && this[J28]()){var Q3I=m35;Q3I+=z18;Q3I+=z18;var H$h=R8z;H$h+=I6j;var g5I=z4X;g5I+=M7f;g5I+=y$Q;var o4S=e5h;o4S+=T3E;var i2s=m35;i2s+=z18;i2s+=z18;var l_w=c6K;l_w+=V$Z;this[N_F][l_w][i2s]({display:o4S});this[g5I][H$h][Q3I]({display:A$T});}else {var J9H=q4N;J9H+=f1Q;var W6I=W9R;W6I+=I6PSh[428092];W6I+=U5$;W6I+=H1S;var J6A=c$X;J6A+=y$Q;this[J6A][W6I][X45]({display:J9H});this[N_F][l4G][X45]({display:M2k});if(isMultiValue && !different){this[a$$](last,M9q);}}this[H03][U09][V_V]({display:ids && ids[D02] > V4z && different && !isMultiValue?c9e:M2k});var i18n=this[z18][W9F][P67]()[l4G];this[N_F][P1T][f$V](isMultiEditable?i18n[L2R]:i18n[n4_]);this[N_F][y7$][L$i](this[z18][y9n][e$y],!isMultiEditable);this[z18][W9F][s4m]();return A7Z;};Field[p7t][L9V]=function(name){var d7i="appl";O4b.T_Y();var H_N=D8G;H_N+=d14;H_N+=u$O;H_N+=I3I;var h8F=M7f;h8F+=u$O;h8F+=D8G;h8F+=z18;var I_n=U3u;I_n+=M3I;I_n+=P6n;var args=[];for(var _i=V4z;_i < arguments[I_n];_i++){args[_i - V4z]=arguments[_i];}args[B$B](this[z18][h8F]);var fn=this[z18][H_N][name];if(fn){var E3K=d7i;E3K+=d14;return fn[E3K](this[z18][W9F],args);}};Field[J13][w2g]=function(){var B1u="fieldError";O4b.L61();return this[N_F][B1u];};Field[F8j][e01]=function(val,formatter){var z2D="shift";O4b.L61();if(formatter){var v6P=O0L;v6P+=r_j;v6P+=d14;if(Array[v6P](formatter)){var T20=h92;T20+=k0u;var args=formatter[M1Z]();var name_1=args[z2D]();formatter=Field[L75][name_1][T20](this,args);}return formatter[M5F](this[z18][W9F],val,this);}return val;};Field[B9K]=defaults;Field[L75]={};return Field;})();var button={action:s4l,className:s4l,tabIndex:M_K,text:s4l};var displayController={close:function(){},init:function(){},node:function(){},open:function(){}};var DataTable$1=$[I6PSh.K$4][S3i];var apiRegister=DataTable$1[w58][K_I];function _getInst(api){var I_E="oInit";var t61=D6n;t61+=W9R;t61+=D8G;t61+=l8G;var l0a=I3I;l0a+=Z9Y;l0a+=M7f;l0a+=G0h;var s33=f93;s33+=E_a;var ctx=api[s33][M_K];return ctx[I_E][l0a] || ctx[t61];}function _setBasic(inst,opts,type,plural){var h_M="ttons";var V1S=/%d/;var y_x="irm";var U6A="sage";var D0B=y$Q;D0B+=T5j;D0B+=V1g;D0B+=I3I;var H8$=D8G;H8$+=J7y;H8$+=I3I;var l0d=R14;l0d+=h_M;if(!opts){opts={};}if(opts[l0d] === undefined){var B_e=R14;B_e+=X1T;B_e+=M7f;B_e+=D3s;opts[B_e]=z6Q;}if(opts[H8$] === undefined){opts[X4b]=inst[H6x][type][X4b];}if(opts[D0B] === undefined){var r11=G0h;r11+=x4Z;r11+=M7f;r11+=m5T;if(type === r11){var W_b=z2X;W_b+=U6A;var w9_=L8a;w9_+=I6PSh[428092];w9_+=S4I;w9_+=y_x;var B0p=W9R;B0p+=z1X;B0p+=I6PSh[428092];var confirm_1=inst[B0p][type][w9_];opts[W_b]=plural !== V4z?confirm_1[g8H][C4c](V1S,plural):confirm_1[f1v];}else {var C2T=z2X;C2T+=z18;C2T+=G8k;opts[C2T]=Y97;}}return opts;}apiRegister(f$W,function(){I6PSh.L61();return _getInst(this);});apiRegister(V8c,function(opts){I6PSh.T_Y();var inst=_getInst(this);inst[t2D](_setBasic(inst,opts,q_s));return this;});apiRegister(V1H,function(opts){I6PSh.L61();var inst=_getInst(this);inst[J3X](this[M_K][M_K],_setBasic(inst,opts,p6G));return this;});apiRegister(o32,function(opts){var E$R=i9V;E$R+=H3J;var inst=_getInst(this);I6PSh.L61();inst[J3X](this[M_K],_setBasic(inst,opts,E$R));return this;});apiRegister(e6J,function(opts){var g8w="mov";I6PSh.L61();var E4d=W5q;E4d+=g8w;E4d+=I3I;var inst=_getInst(this);inst[I22](this[M_K][M_K],_setBasic(inst,opts,E4d,V4z));return this;});apiRegister(H18,function(opts){var U$2=Z_L;I6PSh.L61();U$2+=I3I;U$2+=l0R;var B33=K4p;B33+=d17;var B6T=G0h;B6T+=I3I;B6T+=y$Q;B6T+=d17;var inst=_getInst(this);inst[B6T](this[M_K],_setBasic(inst,opts,B33,this[M_K][U$2]));return this;});apiRegister(n7K,function(type,opts){var W1D="ject";var d2d="lainOb";var R0U="inlin";var K_d=H9R;I6PSh.T_Y();K_d+=d2d;K_d+=W1D;if(!type){type=Q5L;}else if($[K_d](type)){var i$K=R0U;i$K+=I3I;opts=type;type=i$K;}_getInst(this)[type](this[M_K][M_K],opts);return this;});apiRegister(m2L,function(opts){I6PSh.T_Y();var N54="bble";var G_w=R14;G_w+=N54;_getInst(this)[G_w](this[M_K],opts);return this;});apiRegister(R4r,file);apiRegister(g38,files);$(document)[J2v](k9h,function(e,ctx,json){var V_k='dt';var L06="pace";var J$d=S4I;J$d+=W9R;J$d+=E$O;var k6X=l3v;k6X+=k2_;k6X+=z18;k6X+=L06;I6PSh.T_Y();if(e[k6X] !== V_k){return;}if(json && json[J$d]){$[P1d](json[b1R],function(name,filesIn){if(!Editor[b1R][name]){var i$c=z$a;i$c+=Z_L;i$c+=Q5l;Editor[i$c][name]={};}I6PSh.L61();$[E43](Editor[b1R][name],filesIn);});}});var _buttons=$[I6PSh.K$4][S1K][L70][m9O];$[E43](_buttons,{create:{action:function(e,dt,node,config){var o1z="Title";var G12="ssi";var S6Y="ormOption";var v0M="Butt";var x5U=S4I;x5U+=S6Y;x5U+=z18;var b5T=P0T;b5T+=I6PSh[203556];b5T+=D8G;b5T+=I3I;var M5V=a7c;M5V+=o1z;var P_n=a7c;P_n+=v0M;P_n+=o16;var T3U=m35;T3U+=G0h;T3U+=f9m;var Q_u=Y81;Q_u+=G12;Q_u+=I6PSh[428092];I6PSh.L61();Q_u+=M3I;var l86=I3I;l86+=z4X;l86+=W7D;var that=this;var editor=config[l86];this[Q_u](A7Z);editor[B1$](z$p,function(){that[t55](M9q);})[T3U]($[E43]({buttons:config[P_n],message:config[B$3] || editor[H6x][t2D][M_B],nest:A7Z,title:config[M5V] || editor[H6x][b5T][X4b]},config[x5U]));},className:b4j,editor:s4l,formButtons:{action:function(e){var a6X=z18;a6X+=D0V;I6PSh.L61();a6X+=n7z;a6X+=D8G;this[a6X]();},text:function(editor){I6PSh.T_Y();var b_R=m35;b_R+=i3h;var d6E=o1o;d6E+=I6PSh[428092];return editor[d6E][b_R][M0d];}},formMessage:s4l,formOptions:{},formTitle:s4l,text:function(dt,node,config){var K9c="ttons.c";var h$0=m0C;h$0+=I3I;var W__=W9R;I6PSh.T_Y();W__+=N8G;var b1N=R14;b1N+=K9c;b1N+=G0h;b1N+=f9m;var t_U=L1L;t_U+=S3I;return dt[t_U](b1N,config[g1l][W__][h$0][i1S]);}},createInline:{action:function(e,dt,node,config){var y_G="posit";I6PSh.T_Y();var e$M=y_G;e$M+=W9R;e$M+=a2Q;var V_f=i9V;V_f+=W9R;V_f+=D8G;V_f+=l8G;config[V_f][s2f](config[e$M],config[I3Z]);},className:M$x,editor:s4l,formButtons:{action:function(e){I6PSh.L61();this[M0d]();},text:function(editor){I6PSh.T_Y();var R_K=L1L;R_K+=S3I;return editor[R_K][t2D][M0d];}},formOptions:{},position:y5v,text:function(dt,node,config){var M4q=".create";var I8i=R14;I6PSh.L61();I8i+=X1T;I8i+=a2Q;var C4C=L1L;C4C+=I6PSh[519390];C4C+=I6PSh[428092];var G3C=e00;G3C+=r2M;G3C+=D3s;G3C+=M4q;var n3_=o1o;n3_+=I6PSh[428092];return dt[n3_](G3C,config[g1l][C4C][t2D][I8i]);}},edit:{action:function(e,dt,node,config){var h3s="formM";var t$m="eOpen";var u0E="cessi";var R$l="essage";var g6f="lu";var M2U="ormOpti";var v$F="mTit";var U6F="ormBu";var Y_6="xes";var x50=S4I;x50+=M2U;x50+=M7f;x50+=D3s;var V_v=i9V;V_v+=H3J;var J7f=L1L;J7f+=I6PSh[519390];J7f+=I6PSh[428092];var P0h=U0G;P0h+=v$F;P0h+=I6PSh.m9A;var Y0a=W9R;Y0a+=z1X;Y0a+=I6PSh[428092];var U7p=h3s;U7p+=R$l;var y4o=S4I;y4o+=U6F;y4o+=X2n;y4o+=D3s;var E5U=I3I;E5U+=z4X;E5U+=W9R;E5U+=D8G;var e1l=E0y;e1l+=t$m;var H0T=M7f;H0T+=I6PSh[428092];H0T+=I3I;var N8K=o_D;N8K+=u0E;N8K+=t2h;var h6V=V1c;h6V+=I3I;h6V+=Y_6;var q0_=o6y;q0_+=G1R;q0_+=z18;var I9x=V1c;I9x+=I3I;I9x+=n$Z;I9x+=Q5l;var F$N=L8a;F$N+=g6f;F$N+=q4Y;F$N+=z18;var S4b=G0h;S4b+=M7f;S4b+=N_S;S4b+=z18;var that=this;var editor=config[g1l];var rows=dt[S4b]({selected:A7Z})[Q0P]();var columns=dt[F$N]({selected:A7Z})[I9x]();var cells=dt[q0_]({selected:A7Z})[h6V]();var items=columns[D02] || cells[D02]?{cells:cells,columns:columns,rows:rows}:rows;this[N8K](A7Z);editor[H0T](e1l,function(){var L9q=o_D;L9q+=E6k;L9q+=j0N;L9q+=M3I;I6PSh.L61();that[L9q](M9q);})[E5U](items,$[E43]({buttons:config[y4o],message:config[U7p] || editor[Y0a][J3X][M_B],nest:A7Z,title:config[P0h] || editor[J7f][V_v][X4b]},config[x50]));},className:b8o,editor:s4l,extend:t$M,formButtons:{action:function(e){var P9S=z18;P9S+=D0V;P9S+=n7z;I6PSh.L61();P9S+=D8G;this[P9S]();},text:function(editor){var M1F=z18;M1F+=H33;I6PSh.L61();var d6Q=T_K;d6Q+=D8G;return editor[H6x][d6Q][M1F];}},formMessage:s4l,formOptions:{},formTitle:s4l,text:function(dt,node,config){var g9t='buttons.edit';var M9V=I6PSh.O47;I6PSh.T_Y();M9V+=G9l;var Z$4=W9R;Z$4+=I6PSh[455245];Z$4+=S3I;return dt[H6x](g9t,config[g1l][Z$4][J3X][M9V]);}},remove:{action:function(e,dt,node,config){var L$r="formB";var G$y="rocess";var l3J="formOptio";var N3z="mTitle";var z9f=l3J;z9f+=I6PSh[428092];z9f+=z18;var j46=S4I;j46+=l8G;j46+=N3z;var O65=L$r;O65+=G9l;O65+=z18;var r3a=V8C;r3a+=D8G;r3a+=C51;r3a+=z4X;var d4p=V1c;d4p+=V8C;d4p+=I3I;d4p+=z18;var e5G=G0h;e5G+=h3W;var q9v=u$O;q9v+=G$y;q9v+=W9R;q9v+=t2h;I6PSh.L61();var that=this;var editor=config[g1l];this[q9v](A7Z);editor[B1$](z$p,function(){I6PSh.T_Y();that[t55](M9q);})[I22](dt[e5G]({selected:A7Z})[d4p](),$[r3a]({buttons:config[O65],message:config[B$3],nest:A7Z,title:config[j46] || editor[H6x][I22][X4b]},config[z9f]));},className:r_8,editor:s4l,extend:t$M,formButtons:{action:function(e){var O_g=z18;O_g+=U3U;O_g+=F2R;this[O_g]();},text:function(editor){var j_h=K4p;j_h+=d17;var o1p=L1L;o1p+=I6PSh[519390];o1p+=I6PSh[428092];return editor[o1p][j_h][M0d];}},formMessage:function(editor,dt){var a12="ace";var u3R="onfirm";var I65="fir";var L9u="nfi";var J$R="firm";var h$J=G0h;h$J+=I3I;h$J+=A8y;h$J+=a12;var N5N=f93;N5N+=J$R;var c0C=U3u;c0C+=M3I;c0C+=P6n;var e_S=m35;e_S+=u3R;var A$c=L8a;A$c+=I6PSh[428092];A$c+=J$R;var O4k=L8a;O4k+=L9u;I6PSh.T_Y();O4k+=U5m;var O3o=z18;O3o+=D8G;O3o+=y9J;O3o+=t2h;var L3I=f93;L3I+=I65;L3I+=y$Q;var V74=K4p;V74+=d17;var rows=dt[Y4c]({selected:A7Z})[Q0P]();var i18n=editor[H6x][V74];var question=typeof i18n[L3I] === O3o?i18n[O4k]:i18n[A$c][rows[D02]]?i18n[e_S][rows[c0C]]:i18n[N5N][g8H];return question[h$J](/%d/g,rows[D02]);},formOptions:{},formTitle:s4l,limitTo:[S1N],text:function(dt,node,config){var o5a=".remo";var c61=o1o;c61+=I6PSh[428092];var A1o=I3I;A1o+=z4X;A1o+=H3J;A1o+=l8G;var C_2=e00;C_2+=H4w;C_2+=o5a;C_2+=m5T;return dt[H6x](C_2,config[A1o][c61][I22][i1S]);}}});_buttons[k0S]=$[E43]({},_buttons[f4t]);_buttons[q3H][E43]=x5O;_buttons[Y$H]=$[k5R]({},_buttons[k$W]);_buttons[Y$H][x4n]=T1C;if(!DataTable || !DataTable[z1k] || !DataTable[d0H](t7g)){throw new Error(V6$);}var Editor=(function(){var n3k=I6PSh;var u6Q="dataSources";var Y7A="erna";var b70="internalSettings";var d_p="ime";var t5V='2.1.0';var l3o="vers";var M1r="lI18n";var H4H="models";var g6d="internalMultiInfo";var n30="DateT";var H4a="int";var G7D="internalEvent";n3k.T_Y();var A$H=z18;A$H+=P55;A$H+=s_j;var P9t=I5r;P9t+=l8G;var r2Y=n30;r2Y+=d_p;var E1N=l3o;E1N+=W9R;E1N+=a2Q;var O7z=S4I;O7z+=W9R;O7z+=E$O;var R30=H4a;R30+=Y7A;R30+=M1r;var p8M=E0y;p8M+=a_e;p8M+=V9Q;function Editor(init){var X$Q='<div data-dte-e="head" class="';var j3$="DataTab";var u_v="_act";var q$w="div class=";var b0a="inErro";var B8D="ta-dte-e=\"foot\" cl";var g_h="_wea";var v_i="ayNode";var X$l="templa";var k8e="an><";var q7i='<div data-dte-e="body" class="';var Y4Y="formOption";var V5C="/div></";var r9f="Args";var Z3_='<div data-dte-e="body_content" class="';var Z1B="unde";var p5q="open";var f4P="domT";var L6I="_cru";var N98="/span></div>";var E2a="Class";var l3S="tT";var Y03="plat";var k1t='Cannot find display controller ';var d_G="nArra";var q5a="dependent";var i9U="edO";var U7f="iv da";var f9G="aSourc";var e2b='<div data-dte-e="form_content" class="';var e9G="nfo\" class=\"";var y33="iv data-";var a_c="kI";var f04="foo";var k4n="rm data-dte-e=\"form\" clas";var R3V='</form>';var I6a="Options";var h4D="lear";var p2A="></div>";var e5Q="dte-e=\"processing\" cl";var c49='"><div class="';var S2C="indicator";var K$9="_field";var C9P="_optionsUp";var y24='i18n.dt.dte';var J$U="uniq";var z2U="\"><sp";var l8N='initComplete';var y86="_n";var n0w="ubmi";var l3A="xhr.dt.d";var q$n='<div data-dte-e="form_error" class="';var S5M='init.dt.dte';var A20="<div data-dte-e=\"form_buttons\" cla";var n2s="nTable";var f2n="oun";var s84="rm_conte";var B2g="rc";var W75="initEdit";var o6h="_submitSuc";var R2B="s=";var z1y="les Editor must be initialised as a \'new\' instance";var s6D="_mult";var h$L='body_content';var z7b="rocessin";var A0C="ieldFrom";var i6P="template";var g5L="<fo";var O8a="_foc";var M8r="actionName";var s9w="oP";var A3T="file";var Y4A="unique";var l6Q=" data-dte-e=\"form_";var J9E=W75;J9E+=l8G;var l10=W9R;l10+=I6PSh[428092];l10+=W9R;l10+=D8G;var l8K=A$6;l8K+=T_k;var D6h=A$6;D6h+=I6PSh[203556];D6h+=d14;var t70=l_J;t70+=z18;t70+=A8y;t70+=T_k;var W3D=l3A;W3D+=q4b;var D2y=J$U;D2y+=E8w;var S6Q=M7f;S6Q+=I6PSh[428092];var H$S=J$U;H$S+=D0V;H$S+=I3I;var c25=z$a;c25+=r4h;c25+=z4X;c25+=z18;var i1j=z4X;i1j+=n8t;var T$f=p4U;T$f+=l72;var v2F=I3I;v2F+=I6PSh[203556];v2F+=m35;v2F+=n5K;var j_O=E0y;j_O+=B1A;var o1Z=h8T;o1Z+=V5C;o1Z+=l_J;o1Z+=j_g;var B0s=m35;B0s+=a2Q;B0s+=q4b;B0s+=P0i;var W0M=t_4;W0M+=p2A;var e8y=W9R;e8y+=I6PSh[428092];e8y+=S4I;e8y+=M7f;var n_B=j6f;n_B+=l6Q;n_B+=W9R;n3k.L61();n_B+=e9G;var l2l=U0G;l2l+=y$Q;var K6G=h2V;K6G+=s84;K6G+=I6PSh[428092];K6G+=D8G;var i6w=f04;i6w+=D8G;var H3I=i1S;H3I+=z18;var i9w=A20;i9w+=e0U;var g96=I6PSh.O47;g96+=M7f;g96+=z4X;g96+=d14;var i68=G0D;i68+=d9H;var j4x=h2V;j4x+=G0h;j4x+=y$Q;var m8H=t_4;m8H+=k2s;var s5x=D8G;s5x+=I6PSh[203556];s5x+=M3I;var Q7O=S4I;Q7O+=l8G;Q7O+=y$Q;var D2O=g5L;D2O+=k4n;D2O+=R2B;D2O+=t_4;var E1v=W_w;E1v+=z4X;E1v+=M0D;E1v+=k2s;var i8j=G0D;i8j+=I3I;i8j+=P0i;var t5o=h2V;t5o+=M7f;t5o+=D8G;t5o+=P1t;var V6W=J7K;V6W+=u$O;V6W+=T5R;var G3g=E7t;G3g+=U7f;G3g+=B8D;G3g+=U$G;var A_o=I6PSh.O47;A_o+=t4_;var W_R=t_4;W_R+=k2s;var f2a=I6PSh.O47;f2a+=M7f;f2a+=z4X;f2a+=d14;var F18=z2U;F18+=k8e;F18+=N98;var o6s=a6P;o6s+=z18;o6s+=W9R;o6s+=t2h;var Z6k=E7t;Z6k+=y33;Z6k+=e5Q;Z6k+=U$G;var E_s=t_4;E_s+=k2s;var F2P=T8r;F2P+=q$w;F2P+=t_4;var l4z=L1L;l4z+=S3I;var Q5X=Y$i;Q5X+=I6PSh[203556];Q5X+=Y5m;Q5X+=z18;var R9c=V8C;R9c+=i4q;var P2h=z4X;P2h+=d2Q;P2h+=n5K;var Z1Q=e_5;Z1Q+=Y03;Z1Q+=I3I;var o7Q=S5A;o7Q+=H7M;var b8g=f4P;b8g+=x5x;var U2F=C8O;U2F+=G0V;U2F+=B2g;var l55=Y4Y;l55+=z18;var O9X=L5w;O9X+=z4X;O9X+=r4h;O9X+=z18;var E2x=M6P;E2x+=I3I;E2x+=I6PSh[428092];E2x+=z4X;var Z2g=f0a;Z2g+=f7A;var q4q=g_h;q4q+=a_c;q4q+=d_G;q4q+=d14;var S$a=y6a;S$a+=H33;S$a+=y3y;var X3E=o6h;X3E+=E6k;var m4p=y6a;m4p+=n0w;m4p+=l3S;m4p+=x5x;var Q67=y86;Q67+=s9w;Q67+=z7b;Q67+=M3I;var p1q=y86;p1q+=Z1i;p1q+=i9U;p1q+=b7A;var q4y=s6D;q4y+=W9R;q4y+=l9P;var f5c=C9P;f5c+=z4X;f5c+=n0C;f5c+=I3I;var C12=D4r;C12+=U5m;C12+=I6a;var u0l=O8a;u0l+=A0r;var g1k=K$9;g1k+=a0p;var Z8I=D1y;Z8I+=A0C;Z8I+=b3S;Z8I+=n$W;var p$8=g8H;p$8+=i6Z;p$8+=A7J;var b_o=g8H;b_o+=I3I;b_o+=Z9Y;var Q9U=G3n;Q9U+=n0C;Q9U+=f9G;Q9U+=I3I;var S88=L6I;S88+=z4X;S88+=r9f;var b5Z=H9P;b5Z+=I8T;var I7h=u_v;I7h+=y7l;I7h+=E2a;var O4B=V4Q;O4B+=I6PSh[203556];O4B+=Z_L;var D8q=X$l;D8q+=D8G;D8q+=I3I;var p4J=D8G;p4J+=M3$;p4J+=Z_L;p4J+=I3I;var g94=M7f;g94+=T3E;var B0c=Q8v;B0c+=W9R;B0c+=o_m;B0c+=D8G;var q5d=L5w;q5d+=z4X;q5d+=I3I;var a_S=Z72;a_S+=I6PSh[203556];a_S+=L45;var r7W=g8u;r7W+=x9m;var t9v=b0a;t9v+=G0h;var p0B=W9R;p0B+=z4X;p0B+=z18;var E30=S4I;E30+=W9R;E30+=Z_L;E30+=Q5l;var f6M=v$B;f6M+=U7l;var c9o=G60;c9o+=H7M;var m4i=I3I;m4i+=Z9Y;var u8$=A$6;u8$+=v_i;var r$d=b6h;r$d+=A8y;r$d+=I6PSh[203556];r$d+=U$m;var d5_=z4X;d5_+=O0L;d5_+=B4T;d5_+=I3I;var h8y=Z1B;h8y+=W5B;h8y+=d9H;var f2p=m35;f2p+=h4D;var u6P=R14;u6P+=X1T;u6P+=o16;var w3u=I6PSh.O47;w3u+=I8T;var D_J=y7n;D_J+=f2n;D_J+=z4X;var r_h=I6PSh[203556];r_h+=z4X;r_h+=z4X;var _this=this;this[r_h]=add;this[C0H]=ajax;this[D_J]=background;this[w3u]=blur;this[D4F]=bubble;this[f4A]=bubblePosition;this[u6P]=buttons;this[f2p]=clear;this[F5F]=close;this[t2D]=create;this[h8y]=undependent;this[q5a]=dependent;this[a4Z]=destroy;this[d5_]=disable;this[z4i]=display;this[r$d]=displayed;this[u8$]=displayNode;this[m4i]=edit;this[c9o]=enable;this[c4M]=error$1;this[x00]=field;this[f6M]=fields;this[A3T]=file;this[E30]=files;this[C2r]=get;this[L5O]=hide;this[p0B]=ids;this[t9v]=inError;this[r7W]=inline;this[s2f]=inlineCreate;this[a_S]=message;this[q5d]=mode;this[k6p]=modifier;this[T2G]=multiGet;this[B0c]=multiSet;this[Q0Z]=node;this[s5J]=off;this[a2Q]=on;this[g94]=one;this[p5q]=open;this[L5d]=order;this[I22]=remove;this[a$$]=set;this[M$S]=show;this[M0d]=submit;this[p4J]=table;this[D8q]=template;this[X4b]=title;this[O4B]=val;this[I7h]=_actionClass;this[s$6]=_ajax;this[L9U]=_animate;this[J53]=_assembleMain;this[b5Z]=_blur;this[R0q]=_clearDynamicInfo;this[Y5J]=_close;this[m7D]=_closeReg;this[S88]=_crudArgs;this[Q9U]=_dataSource;this[a1c]=_displayReorder;this[b_o]=_edit;this[x2T]=_event;this[p$8]=_eventName;this[Z8I]=_fieldFromNode;this[g1k]=_fieldNames;this[u0l]=_focus;this[C12]=_formOptions;this[L$S]=_inline;this[a_R]=_inputTrigger;this[f5c]=_optionsUpdate;this[O_2]=_message;this[q4y]=_multiInfo;this[g90]=_nestedClose;this[p1q]=_nestedOpen;this[s85]=_postopen;this[b$Q]=_preopen;this[s6B]=_processing;this[Q67]=_noProcessing;this[Z74]=_submit;this[m4p]=_submitTable;this[X3E]=_submitSuccess;this[S$a]=_submitError;this[v38]=_tidy;this[q4q]=_weakInArray;if(!(this instanceof Editor)){var Z$5=j3$;Z$5+=z1y;alert(Z$5);}init=$[Z2g](A7Z,{},Editor[B9K],init);this[m35]=init;this[z18]=$[E2x](A7Z,{},Editor[O9X][i9Y],{actionName:init[M8r],ajax:init[C0H],formOptions:init[l55],idSrc:init[U2F],table:init[b8g] || init[o7Q],template:init[i6P]?$(init[Z1Q])[P2h]():s4l});this[y9n]=$[R9c](A7Z,{},Editor[Q5X]);this[H6x]=init[l4z];Editor[H4H][i9Y][Y4A]++;var that=this;var classes=this[y9n];var wrapper=$(F2P + classes[t7C] + E_s + Z6k + classes[o6s][S2C] + F18 + q7i + classes[f2a][t7C] + W_R + Z3_ + classes[A_o][t8R] + j9u + j7p + G3g + classes[U7x][V6W] + r1W + i8r + classes[t5o][i8j] + j9u + j7p + E1v);var form=$(D2O + classes[Q7O][s5x] + m8H + e2b + classes[j4x][i68] + j9u + R3V);this[N_F]={body:el(g96,wrapper)[M_K],bodyContent:el(h$L,wrapper)[M_K],buttons:$(i9w + classes[a7c][H3I] + j9u)[M_K],footer:el(i6w,wrapper)[M_K],form:form[M_K],formContent:el(K6G,form)[M_K],formError:$(q$n + classes[l2l][c4M] + j9u)[M_K],formInfo:$(n_B + classes[a7c][e8y] + W0M)[M_K],header:$(X$Q + classes[O6e][t7C] + c49 + classes[O6e][B0s] + o1Z)[M_K],processing:el(j_O,wrapper)[M_K],wrapper:wrapper[M_K]};$[v2F](init[T$f],function(evt,fn){n3k.T_Y();that[a2Q](evt,function(){var argsIn=[];for(var _i=M_K;_i < arguments[D02];_i++){argsIn[_i]=arguments[_i];}fn[u4W](that,argsIn);});});this[i1j];if(init[c25]){this[k9Z](init[N1U]);}$(document)[a2Q](S5M + this[z18][H$S],function(e,settings,json){var l9b=f2I;l9b+=I3I;var table=_this[z18][l9b];if(table){var N$D=e5h;N$D+=z4X;N$D+=I3I;var dtApi=new DataTable[w58](table);if(settings[n2s] === dtApi[M6Q]()[N$D]()){settings[b6s]=_this;}}})[S6Q](y24 + this[z18][D2y],function(e,settings){var Y3K="oLanguage";var table=_this[z18][M6Q];if(table){var E89=e5h;E89+=J1t;var o0A=I6PSh[428092];o0A+=I6PSh.s6U;o0A+=I6PSh.m9A;var dtApi=new DataTable[w58](table);if(settings[o0A] === dtApi[M6Q]()[E89]()){var U2k=T_K;U2k+=R7Z;if(settings[Y3K][U2k]){var m6U=J3X;m6U+=M7f;m6U+=G0h;var J3a=W9R;J3a+=I6PSh[455245];J3a+=I6PSh[519390];J3a+=I6PSh[428092];$[E43](A7Z,_this[J3a],settings[Y3K][m6U]);}}}})[a2Q](W3D + this[z18][Y4A],function(e,settings,json){var u_n="optionsU";n3k.T_Y();var table=_this[z18][M6Q];if(table){var q5g=D8G;q5g+=I6PSh[203556];q5g+=q4N;q5g+=I3I;var V6X=U5V;V6X+=u$O;V6X+=W9R;var dtApi=new DataTable[V6X](table);if(settings[n2s] === dtApi[q5g]()[Q0Z]()){var S$2=g8H;S$2+=u_n;S$2+=u$O;S$2+=R2d;_this[S$2](json);}}});if(!Editor[t70][init[D6h]]){throw new Error(k1t + init[z4i]);}this[z18][V4P]=Editor[l8K][init[z4i]][l10](this);this[x2T](l8N,[]);$(document)[K90](J9E,[this]);}Editor[F8j][G7D]=function(name,args){this[x2T](name,args);};Editor[p8M][R30]=function(){var M3N=L1L;M3N+=S3I;return this[M3N];};Editor[F8j][g6d]=function(){n3k.T_Y();var x7l="_multiInfo";return this[x7l]();};Editor[F8j][b70]=function(){return this[z18];};Editor[u$d]={checkbox:checkbox,datatable:datatable,datetime:datetime,hidden:hidden,password:password,radio:radio,readonly:readonly,select:select,text:text,textarea:textarea,upload:upload,uploadMany:uploadMany};Editor[O7z]={};Editor[E1N]=t5V;Editor[y9n]=classNames;Editor[p1b]=Field;Editor[r2Y]=s4l;Editor[P9t]=error;Editor[D_9]=pairs;Editor[W_W]=upload$1;Editor[B9K]=defaults$1;Editor[H4H]={button:button,displayController:displayController,fieldType:fieldType,formOptions:formOptions,settings:settings};Editor[u6Q]={dataTable:dataSource$1,html:dataSource};Editor[z4i]={envelope:envelope,lightbox:self};Editor[A$H]=function(id){return safeDomId(id,Y97);};return Editor;})();DataTable[U8D]=Editor;$[I6PSh.K$4][a4U][f7M]=Editor;if(DataTable[V5S]){var O7F=e3L;O7F+=I3I;Editor[U7h]=DataTable[O7F];}if(DataTable[y_c][h0p]){var y_y=K0q;y_y+=H2J;var x70=V8C;x70+=D8G;var N8C=V8C;N8C+=D8G;N8C+=I3I;N8C+=f7A;$[N8C](Editor[u$d],DataTable[x70][y_y]);}DataTable[M6P][X8j]=Editor[W_a];return Editor;});})();
-
-/*! jQuery UI integration for DataTables' Editor
- * © SpryMedia Ltd - datatables.net/license
- */
-
-(function( factory ){
-	if ( typeof define === 'function' && define.amd ) {
-		// AMD
-		define( ['jquery', 'datatables.net-jqui', 'datatables.net-editor'], function ( $ ) {
-			return factory( $, window, document );
-		} );
-	}
-	else if ( typeof exports === 'object' ) {
-		// CommonJS
-		module.exports = function (root, $) {
-			if ( ! root ) {
-				// CommonJS environments without a window global must pass a
-				// root. This will give an error otherwise
-				root = window;
-			}
-
-			if ( ! $ ) {
-				$ = typeof window !== 'undefined' ? // jQuery's factory checks for a global window
-					require('jquery') :
-					require('jquery')( root );
-			}
-
-			if ( ! $.fn.dataTable ) {
-				require('datatables.net-jqui')(root, $);
-			}
-
-			if ( ! $.fn.dataTable.Editor ) {
-				require('datatables.net-editor')(root, $);
-			}
-
-			return factory( $, root, root.document );
-		};
-	}
-	else {
-		// Browser
-		factory( jQuery, window, document );
-	}
-}(function( $, window, document, undefined ) {
-'use strict';
-var DataTable = $.fn.dataTable;
-
-
-
-var Editor = DataTable.Editor;
-var doingClose = false;
-
-/*
- * Set the default display controller to be our foundation control 
- */
-Editor.defaults.display = "jqueryui";
-
-/*
- * Change the default classes from Editor to be classes for Bootstrap
- */
-var buttonClass = "btn ui-button ui-widget ui-state-default ui-corner-all ui-button-text-only";
-$.extend( true, $.fn.dataTable.Editor.classes, {
-	form: {
-		button:  buttonClass,
-		buttonInternal:  buttonClass
-	}
-} );
-
-var dialouge;
-var shown = false;
-
-/*
- * jQuery UI display controller - this is effectively a proxy to the jQuery UI
- * modal control.
- */
-Editor.display.jqueryui = $.extend( true, {}, Editor.models.displayController, {
-	init: function ( dte ) {
-		if (! dialouge) {
-			dialouge = $('<div class="DTED"></div>')
-				.css('display', 'none')
-				.appendTo('body')
-				.dialog( $.extend( true, Editor.display.jqueryui.modalOptions, {
-					autoOpen: false,
-					buttons: { "A": function () {} }, // fake button so the button container is created
-					closeOnEscape: false // allow editor's escape function to run
-				} ) );
-		}
-
-		return Editor.display.jqueryui;
-	},
-
-	open: function ( dte, append, callback ) {
-		dialouge
-			.children()
-			.detach();
-
-		dialouge
-			.append( append )
-			.dialog( 'open' );
-
-		$(dte.dom.formError).appendTo(
-			dialouge.parent().find('div.ui-dialog-buttonpane')
-		);
-
-		dialouge.parent().find('.ui-dialog-title').html( dte.dom.header.innerHTML );
-		dialouge.parent().addClass('DTED');
-
-		// Modify the Editor buttons to be jQuery UI suitable
-		var buttons = $(dte.dom.buttons)
-			.children()
-			.addClass( 'ui-button ui-widget ui-state-default ui-corner-all ui-button-text-only' )
-			.each( function () {
-				$(this).wrapInner( '<span class="ui-button-text"></span>' );
-			} );
-
-		// Move the buttons into the jQuery UI button set
-		dialouge.parent().find('div.ui-dialog-buttonset')
-			.children()
-			.detach();
-
-		dialouge.parent().find('div.ui-dialog-buttonset')
-			.append( buttons.parent() );
-
-		dialouge
-			.parent()
-			.find('button.ui-dialog-titlebar-close')
-			.off('click.dte-ju')
-			.on('click.dte-ju', function () {
-				dte.close('icon');
-			});
-
-		// Need to know when the dialogue is closed using its own trigger
-		// so we can reset the form
-		$(dialouge)
-			.off( 'dialogclose.dte-ju' )
-			.on( 'dialogclose.dte-ju', function (e) {
-				if ( ! doingClose ) {
-					dte.close();
-				}
-			} );
-
-		shown = true;
-
-		if ( callback ) {
-			callback();
-		}
-	},
-
-	close: function ( dte, callback ) {
-		if ( dialouge ) {
-			// Don't want to trigger a close() call from dialogclose!
-			doingClose = true;
-			dialouge.dialog( 'close' );
-			doingClose = false;
-		}
-
-		shown = false;
-
-		if ( callback ) {
-			callback();
-		}
-	},
-
-	node: function ( dte ) {
-		return dialouge[0];
-	},
-
-	// jQuery UI dialogues perform their own focus capture
-	captureFocus: false
-} );
-
-
-Editor.display.jqueryui.modalOptions = {
-	width: 600,
-	modal: true
-};
-
-
-return Editor;
-}));
-
-
-/*! AutoFill 2.5.2
+/*! AutoFill 2.6.0
  * ©2008-2023 SpryMedia Ltd - datatables.net/license
  */
 
@@ -15944,25 +15950,33 @@ return Editor;
 	}
 	else if ( typeof exports === 'object' ) {
 		// CommonJS
-		module.exports = function (root, $) {
-			if ( ! root ) {
-				// CommonJS environments without a window global must pass a
-				// root. This will give an error otherwise
-				root = window;
-			}
-
-			if ( ! $ ) {
-				$ = typeof window !== 'undefined' ? // jQuery's factory checks for a global window
-					require('jquery') :
-					require('jquery')( root );
-			}
-
+		var jq = require('jquery');
+		var cjsRequires = function (root, $) {
 			if ( ! $.fn.dataTable ) {
 				require('datatables.net')(root, $);
 			}
-
-			return factory( $, root, root.document );
 		};
+
+		if (typeof window === 'undefined') {
+			module.exports = function (root, $) {
+				if ( ! root ) {
+					// CommonJS environments without a window global must pass a
+					// root. This will give an error otherwise
+					root = window;
+				}
+
+				if ( ! $ ) {
+					$ = jq( root );
+				}
+
+				cjsRequires( root, $ );
+				return factory( $, root, root.document );
+			};
+		}
+		else {
+			cjsRequires( window, jq );
+			module.exports = factory( jq, window, window.document );
+		}
 	}
 	else {
 		// Browser
@@ -15977,7 +15991,7 @@ var DataTable = $.fn.dataTable;
 /**
  * @summary     AutoFill
  * @description Add Excel like click and drag auto-fill options to DataTables
- * @version     2.5.2
+ * @version     2.6.0
  * @author      SpryMedia Ltd (www.sprymedia.co.uk)
  * @copyright   SpryMedia Ltd.
  *
@@ -16047,7 +16061,7 @@ var AutoFill = function( dt, opts )
 	 * @namespace Common and useful DOM elements for the class instance
 	 */
 	this.dom = {
-		closeButton: $('<div class="dtaf-popover-close">x</div>'),
+		closeButton: $('<div class="dtaf-popover-close">&times;</div>'),
 
 		/** @type {jQuery} AutoFill handle */
 		handle: $('<div class="dt-autofill-handle"/>'),
@@ -16068,7 +16082,10 @@ var AutoFill = function( dt, opts )
 		background: $('<div class="dt-autofill-background"/>'),
 
 		/** @type {jQuery} Fill type chooser */
-		list: $('<div class="dt-autofill-list">'+this.s.dt.i18n('autoFill.info', '')+'<ul/></div>'),
+		list: $('<div class="dt-autofill-list">'+this.s.dt.i18n('autoFill.info', '')+'</div>')
+			.attr('aria-modal', true)
+			.attr('role', 'dialog')
+			.append('<div class="dt-autofill-list-items"></div>'),
 
 		/** @type {jQuery} DataTables scrolling container */
 		dtScroll: null,
@@ -16266,21 +16283,17 @@ $.extend( AutoFill.prototype, {
 			var result = actions[ available[0] ].execute( dt, cells );
 			this._update( result, cells );
 		}
-		else if ( available.length > 1 ) {
+		else if ( available.length > 1 || this.c.alwaysAsk ) {
 			// Multiple actions available - ask the end user what they want to do
-			var list = this.dom.list.children('ul').empty();
+			var list = this.dom.list.children('div.dt-autofill-list-items').empty();
 
 			// Add a cancel option
 			available.push( 'cancel' );
 
 			$.each( available, function ( i, name ) {
-				list.append( $('<li/>')
-					.append(
-						'<div class="dt-autofill-question">'+
-							actions[ name ].option( dt, cells )+
-						'<div>'
-					)
-					.append( $('<div class="dt-autofill-button">' ).append( $('<button class="'+AutoFill.classes.btn+'">'+dt.i18n('autoFill.button', '&gt;')+'</button>')))
+				list.append( $('<button/>')
+					.html(actions[ name ].option( dt, cells ))
+					.append( $('<span class="dt-autofill-button"/>').html(dt.i18n('autoFill.button', '&gt;')))
 					.on( 'click', function () {
 						var result = actions[ name ].execute(
 							dt, cells, $(this).closest('li')
@@ -17091,7 +17104,7 @@ AutoFill.actions = {
  * @static
  * @type      String
  */
-AutoFill.version = '2.5.2';
+AutoFill.version = '2.6.0';
 
 
 /**
@@ -17205,42 +17218,50 @@ return DataTable;
 }));
 
 
-/*! jQuery UI integration for DataTables' AutoFill
+/*! Bootstrap integration for DataTables' AutoFill
  * ©2015 SpryMedia Ltd - datatables.net/license
  */
 
 (function( factory ){
 	if ( typeof define === 'function' && define.amd ) {
 		// AMD
-		define( ['jquery', 'datatables.net-jqui', 'datatables.net-autofill'], function ( $ ) {
+		define( ['jquery', 'datatables.net-bs5', 'datatables.net-autofill'], function ( $ ) {
 			return factory( $, window, document );
 		} );
 	}
 	else if ( typeof exports === 'object' ) {
 		// CommonJS
-		module.exports = function (root, $) {
-			if ( ! root ) {
-				// CommonJS environments without a window global must pass a
-				// root. This will give an error otherwise
-				root = window;
-			}
-
-			if ( ! $ ) {
-				$ = typeof window !== 'undefined' ? // jQuery's factory checks for a global window
-					require('jquery') :
-					require('jquery')( root );
-			}
-
+		var jq = require('jquery');
+		var cjsRequires = function (root, $) {
 			if ( ! $.fn.dataTable ) {
-				require('datatables.net-jqui')(root, $);
+				require('datatables.net-bs5')(root, $);
 			}
 
 			if ( ! $.fn.dataTable.AutoFill ) {
 				require('datatables.net-autofill')(root, $);
 			}
-
-			return factory( $, root, root.document );
 		};
+
+		if (typeof window === 'undefined') {
+			module.exports = function (root, $) {
+				if ( ! root ) {
+					// CommonJS environments without a window global must pass a
+					// root. This will give an error otherwise
+					root = window;
+				}
+
+				if ( ! $ ) {
+					$ = jq( root );
+				}
+
+				cjsRequires( root, $ );
+				return factory( $, root, root.document );
+			};
+		}
+		else {
+			cjsRequires( window, jq );
+			module.exports = factory( jq, window, window.document );
+		}
 	}
 	else {
 		// Browser
@@ -17252,15 +17273,15 @@ var DataTable = $.fn.dataTable;
 
 
 
-DataTable.AutoFill.classes.btn = 'ui-button ui-state-default ui-corner-all';
+DataTable.AutoFill.classes.btn = 'btn btn-primary';
 
 
 return DataTable;
 }));
 
 
-/*! Buttons for DataTables 2.3.4
- * ©2016-2023 SpryMedia Ltd - datatables.net/license
+/*! Buttons for DataTables 2.4.2
+ * © SpryMedia Ltd - datatables.net/license
  */
 
 (function( factory ){
@@ -17272,25 +17293,33 @@ return DataTable;
 	}
 	else if ( typeof exports === 'object' ) {
 		// CommonJS
-		module.exports = function (root, $) {
-			if ( ! root ) {
-				// CommonJS environments without a window global must pass a
-				// root. This will give an error otherwise
-				root = window;
-			}
-
-			if ( ! $ ) {
-				$ = typeof window !== 'undefined' ? // jQuery's factory checks for a global window
-					require('jquery') :
-					require('jquery')( root );
-			}
-
+		var jq = require('jquery');
+		var cjsRequires = function (root, $) {
 			if ( ! $.fn.dataTable ) {
 				require('datatables.net')(root, $);
 			}
-
-			return factory( $, root, root.document );
 		};
+
+		if (typeof window === 'undefined') {
+			module.exports = function (root, $) {
+				if ( ! root ) {
+					// CommonJS environments without a window global must pass a
+					// root. This will give an error otherwise
+					root = window;
+				}
+
+				if ( ! $ ) {
+					$ = jq( root );
+				}
+
+				cjsRequires( root, $ );
+				return factory( $, root, root.document );
+			};
+		}
+		else {
+			cjsRequires( window, jq );
+			module.exports = factory( jq, window, window.document );
+		}
 	}
 	else {
 		// Browser
@@ -17311,13 +17340,13 @@ var _buttonCounter = 0;
 
 var _dtButtons = DataTable.ext.buttons;
 
+// Custom entity decoder for data export
+var _entityDecoder = null;
+
 // Allow for jQuery slim
 function _fadeIn(el, duration, fn) {
 	if ($.fn.animate) {
-		el
-			.stop()
-			.fadeIn( duration, fn );
-
+		el.stop().fadeIn(duration, fn);
 	}
 	else {
 		el.css('display', 'block');
@@ -17330,13 +17359,11 @@ function _fadeIn(el, duration, fn) {
 
 function _fadeOut(el, duration, fn) {
 	if ($.fn.animate) {
-		el
-			.stop()
-			.fadeOut( duration, fn );
+		el.stop().fadeOut(duration, fn);
 	}
 	else {
 		el.css('display', 'none');
-		
+
 		if (fn) {
 			fn.call(el);
 		}
@@ -17348,56 +17375,53 @@ function _fadeOut(el, duration, fn) {
  * @param {[type]}
  * @param {[type]}
  */
-var Buttons = function( dt, config )
-{
+var Buttons = function (dt, config) {
 	// If not created with a `new` keyword then we return a wrapper function that
 	// will take the settings object for a DT. This allows easy use of new instances
 	// with the `layout` option - e.g. `topLeft: $.fn.dataTable.Buttons( ... )`.
-	if ( !(this instanceof Buttons) ) {
+	if (!(this instanceof Buttons)) {
 		return function (settings) {
-			return new Buttons( settings, dt ).container();
+			return new Buttons(settings, dt).container();
 		};
 	}
 
 	// If there is no config set it to an empty object
-	if ( typeof( config ) === 'undefined' ) {
-		config = {};	
+	if (typeof config === 'undefined') {
+		config = {};
 	}
-	
+
 	// Allow a boolean true for defaults
-	if ( config === true ) {
+	if (config === true) {
 		config = {};
 	}
 
 	// For easy configuration of buttons an array can be given
-	if ( Array.isArray( config ) ) {
+	if (Array.isArray(config)) {
 		config = { buttons: config };
 	}
 
-	this.c = $.extend( true, {}, Buttons.defaults, config );
+	this.c = $.extend(true, {}, Buttons.defaults, config);
 
 	// Don't want a deep copy for the buttons
-	if ( config.buttons ) {
+	if (config.buttons) {
 		this.c.buttons = config.buttons;
 	}
 
 	this.s = {
-		dt: new DataTable.Api( dt ),
+		dt: new DataTable.Api(dt),
 		buttons: [],
 		listenKeys: '',
-		namespace: 'dtb'+(_instCounter++)
+		namespace: 'dtb' + _instCounter++
 	};
 
 	this.dom = {
-		container: $('<'+this.c.dom.container.tag+'/>')
-			.addClass( this.c.dom.container.className )
+		container: $('<' + this.c.dom.container.tag + '/>').addClass(this.c.dom.container.className)
 	};
 
 	this._constructor();
 };
 
-
-$.extend( Buttons.prototype, {
+$.extend(Buttons.prototype, {
 	/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
 	 * Public methods
 	 */
@@ -17406,17 +17430,16 @@ $.extend( Buttons.prototype, {
 	 * Get the action of a button
 	 * @param  {int|string} Button index
 	 * @return {function}
-	 *//**
+	 */ /**
 	 * Set the action of a button
 	 * @param  {node} node Button element
 	 * @param  {function} action Function to set
 	 * @return {Buttons} Self for chaining
 	 */
-	action: function ( node, action )
-	{
-		var button = this._nodeToButton( node );
+	action: function (node, action) {
+		var button = this._nodeToButton(node);
 
-		if ( action === undefined ) {
+		if (action === undefined) {
 			return button.conf.action;
 		}
 
@@ -17432,16 +17455,24 @@ $.extend( Buttons.prototype, {
 	 * @param  {boolean} [flag] Enable / disable flag
 	 * @return {Buttons} Self for chaining or boolean for getter
 	 */
-	active: function ( node, flag ) {
-		var button = this._nodeToButton( node );
+	active: function (node, flag) {
+		var button = this._nodeToButton(node);
 		var klass = this.c.dom.button.active;
 		var jqNode = $(button.node);
 
-		if ( flag === undefined ) {
-			return jqNode.hasClass( klass );
+		if (
+			button.inCollection &&
+			this.c.dom.collection.button &&
+			this.c.dom.collection.button.active !== undefined
+		) {
+			klass = this.c.dom.collection.button.active;
 		}
 
-		jqNode.toggleClass( klass, flag === undefined ? true : flag );
+		if (flag === undefined) {
+			return jqNode.hasClass(klass);
+		}
+
+		jqNode.toggleClass(klass, flag === undefined ? true : flag);
 
 		return this;
 	},
@@ -17454,27 +17485,27 @@ $.extend( Buttons.prototype, {
 	 *   lots of buttons, until the last button.
 	 * @return {Buttons} Self for chaining
 	 */
-	add: function ( config, idx, draw )
-	{
+	add: function (config, idx, draw) {
 		var buttons = this.s.buttons;
 
-		if ( typeof idx === 'string' ) {
+		if (typeof idx === 'string') {
 			var split = idx.split('-');
 			var base = this.s;
 
-			for ( var i=0, ien=split.length-1 ; i<ien ; i++ ) {
-				base = base.buttons[ split[i]*1 ];
+			for (var i = 0, ien = split.length - 1; i < ien; i++) {
+				base = base.buttons[split[i] * 1];
 			}
 
 			buttons = base.buttons;
-			idx = split[ split.length-1 ]*1;
+			idx = split[split.length - 1] * 1;
 		}
 
 		this._expandButton(
 			buttons,
 			config,
 			config !== undefined ? config.split : undefined,
-			(config === undefined || config.split === undefined || config.split.length === 0) && base !== undefined,
+			(config === undefined || config.split === undefined || config.split.length === 0) &&
+				base !== undefined,
 			false,
 			idx
 		);
@@ -17482,21 +17513,20 @@ $.extend( Buttons.prototype, {
 		if (draw === undefined || draw === true) {
 			this._draw();
 		}
-	
+
 		return this;
 	},
 
 	/**
 	 * Clear buttons from a collection and then insert new buttons
 	 */
-	collectionRebuild: function ( node, newButtons )
-	{
-		var button = this._nodeToButton( node );
-		
-		if(newButtons !== undefined) {
+	collectionRebuild: function (node, newButtons) {
+		var button = this._nodeToButton(node);
+
+		if (newButtons !== undefined) {
 			var i;
 			// Need to reverse the array
-			for (i=button.buttons.length-1; i>=0; i--) {
+			for (i = button.buttons.length - 1; i >= 0; i--) {
 				this.remove(button.buttons[i].node);
 			}
 
@@ -17509,13 +17539,15 @@ $.extend( Buttons.prototype, {
 				newButtons.push.apply(newButtons, button.conf.postfixButtons);
 			}
 
-			for (i=0; i<newButtons.length; i++) {
+			for (i = 0; i < newButtons.length; i++) {
 				var newBtn = newButtons[i];
 
 				this._expandButton(
 					button.buttons,
 					newBtn,
-					newBtn !== undefined && newBtn.config !== undefined && newBtn.config.split !== undefined,
+					newBtn !== undefined &&
+						newBtn.config !== undefined &&
+						newBtn.config.split !== undefined,
 					true,
 					newBtn.parentConf !== undefined && newBtn.parentConf.split !== undefined,
 					null,
@@ -17531,8 +17563,7 @@ $.extend( Buttons.prototype, {
 	 * Get the container node for the buttons
 	 * @return {jQuery} Buttons node
 	 */
-	container: function ()
-	{
+	container: function () {
 		return this.dom.container;
 	},
 
@@ -17541,12 +17572,10 @@ $.extend( Buttons.prototype, {
 	 * @param  {node} node Button node
 	 * @return {Buttons} Self for chaining
 	 */
-	disable: function ( node ) {
-		var button = this._nodeToButton( node );
+	disable: function (node) {
+		var button = this._nodeToButton(node);
 
-		$(button.node)
-			.addClass( this.c.dom.button.disabled )
-			.prop('disabled', true);
+		$(button.node).addClass(this.c.dom.button.disabled).prop('disabled', true);
 
 		return this;
 	},
@@ -17556,18 +17585,17 @@ $.extend( Buttons.prototype, {
 	 * elements
 	 * @return {Buttons} Self for chaining
 	 */
-	destroy: function ()
-	{
+	destroy: function () {
 		// Key event listener
-		$('body').off( 'keyup.'+this.s.namespace );
+		$('body').off('keyup.' + this.s.namespace);
 
 		// Individual button destroy (so they can remove their own events if
 		// needed). Take a copy as the array is modified by `remove`
 		var buttons = this.s.buttons.slice();
 		var i, ien;
-		
-		for ( i=0, ien=buttons.length ; i<ien ; i++ ) {
-			this.remove( buttons[i].node );
+
+		for (i = 0, ien = buttons.length; i < ien; i++) {
+			this.remove(buttons[i].node);
 		}
 
 		// Container
@@ -17576,9 +17604,9 @@ $.extend( Buttons.prototype, {
 		// Remove from the settings object collection
 		var buttonInsts = this.s.dt.settings()[0];
 
-		for ( i=0, ien=buttonInsts.length ; i<ien ; i++ ) {
-			if ( buttonInsts.inst === this ) {
-				buttonInsts.splice( i, 1 );
+		for (i = 0, ien = buttonInsts.length; i < ien; i++) {
+			if (buttonInsts.inst === this) {
+				buttonInsts.splice(i, 1);
 				break;
 			}
 		}
@@ -17592,42 +17620,38 @@ $.extend( Buttons.prototype, {
 	 * @param  {boolean} [flag=true] Enable / disable flag
 	 * @return {Buttons} Self for chaining
 	 */
-	enable: function ( node, flag )
-	{
-		if ( flag === false ) {
-			return this.disable( node );
+	enable: function (node, flag) {
+		if (flag === false) {
+			return this.disable(node);
 		}
 
-		var button = this._nodeToButton( node );
-		$(button.node)
-			.removeClass( this.c.dom.button.disabled )
-			.prop('disabled', false);
+		var button = this._nodeToButton(node);
+		$(button.node).removeClass(this.c.dom.button.disabled).prop('disabled', false);
 
 		return this;
 	},
 
 	/**
 	 * Get a button's index
-	 * 
+	 *
 	 * This is internally recursive
 	 * @param {element} node Button to get the index of
 	 * @return {string} Button index
 	 */
-	index: function ( node, nested, buttons )
-	{
-		if ( ! nested ) {
+	index: function (node, nested, buttons) {
+		if (!nested) {
 			nested = '';
 			buttons = this.s.buttons;
 		}
 
-		for ( var i=0, ien=buttons.length ; i<ien ; i++ ) {
+		for (var i = 0, ien = buttons.length; i < ien; i++) {
 			var inner = buttons[i].buttons;
 
 			if (buttons[i].node === node) {
 				return nested + i;
 			}
 
-			if ( inner && inner.length ) {
+			if (inner && inner.length) {
 				var match = this.index(node, i + '-', inner);
 
 				if (match !== null) {
@@ -17639,13 +17663,11 @@ $.extend( Buttons.prototype, {
 		return null;
 	},
 
-
 	/**
 	 * Get the instance name for the button set selector
 	 * @return {string} Instance name
 	 */
-	name: function ()
-	{
+	name: function () {
 		return this.c.name;
 	},
 
@@ -17654,13 +17676,12 @@ $.extend( Buttons.prototype, {
 	 * @param  {node} [node] Button node
 	 * @return {jQuery} Button element, or container
 	 */
-	node: function ( node )
-	{
-		if ( ! node ) {
+	node: function (node) {
+		if (!node) {
 			return this.dom.container;
 		}
 
-		var button = this._nodeToButton( node );
+		var button = this._nodeToButton(node);
 		return $(button.node);
 	},
 
@@ -17670,20 +17691,23 @@ $.extend( Buttons.prototype, {
 	 * @param  {boolean} flag true to add, false to remove, undefined to get
 	 * @return {boolean|Buttons} Getter value or this if a setter.
 	 */
-	processing: function ( node, flag )
-	{
+	processing: function (node, flag) {
 		var dt = this.s.dt;
-		var button = this._nodeToButton( node );
+		var button = this._nodeToButton(node);
 
-		if ( flag === undefined ) {
-			return $(button.node).hasClass( 'processing' );
+		if (flag === undefined) {
+			return $(button.node).hasClass('processing');
 		}
 
-		$(button.node).toggleClass( 'processing', flag );
+		$(button.node).toggleClass('processing', flag);
 
-		$(dt.table().node()).triggerHandler( 'buttons-processing.dt', [
-			flag, dt.button( node ), dt, $(node), button.conf
-		] );
+		$(dt.table().node()).triggerHandler('buttons-processing.dt', [
+			flag,
+			dt.button(node),
+			dt,
+			$(node),
+			button.conf
+		]);
 
 		return this;
 	},
@@ -17693,32 +17717,31 @@ $.extend( Buttons.prototype, {
 	 * @param  {node} node Button node
 	 * @return {Buttons} Self for chaining
 	 */
-	remove: function ( node )
-	{
-		var button = this._nodeToButton( node );
-		var host = this._nodeToHost( node );
+	remove: function (node) {
+		var button = this._nodeToButton(node);
+		var host = this._nodeToHost(node);
 		var dt = this.s.dt;
 
 		// Remove any child buttons first
-		if ( button.buttons.length ) {
-			for ( var i=button.buttons.length-1 ; i>=0 ; i-- ) {
-				this.remove( button.buttons[i].node );
+		if (button.buttons.length) {
+			for (var i = button.buttons.length - 1; i >= 0; i--) {
+				this.remove(button.buttons[i].node);
 			}
 		}
 
 		button.conf.destroying = true;
 
 		// Allow the button to remove event handlers, etc
-		if ( button.conf.destroy ) {
-			button.conf.destroy.call( dt.button(node), dt, $(node), button.conf );
+		if (button.conf.destroy) {
+			button.conf.destroy.call(dt.button(node), dt, $(node), button.conf);
 		}
 
-		this._removeKey( button.conf );
+		this._removeKey(button.conf);
 
 		$(button.node).remove();
 
-		var idx = $.inArray( button, host );
-		host.splice( idx, 1 );
+		var idx = $.inArray(button, host);
+		host.splice(idx, 1);
 
 		return this;
 	},
@@ -17727,47 +17750,30 @@ $.extend( Buttons.prototype, {
 	 * Get the text for a button
 	 * @param  {int|string} node Button index
 	 * @return {string} Button text
-	 *//**
+	 */ /**
 	 * Set the text for a button
 	 * @param  {int|string|function} node Button index
 	 * @param  {string} label Text
 	 * @return {Buttons} Self for chaining
 	 */
-	text: function ( node, label )
-	{
-		var button = this._nodeToButton( node );
-		var buttonLiner = this.c.dom.collection.buttonLiner;
-		var linerTag = button.inCollection && buttonLiner && buttonLiner.tag ?
-			buttonLiner.tag :
-			this.c.dom.buttonLiner.tag;
+	text: function (node, label) {
+		var button = this._nodeToButton(node);
+		var textNode = button.textNode;
 		var dt = this.s.dt;
 		var jqNode = $(button.node);
-		var text = function ( opt ) {
-			return typeof opt === 'function' ?
-				opt( dt, jqNode, button.conf ) :
-				opt;
+		var text = function (opt) {
+			return typeof opt === 'function' ? opt(dt, jqNode, button.conf) : opt;
 		};
 
-		if ( label === undefined ) {
-			return text( button.conf.text );
+		if (label === undefined) {
+			return text(button.conf.text);
 		}
 
 		button.conf.text = label;
-
-		if ( linerTag ) {
-			jqNode
-				.children( linerTag )
-				.eq(0)
-				.filter(':not(.dt-down-arrow)')
-				.html( text(label) );
-		}
-		else {
-			jqNode.html( text(label) );
-		}
+		textNode.html(text(label));
 
 		return this;
 	},
-
 
 	/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
 	 * Constructor
@@ -17777,46 +17783,44 @@ $.extend( Buttons.prototype, {
 	 * Buttons constructor
 	 * @private
 	 */
-	_constructor: function ()
-	{
+	_constructor: function () {
 		var that = this;
 		var dt = this.s.dt;
 		var dtSettings = dt.settings()[0];
-		var buttons =  this.c.buttons;
+		var buttons = this.c.buttons;
 
-		if ( ! dtSettings._buttons ) {
+		if (!dtSettings._buttons) {
 			dtSettings._buttons = [];
 		}
 
-		dtSettings._buttons.push( {
+		dtSettings._buttons.push({
 			inst: this,
 			name: this.c.name
-		} );
+		});
 
-		for ( var i=0, ien=buttons.length ; i<ien ; i++ ) {
-			this.add( buttons[i] );
+		for (var i = 0, ien = buttons.length; i < ien; i++) {
+			this.add(buttons[i]);
 		}
 
-		dt.on( 'destroy', function ( e, settings ) {
-			if ( settings === dtSettings ) {
+		dt.on('destroy', function (e, settings) {
+			if (settings === dtSettings) {
 				that.destroy();
 			}
-		} );
+		});
 
 		// Global key event binding to listen for button keys
-		$('body').on( 'keyup.'+this.s.namespace, function ( e ) {
-			if ( ! document.activeElement || document.activeElement === document.body ) {
+		$('body').on('keyup.' + this.s.namespace, function (e) {
+			if (!document.activeElement || document.activeElement === document.body) {
 				// SUse a string of characters for fast lookup of if we need to
 				// handle this
 				var character = String.fromCharCode(e.keyCode).toLowerCase();
 
-				if ( that.s.listenKeys.toLowerCase().indexOf( character ) !== -1 ) {
-					that._keypress( character, e );
+				if (that.s.listenKeys.toLowerCase().indexOf(character) !== -1) {
+					that._keypress(character, e);
 				}
 			}
-		} );
+		});
 	},
-
 
 	/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
 	 * Private methods
@@ -17827,12 +17831,9 @@ $.extend( Buttons.prototype, {
 	 * @param {object} conf Resolved button configuration object
 	 * @private
 	 */
-	_addKey: function ( conf )
-	{
-		if ( conf.key ) {
-			this.s.listenKeys += $.isPlainObject( conf.key ) ?
-				conf.key.key :
-				conf.key;
+	_addKey: function (conf) {
+		if (conf.key) {
+			this.s.listenKeys += $.isPlainObject(conf.key) ? conf.key.key : conf.key;
 		}
 	},
 
@@ -17842,21 +17843,20 @@ $.extend( Buttons.prototype, {
 	 * @param  {array} [buttons] Recursive only - Buttons array
 	 * @private
 	 */
-	_draw: function ( container, buttons )
-	{
-		if ( ! container ) {
+	_draw: function (container, buttons) {
+		if (!container) {
 			container = this.dom.container;
 			buttons = this.s.buttons;
 		}
 
 		container.children().detach();
 
-		for ( var i=0, ien=buttons.length ; i<ien ; i++ ) {
-			container.append( buttons[i].inserter );
-			container.append( ' ' );
+		for (var i = 0, ien = buttons.length; i < ien; i++) {
+			container.append(buttons[i].inserter);
+			container.append(' ');
 
-			if ( buttons[i].buttons && buttons[i].buttons.length ) {
-				this._draw( buttons[i].collection, buttons[i].buttons );
+			if (buttons[i].buttons && buttons[i].buttons.length) {
+				this._draw(buttons[i].collection, buttons[i].buttons);
 			}
 		}
 	},
@@ -17868,96 +17868,128 @@ $.extend( Buttons.prototype, {
 	 * @param  {boolean} inCollection true if the button is in a collection
 	 * @private
 	 */
-	_expandButton: function ( attachTo, button, split, inCollection, inSplit, attachPoint, parentConf )
-	{
+	_expandButton: function (
+		attachTo,
+		button,
+		split,
+		inCollection,
+		inSplit,
+		attachPoint,
+		parentConf
+	) {
 		var dt = this.s.dt;
-		var buttonCounter = 0;
 		var isSplit = false;
-		var buttons = ! Array.isArray( button ) ?
-			[ button ] :
-			button;
-		
-		if(button === undefined ) {
-			buttons = !Array.isArray(split) ?
-				[ split ] :
-				split;
+		var domCollection = this.c.dom.collection;
+		var buttons = !Array.isArray(button) ? [button] : button;
+
+		if (button === undefined) {
+			buttons = !Array.isArray(split) ? [split] : split;
 		}
 
-		if (button !== undefined && button.split !== undefined) {
-			isSplit = true;
-		}
-			
-		for ( var i=0, ien=buttons.length ; i<ien ; i++ ) {
-			var conf = this._resolveExtends( buttons[i] );
+		for (var i = 0, ien = buttons.length; i < ien; i++) {
+			var conf = this._resolveExtends(buttons[i]);
 
-			if ( ! conf ) {
+			if (!conf) {
 				continue;
 			}
 
-			if( conf.config !== undefined && conf.config.split) {
-				isSplit = true;
-			}
-			else {
-				isSplit = false;
-			}
-			
+			isSplit = conf.config && conf.config.split ? true : false;
+
 			// If the configuration is an array, then expand the buttons at this
 			// point
-			if ( Array.isArray( conf ) ) {
-				this._expandButton( attachTo, conf, built !== undefined && built.conf !== undefined ? built.conf.split : undefined, inCollection, parentConf !== undefined && parentConf.split !== undefined, attachPoint, parentConf );
+			if (Array.isArray(conf)) {
+				this._expandButton(
+					attachTo,
+					conf,
+					built !== undefined && built.conf !== undefined ? built.conf.split : undefined,
+					inCollection,
+					parentConf !== undefined && parentConf.split !== undefined,
+					attachPoint,
+					parentConf
+				);
 				continue;
 			}
 
-			var built = this._buildButton( conf, inCollection, conf.split !== undefined || (conf.config !== undefined && conf.config.split !== undefined), inSplit );
-			if ( ! built ) {
+			var built = this._buildButton(
+				conf,
+				inCollection,
+				conf.split !== undefined ||
+					(conf.config !== undefined && conf.config.split !== undefined),
+				inSplit
+			);
+			if (!built) {
 				continue;
 			}
 
-			if ( attachPoint !== undefined && attachPoint !== null ) {
-				attachTo.splice( attachPoint, 0, built );
+			if (attachPoint !== undefined && attachPoint !== null) {
+				attachTo.splice(attachPoint, 0, built);
 				attachPoint++;
 			}
 			else {
-				attachTo.push( built );
+				attachTo.push(built);
 			}
 
-			
-			if ( built.conf.buttons || built.conf.split ) {
-				built.collection = $('<'+(isSplit ? this.c.dom.splitCollection.tag : this.c.dom.collection.tag)+'/>');
-
+			// Create the dropdown for a collection
+			if (built.conf.buttons) {
+				built.collection = $('<' + domCollection.container.content.tag + '/>');
 				built.conf._collection = built.collection;
 
-				if(built.conf.split) {
-					for(var j = 0; j < built.conf.split.length; j++) {
-						if(typeof built.conf.split[j] === "object") {
-							built.conf.split[j].parent = parentConf;
-							if(built.conf.split[j].collectionLayout === undefined) {
-								built.conf.split[j].collectionLayout = built.conf.collectionLayout;
-							}
-							if(built.conf.split[j].dropup === undefined) {
-								built.conf.split[j].dropup = built.conf.dropup;
-							}
-							if(built.conf.split[j].fade === undefined) {
-								built.conf.split[j].fade = built.conf.fade;
-							}
+				$(built.node).append(domCollection.action.dropHtml);
+
+				this._expandButton(
+					built.buttons,
+					built.conf.buttons,
+					built.conf.split,
+					!isSplit,
+					isSplit,
+					attachPoint,
+					built.conf
+				);
+			}
+
+			// And the split collection
+			if (built.conf.split) {
+				built.collection = $('<' + domCollection.container.tag + '/>');
+				built.conf._collection = built.collection;
+
+				for (var j = 0; j < built.conf.split.length; j++) {
+					var item = built.conf.split[j];
+
+					if (typeof item === 'object') {
+						item.parent = parentConf;
+
+						if (item.collectionLayout === undefined) {
+							item.collectionLayout = built.conf.collectionLayout;
+						}
+
+						if (item.dropup === undefined) {
+							item.dropup = built.conf.dropup;
+						}
+
+						if (item.fade === undefined) {
+							item.fade = built.conf.fade;
 						}
 					}
 				}
-				else {
-					$(built.node).append($('<span class="dt-down-arrow">'+this.c.dom.splitDropdown.text+'</span>'))
-				}
 
-				this._expandButton( built.buttons, built.conf.buttons, built.conf.split, !isSplit, isSplit, attachPoint, built.conf );
+				this._expandButton(
+					built.buttons,
+					built.conf.buttons,
+					built.conf.split,
+					!isSplit,
+					isSplit,
+					attachPoint,
+					built.conf
+				);
 			}
+
 			built.conf.parent = parentConf;
 
 			// init call is made here, rather than buildButton as it needs to
 			// be selectable, and for that it needs to be in the buttons array
-			if ( conf.init ) {
-				conf.init.call( dt.button( built.node ), dt, $(built.node), conf );
+			if (conf.init) {
+				conf.init.call(dt.button(built.node), dt, $(built.node), conf);
 			}
-
-			buttonCounter++;
 		}
 	},
 
@@ -17965,226 +17997,237 @@ $.extend( Buttons.prototype, {
 	 * Create an individual button
 	 * @param  {object} config            Resolved button configuration
 	 * @param  {boolean} inCollection `true` if a collection button
-	 * @return {jQuery} Created button node (jQuery)
+	 * @return {object} Completed button description object
 	 * @private
 	 */
-	_buildButton: function ( config, inCollection, isSplit, inSplit )
-	{
-		var buttonDom = this.c.dom.button;
-		var linerDom = this.c.dom.buttonLiner;
-		var collectionDom = this.c.dom.collection;
-		var splitDom = this.c.dom.split;
-		var splitCollectionDom = this.c.dom.splitCollection;
-		var splitDropdownButton = this.c.dom.splitDropdownButton;
+	_buildButton: function (config, inCollection, isSplit, inSplit) {
+		var configDom = this.c.dom;
+		var textNode;
 		var dt = this.s.dt;
-		var text = function ( opt ) {
-			return typeof opt === 'function' ?
-				opt( dt, button, config ) :
-				opt;
+		var text = function (opt) {
+			return typeof opt === 'function' ? opt(dt, button, config) : opt;
 		};
+
+		// Create an object that describes the button which can be in `dom.button`, or
+		// `dom.collection.button` or `dom.split.button` or `dom.collection.split.button`!
+		// Each should extend from `dom.button`.
+		var dom = $.extend(true, {}, configDom.button);
+
+		if (inCollection && isSplit && configDom.collection.split) {
+			$.extend(true, dom, configDom.collection.split.action);
+		}
+		else if (inSplit || inCollection) {
+			$.extend(true, dom, configDom.collection.button);
+		}
+		else if (isSplit) {
+			$.extend(true, dom, configDom.split.button);
+		}
 
 		// Spacers don't do much other than insert an element into the DOM
 		if (config.spacer) {
-			var spacer = $('<span></span>')
-				.addClass('dt-button-spacer ' + config.style + ' ' + buttonDom.spacerClass)
+			var spacer = $('<' + dom.spacer.tag + '/>')
+				.addClass('dt-button-spacer ' + config.style + ' ' + dom.spacer.className)
 				.html(text(config.text));
 
 			return {
-				conf:         config,
-				node:         spacer,
-				inserter:     spacer,
-				buttons:      [],
+				conf: config,
+				node: spacer,
+				inserter: spacer,
+				buttons: [],
 				inCollection: inCollection,
-				isSplit:	  isSplit,
-				inSplit:	  inSplit,
-				collection:   null
+				isSplit: isSplit,
+				collection: null,
+				textNode: spacer
 			};
-		}
-
-		if ( !isSplit && inSplit && splitCollectionDom ) {
-			buttonDom = splitDropdownButton;
-		}
-		else if ( !isSplit && inCollection && collectionDom.button ) {
-			buttonDom = collectionDom.button;
-		} 
-
-		if ( !isSplit && inSplit && splitCollectionDom.buttonLiner ) {
-			linerDom = splitCollectionDom.buttonLiner
-		}
-		else if ( !isSplit && inCollection && collectionDom.buttonLiner ) {
-			linerDom = collectionDom.buttonLiner;
 		}
 
 		// Make sure that the button is available based on whatever requirements
 		// it has. For example, PDF button require pdfmake
-		if ( config.available && ! config.available( dt, config ) && !config.hasOwnProperty('html') ) {
+		if (config.available && !config.available(dt, config) && !config.hasOwnProperty('html')) {
 			return false;
 		}
 
 		var button;
-		if(!config.hasOwnProperty('html')) {
-			var action = function ( e, dt, button, config ) {
-				config.action.call( dt.button( button ), e, dt, button, config );
-	
-				$(dt.table().node()).triggerHandler( 'buttons-action.dt', [
-					dt.button( button ), dt, button, config 
-				] );
+
+		if (!config.hasOwnProperty('html')) {
+			var action = function (e, dt, button, config) {
+				config.action.call(dt.button(button), e, dt, button, config);
+
+				$(dt.table().node()).triggerHandler('buttons-action.dt', [
+					dt.button(button),
+					dt,
+					button,
+					config
+				]);
 			};
 
-			var tag = config.tag || buttonDom.tag;
-			var clickBlurs = config.clickBlurs === undefined
-				? true :
-				config.clickBlurs;
+			var tag = config.tag || dom.tag;
+			var clickBlurs = config.clickBlurs === undefined ? true : config.clickBlurs;
 
-			button = $('<'+tag+'/>')
-				.addClass( buttonDom.className )
-				.addClass( inSplit ? this.c.dom.splitDropdownButton.className : '')
-				.attr( 'tabindex', this.s.dt.settings()[0].iTabIndex )
-				.attr( 'aria-controls', this.s.dt.table().node().id )
-				.on( 'click.dtb', function (e) {
+			button = $('<' + tag + '/>')
+				.addClass(dom.className)
+				.attr('tabindex', this.s.dt.settings()[0].iTabIndex)
+				.attr('aria-controls', this.s.dt.table().node().id)
+				.on('click.dtb', function (e) {
 					e.preventDefault();
-	
-					if ( ! button.hasClass( buttonDom.disabled ) && config.action ) {
-						action( e, dt, button, config );
+
+					if (!button.hasClass(dom.disabled) && config.action) {
+						action(e, dt, button, config);
 					}
-					if( clickBlurs ) {
+
+					if (clickBlurs) {
 						button.trigger('blur');
 					}
-				} )
-				.on( 'keypress.dtb', function (e) {
-					if ( e.keyCode === 13 ) {
+				})
+				.on('keypress.dtb', function (e) {
+					if (e.keyCode === 13) {
 						e.preventDefault();
 
-						if ( ! button.hasClass( buttonDom.disabled ) && config.action ) {
-							action( e, dt, button, config );
+						if (!button.hasClass(dom.disabled) && config.action) {
+							action(e, dt, button, config);
 						}
 					}
-				} );
-	
+				});
+
 			// Make `a` tags act like a link
-			if ( tag.toLowerCase() === 'a' ) {
-				button.attr( 'href', '#' );
-			}
-	
-			// Button tags should have `type=button` so they don't have any default behaviour
-			if ( tag.toLowerCase() === 'button' ) {
-				button.attr( 'type', 'button' );
-			}
-	
-			if ( linerDom.tag ) {
-				var liner = $('<'+linerDom.tag+'/>')
-					.html( text( config.text ) )
-					.addClass( linerDom.className );
-	
-				if ( linerDom.tag.toLowerCase() === 'a' ) {
-					liner.attr( 'href', '#' );
-				}
-	
-				button.append( liner );
-			}
-			else {
-				button.html( text( config.text ) );
-			}
-	
-			if ( config.enabled === false ) {
-				button.addClass( buttonDom.disabled );
-			}
-	
-			if ( config.className ) {
-				button.addClass( config.className );
-			}
-	
-			if ( config.titleAttr ) {
-				button.attr( 'title', text( config.titleAttr ) );
-			}
-	
-			if ( config.attr ) {
-				button.attr( config.attr );
-			}
-	
-			if ( ! config.namespace ) {
-				config.namespace = '.dt-button-'+(_buttonCounter++);
+			if (tag.toLowerCase() === 'a') {
+				button.attr('href', '#');
 			}
 
-			if  ( config.config !== undefined && config.config.split ) {
+			// Button tags should have `type=button` so they don't have any default behaviour
+			if (tag.toLowerCase() === 'button') {
+				button.attr('type', 'button');
+			}
+
+			if (dom.liner.tag) {
+				var liner = $('<' + dom.liner.tag + '/>')
+					.html(text(config.text))
+					.addClass(dom.liner.className);
+
+				if (dom.liner.tag.toLowerCase() === 'a') {
+					liner.attr('href', '#');
+				}
+
+				button.append(liner);
+				textNode = liner;
+			}
+			else {
+				button.html(text(config.text));
+				textNode = button;
+			}
+
+			if (config.enabled === false) {
+				button.addClass(dom.disabled);
+			}
+
+			if (config.className) {
+				button.addClass(config.className);
+			}
+
+			if (config.titleAttr) {
+				button.attr('title', text(config.titleAttr));
+			}
+
+			if (config.attr) {
+				button.attr(config.attr);
+			}
+
+			if (!config.namespace) {
+				config.namespace = '.dt-button-' + _buttonCounter++;
+			}
+
+			if (config.config !== undefined && config.config.split) {
 				config.split = config.config.split;
 			}
 		}
 		else {
-			button = $(config.html)
+			button = $(config.html);
 		}
-	
+
 		var buttonContainer = this.c.dom.buttonContainer;
 		var inserter;
-		if ( buttonContainer && buttonContainer.tag ) {
-			inserter = $('<'+buttonContainer.tag+'/>')
-				.addClass( buttonContainer.className )
-				.append( button );
+		if (buttonContainer && buttonContainer.tag) {
+			inserter = $('<' + buttonContainer.tag + '/>')
+				.addClass(buttonContainer.className)
+				.append(button);
 		}
 		else {
 			inserter = button;
 		}
 
-		this._addKey( config );
+		this._addKey(config);
 
 		// Style integration callback for DOM manipulation
 		// Note that this is _not_ documented. It is currently
 		// for style integration only
-		if( this.c.buttonCreated ) {
-			inserter = this.c.buttonCreated( config, inserter );
+		if (this.c.buttonCreated) {
+			inserter = this.c.buttonCreated(config, inserter);
 		}
 
 		var splitDiv;
-		if(isSplit) {
-			splitDiv = $('<div/>').addClass(this.c.dom.splitWrapper.className)
-			splitDiv.append(button);
+
+		if (isSplit) {
+			var dropdownConf = inCollection
+				? $.extend(true, this.c.dom.split, this.c.dom.collection.split)
+				: this.c.dom.split;
+			var wrapperConf = dropdownConf.wrapper;
+
+			splitDiv = $('<' + wrapperConf.tag + '/>')
+				.addClass(wrapperConf.className)
+				.append(button);
+
 			var dropButtonConfig = $.extend(config, {
-				text: this.c.dom.splitDropdown.text,
-				className: this.c.dom.splitDropdown.className,
-				closeButton: false,
+				align: dropdownConf.dropdown.align,
 				attr: {
 					'aria-haspopup': 'dialog',
 					'aria-expanded': false
 				},
-				align: this.c.dom.splitDropdown.align,
-				splitAlignClass: this.c.dom.splitDropdown.splitAlignClass
-				
-			})
+				className: dropdownConf.dropdown.className,
+				closeButton: false,
+				splitAlignClass: dropdownConf.dropdown.splitAlignClass,
+				text: dropdownConf.dropdown.text
+			});
 
 			this._addKey(dropButtonConfig);
 
-			var splitAction = function ( e, dt, button, config ) {
-				_dtButtons.split.action.call( dt.button(splitDiv), e, dt, button, config );
-	
-				$(dt.table().node()).triggerHandler( 'buttons-action.dt', [
-					dt.button( button ), dt, button, config 
-				] );
-				button.attr('aria-expanded', true)
+			var splitAction = function (e, dt, button, config) {
+				_dtButtons.split.action.call(dt.button(splitDiv), e, dt, button, config);
+
+				$(dt.table().node()).triggerHandler('buttons-action.dt', [
+					dt.button(button),
+					dt,
+					button,
+					config
+				]);
+				button.attr('aria-expanded', true);
 			};
-			
-			var dropButton = $('<button class="' + this.c.dom.splitDropdown.className + ' dt-button"><span class="dt-btn-split-drop-arrow">'+this.c.dom.splitDropdown.text+'</span></button>')
-				.on( 'click.dtb', function (e) {
+
+			var dropButton = $(
+				'<button class="' + dropdownConf.dropdown.className + ' dt-button"></button>'
+			)
+				.html(dropdownConf.dropdown.dropHtml)
+				.on('click.dtb', function (e) {
 					e.preventDefault();
 					e.stopPropagation();
 
-					if ( ! dropButton.hasClass( buttonDom.disabled )) {
-						splitAction( e, dt, dropButton, dropButtonConfig );
+					if (!dropButton.hasClass(dom.disabled)) {
+						splitAction(e, dt, dropButton, dropButtonConfig);
 					}
-					if ( clickBlurs ) {
+					if (clickBlurs) {
 						dropButton.trigger('blur');
 					}
-				} )
-				.on( 'keypress.dtb', function (e) {
-					if ( e.keyCode === 13 ) {
+				})
+				.on('keypress.dtb', function (e) {
+					if (e.keyCode === 13) {
 						e.preventDefault();
 
-						if ( ! dropButton.hasClass( buttonDom.disabled ) ) {
-							splitAction( e, dt, dropButton, dropButtonConfig );
+						if (!dropButton.hasClass(dom.disabled)) {
+							splitAction(e, dt, dropButton, dropButtonConfig);
 						}
 					}
-				} );
+				});
 
-			if(config.split.length === 0) {
+			if (config.split.length === 0) {
 				dropButton.addClass('dtb-hide-drop');
 			}
 
@@ -18192,14 +18235,15 @@ $.extend( Buttons.prototype, {
 		}
 
 		return {
-			conf:         config,
-			node:         isSplit ? splitDiv.get(0) : button.get(0),
-			inserter:     isSplit ? splitDiv : inserter,
-			buttons:      [],
+			conf: config,
+			node: isSplit ? splitDiv.get(0) : button.get(0),
+			inserter: isSplit ? splitDiv : inserter,
+			buttons: [],
 			inCollection: inCollection,
-			isSplit:	  isSplit,
-			inSplit:	  inSplit,
-			collection:   null
+			isSplit: isSplit,
+			inSplit: inSplit,
+			collection: null,
+			textNode: textNode
 		};
 	},
 
@@ -18210,21 +18254,20 @@ $.extend( Buttons.prototype, {
 	 * @return {object} Button object
 	 * @private
 	 */
-	_nodeToButton: function ( node, buttons )
-	{
-		if ( ! buttons ) {
+	_nodeToButton: function (node, buttons) {
+		if (!buttons) {
 			buttons = this.s.buttons;
 		}
 
-		for ( var i=0, ien=buttons.length ; i<ien ; i++ ) {
-			if ( buttons[i].node === node ) {
+		for (var i = 0, ien = buttons.length; i < ien; i++) {
+			if (buttons[i].node === node) {
 				return buttons[i];
 			}
 
-			if ( buttons[i].buttons.length ) {
-				var ret = this._nodeToButton( node, buttons[i].buttons );
+			if (buttons[i].buttons.length) {
+				var ret = this._nodeToButton(node, buttons[i].buttons);
 
-				if ( ret ) {
+				if (ret) {
 					return ret;
 				}
 			}
@@ -18238,21 +18281,20 @@ $.extend( Buttons.prototype, {
 	 * @return {array} Button's host array
 	 * @private
 	 */
-	_nodeToHost: function ( node, buttons )
-	{
-		if ( ! buttons ) {
+	_nodeToHost: function (node, buttons) {
+		if (!buttons) {
 			buttons = this.s.buttons;
 		}
 
-		for ( var i=0, ien=buttons.length ; i<ien ; i++ ) {
-			if ( buttons[i].node === node ) {
+		for (var i = 0, ien = buttons.length; i < ien; i++) {
+			if (buttons[i].node === node) {
 				return buttons;
 			}
 
-			if ( buttons[i].buttons.length ) {
-				var ret = this._nodeToHost( node, buttons[i].buttons );
+			if (buttons[i].buttons.length) {
+				var ret = this._nodeToHost(node, buttons[i].buttons);
 
-				if ( ret ) {
+				if (ret) {
 					return ret;
 				}
 			}
@@ -18266,40 +18308,39 @@ $.extend( Buttons.prototype, {
 	 * @param  {object} e Key event that triggered this call
 	 * @private
 	 */
-	_keypress: function ( character, e )
-	{
+	_keypress: function (character, e) {
 		// Check if this button press already activated on another instance of Buttons
-		if ( e._buttonsHandled ) {
+		if (e._buttonsHandled) {
 			return;
 		}
 
-		var run = function ( conf, node ) {
-			if ( ! conf.key ) {
+		var run = function (conf, node) {
+			if (!conf.key) {
 				return;
 			}
 
-			if ( conf.key === character ) {
+			if (conf.key === character) {
 				e._buttonsHandled = true;
 				$(node).click();
 			}
-			else if ( $.isPlainObject( conf.key ) ) {
-				if ( conf.key.key !== character ) {
+			else if ($.isPlainObject(conf.key)) {
+				if (conf.key.key !== character) {
 					return;
 				}
 
-				if ( conf.key.shiftKey && ! e.shiftKey ) {
+				if (conf.key.shiftKey && !e.shiftKey) {
 					return;
 				}
 
-				if ( conf.key.altKey && ! e.altKey ) {
+				if (conf.key.altKey && !e.altKey) {
 					return;
 				}
 
-				if ( conf.key.ctrlKey && ! e.ctrlKey ) {
+				if (conf.key.ctrlKey && !e.ctrlKey) {
 					return;
 				}
 
-				if ( conf.key.metaKey && ! e.metaKey ) {
+				if (conf.key.metaKey && !e.metaKey) {
 					return;
 				}
 
@@ -18309,17 +18350,17 @@ $.extend( Buttons.prototype, {
 			}
 		};
 
-		var recurse = function ( a ) {
-			for ( var i=0, ien=a.length ; i<ien ; i++ ) {
-				run( a[i].conf, a[i].node );
+		var recurse = function (a) {
+			for (var i = 0, ien = a.length; i < ien; i++) {
+				run(a[i].conf, a[i].node);
 
-				if ( a[i].buttons.length ) {
-					recurse( a[i].buttons );
+				if (a[i].buttons.length) {
+					recurse(a[i].buttons);
 				}
 			}
 		};
 
-		recurse( this.s.buttons );
+		recurse(this.s.buttons);
 	},
 
 	/**
@@ -18328,18 +18369,15 @@ $.extend( Buttons.prototype, {
 	 * @param  {object} conf Button configuration
 	 * @private
 	 */
-	_removeKey: function ( conf )
-	{
-		if ( conf.key ) {
-			var character = $.isPlainObject( conf.key ) ?
-				conf.key.key :
-				conf.key;
+	_removeKey: function (conf) {
+		if (conf.key) {
+			var character = $.isPlainObject(conf.key) ? conf.key.key : conf.key;
 
 			// Remove only one character, as multiple buttons could have the
 			// same listening key
 			var a = this.s.listenKeys.split('');
-			var idx = $.inArray( character, a );
-			a.splice( idx, 1 );
+			var idx = $.inArray(character, a);
+			a.splice(idx, 1);
 			this.s.listenKeys = a.join('');
 		}
 	},
@@ -18350,63 +18388,60 @@ $.extend( Buttons.prototype, {
 	 * @return {object} Button configuration
 	 * @private
 	 */
-	_resolveExtends: function ( conf )
-	{
+	_resolveExtends: function (conf) {
 		var that = this;
 		var dt = this.s.dt;
 		var i, ien;
-		var toConfObject = function ( base ) {
+		var toConfObject = function (base) {
 			var loop = 0;
 
 			// Loop until we have resolved to a button configuration, or an
 			// array of button configurations (which will be iterated
 			// separately)
-			while ( ! $.isPlainObject(base) && ! Array.isArray(base) ) {
-				if ( base === undefined ) {
+			while (!$.isPlainObject(base) && !Array.isArray(base)) {
+				if (base === undefined) {
 					return;
 				}
 
-				if ( typeof base === 'function' ) {
-					base = base.call( that, dt, conf );
+				if (typeof base === 'function') {
+					base = base.call(that, dt, conf);
 
-					if ( ! base ) {
+					if (!base) {
 						return false;
 					}
 				}
-				else if ( typeof base === 'string' ) {
-					if ( ! _dtButtons[ base ] ) {
-						return {html: base}
+				else if (typeof base === 'string') {
+					if (!_dtButtons[base]) {
+						return { html: base };
 					}
 
-					base = _dtButtons[ base ];
+					base = _dtButtons[base];
 				}
 
 				loop++;
-				if ( loop > 30 ) {
+				if (loop > 30) {
 					// Protect against misconfiguration killing the browser
 					throw 'Buttons: Too many iterations';
 				}
 			}
 
-			return Array.isArray( base ) ?
-				base :
-				$.extend( {}, base );
+			return Array.isArray(base) ? base : $.extend({}, base);
 		};
 
-		conf = toConfObject( conf );
+		conf = toConfObject(conf);
 
-		while ( conf && conf.extend ) {
+		while (conf && conf.extend) {
 			// Use `toConfObject` in case the button definition being extended
 			// is itself a string or a function
-			if ( ! _dtButtons[ conf.extend ] ) {
-				throw 'Cannot extend unknown button type: '+conf.extend;
+			if (!_dtButtons[conf.extend]) {
+				throw 'Cannot extend unknown button type: ' + conf.extend;
 			}
 
-			var objArray = toConfObject( _dtButtons[ conf.extend ] );
-			if ( Array.isArray( objArray ) ) {
+			var objArray = toConfObject(_dtButtons[conf.extend]);
+			if (Array.isArray(objArray)) {
 				return objArray;
 			}
-			else if ( ! objArray ) {
+			else if (!objArray) {
 				// This is a little brutal as it might be possible to have a
 				// valid button without the extend, but if there is no extend
 				// then the host button would be acting in an undefined state
@@ -18417,16 +18452,16 @@ $.extend( Buttons.prototype, {
 			var originalClassName = objArray.className;
 
 			if (conf.config !== undefined && objArray.config !== undefined) {
-				conf.config = $.extend({}, objArray.config, conf.config)
+				conf.config = $.extend({}, objArray.config, conf.config);
 			}
 
-			conf = $.extend( {}, objArray, conf );
+			conf = $.extend({}, objArray, conf);
 
 			// The extend will have overwritten the original class name if the
 			// `conf` object also assigned a class, but we want to concatenate
 			// them so they are list that is combined from all extended buttons
-			if ( originalClassName && conf.className !== originalClassName ) {
-				conf.className = originalClassName+' '+conf.className;
+			if (originalClassName && conf.className !== originalClassName) {
+				conf.className = originalClassName + ' ' + conf.className;
 			}
 
 			// Although we want the `conf` object to overwrite almost all of
@@ -18438,24 +18473,24 @@ $.extend( Buttons.prototype, {
 		// Buttons to be added to a collection  -gives the ability to define
 		// if buttons should be added to the start or end of a collection
 		var postfixButtons = conf.postfixButtons;
-		if ( postfixButtons ) {
-			if ( ! conf.buttons ) {
+		if (postfixButtons) {
+			if (!conf.buttons) {
 				conf.buttons = [];
 			}
 
-			for ( i=0, ien=postfixButtons.length ; i<ien ; i++ ) {
-				conf.buttons.push( postfixButtons[i] );
+			for (i = 0, ien = postfixButtons.length; i < ien; i++) {
+				conf.buttons.push(postfixButtons[i]);
 			}
 		}
 
 		var prefixButtons = conf.prefixButtons;
-		if ( prefixButtons ) {
-			if ( ! conf.buttons ) {
+		if (prefixButtons) {
+			if (!conf.buttons) {
 				conf.buttons = [];
 			}
 
-			for ( i=0, ien=prefixButtons.length ; i<ien ; i++ ) {
-				conf.buttons.splice( i, 0, prefixButtons[i] );
+			for (i = 0, ien = prefixButtons.length; i < ien; i++) {
+				conf.buttons.splice(i, 0, prefixButtons[i]);
 			}
 		}
 
@@ -18468,49 +18503,52 @@ $.extend( Buttons.prototype, {
 	 * @param {DataTable.Api} hostButton DT API instance of the button
 	 * @param {object} inOpts Options (see object below for all options)
 	 */
-	_popover: function ( content, hostButton, inOpts, e ) {
+	_popover: function (content, hostButton, inOpts, e) {
 		var dt = hostButton;
-		var buttonsSettings = this.c;
+		var c = this.c;
 		var closed = false;
-		var options = $.extend( {
-			align: 'button-left', // button-right, dt-container, split-left, split-right
-			autoClose: false,
-			background: true,
-			backgroundClassName: 'dt-button-background',
-			closeButton: true,
-			contentClassName: buttonsSettings.dom.collection.className,
-			collectionLayout: '',
-			collectionTitle: '',
-			dropup: false,
-			fade: 400,
-			popoverTitle: '',
-			rightAlignClassName: 'dt-button-right',
-			tag: buttonsSettings.dom.collection.tag
-		}, inOpts );
+		var options = $.extend(
+			{
+				align: 'button-left', // button-right, dt-container, split-left, split-right
+				autoClose: false,
+				background: true,
+				backgroundClassName: 'dt-button-background',
+				closeButton: true,
+				containerClassName: c.dom.collection.container.className,
+				contentClassName: c.dom.collection.container.content.className,
+				collectionLayout: '',
+				collectionTitle: '',
+				dropup: false,
+				fade: 400,
+				popoverTitle: '',
+				rightAlignClassName: 'dt-button-right',
+				tag: c.dom.collection.container.tag
+			},
+			inOpts
+		);
 
+		var containerSelector = options.tag + '.' + options.containerClassName.replace(/ /g, '.');
 		var hostNode = hostButton.node();
 
 		var close = function () {
 			closed = true;
 
-			_fadeOut(
-				$('.dt-button-collection'),
-				options.fade,
-				function () {
-					$(this).detach();
-				}
+			_fadeOut($(containerSelector), options.fade, function () {
+				$(this).detach();
+			});
+
+			$(dt.buttons('[aria-haspopup="dialog"][aria-expanded="true"]').nodes()).attr(
+				'aria-expanded',
+				'false'
 			);
 
-			$(dt.buttons( '[aria-haspopup="dialog"][aria-expanded="true"]' ).nodes())
-				.attr('aria-expanded', 'false');
-
-			$('div.dt-button-background').off( 'click.dtb-collection' );
-			Buttons.background( false, options.backgroundClassName, options.fade, hostNode );
+			$('div.dt-button-background').off('click.dtb-collection');
+			Buttons.background(false, options.backgroundClassName, options.fade, hostNode);
 
 			$(window).off('resize.resize.dtb-collection');
-			$('body').off( '.dtb-collection' );
-			dt.off( 'buttons-action.b-internal' );
-			dt.off( 'destroy' );
+			$('body').off('.dtb-collection');
+			dt.off('buttons-action.b-internal');
+			dt.off('destroy');
 		};
 
 		if (content === false) {
@@ -18518,10 +18556,12 @@ $.extend( Buttons.prototype, {
 			return;
 		}
 
-		var existingExpanded = $(dt.buttons( '[aria-haspopup="dialog"][aria-expanded="true"]' ).nodes());
-		if ( existingExpanded.length ) {
+		var existingExpanded = $(
+			dt.buttons('[aria-haspopup="dialog"][aria-expanded="true"]').nodes()
+		);
+		if (existingExpanded.length) {
 			// Reuse the current position if the button that was triggered is inside an existing collection
-			if (hostNode.closest('div.dt-button-collection').length) {
+			if (hostNode.closest(containerSelector).length) {
 				hostNode = existingExpanded.eq(0);
 			}
 
@@ -18542,8 +18582,8 @@ $.extend( Buttons.prototype, {
 			mod = 'dtb-b1';
 		}
 
-		var display = $('<div/>')
-			.addClass('dt-button-collection')
+		var display = $('<' + options.tag + '/>')
+			.addClass(options.containerClassName)
 			.addClass(options.collectionLayout)
 			.addClass(options.splitAlignClass)
 			.addClass(mod)
@@ -18558,29 +18598,35 @@ $.extend( Buttons.prototype, {
 			.attr('role', 'menu')
 			.appendTo(display);
 
-		hostNode.attr( 'aria-expanded', 'true' );
+		hostNode.attr('aria-expanded', 'true');
 
-		if ( hostNode.parents('body')[0] !== document.body ) {
+		if (hostNode.parents('body')[0] !== document.body) {
 			hostNode = document.body.lastChild;
 		}
 
-		if ( options.popoverTitle ) {
-			display.prepend('<div class="dt-button-collection-title">'+options.popoverTitle+'</div>');
+		if (options.popoverTitle) {
+			display.prepend(
+				'<div class="dt-button-collection-title">' + options.popoverTitle + '</div>'
+			);
 		}
-		else if ( options.collectionTitle ) {
-			display.prepend('<div class="dt-button-collection-title">'+options.collectionTitle+'</div>');
+		else if (options.collectionTitle) {
+			display.prepend(
+				'<div class="dt-button-collection-title">' + options.collectionTitle + '</div>'
+			);
 		}
 
 		if (options.closeButton) {
-			display.prepend('<div class="dtb-popover-close">x</div>').addClass('dtb-collection-closeable')
+			display
+				.prepend('<div class="dtb-popover-close">&times;</div>')
+				.addClass('dtb-collection-closeable');
 		}
 
-		_fadeIn( display.insertAfter( hostNode ), options.fade );
+		_fadeIn(display.insertAfter(hostNode), options.fade);
 
-		var tableContainer = $( hostButton.table().container() );
-		var position = display.css( 'position' );
+		var tableContainer = $(hostButton.table().container());
+		var position = display.css('position');
 
-		if ( options.span === 'container' || options.align === 'dt-container' ) {
+		if (options.span === 'container' || options.align === 'dt-container') {
 			hostNode = hostNode.parent();
 			display.css('width', tableContainer.width());
 		}
@@ -18605,10 +18651,10 @@ $.extend( Buttons.prototype, {
 			var top = buttonPosition.top + hostNode.outerHeight();
 			var left = buttonPosition.left;
 
-			display.css( {
+			display.css({
 				top: top,
 				left: left
-			} );
+			});
 
 			// Get the popover position
 			computed = window.getComputedStyle(display[0]);
@@ -18623,11 +18669,15 @@ $.extend( Buttons.prototype, {
 
 			// First position per the class requirements - pop up and right align
 			if (options.dropup) {
-				top = buttonPosition.top - popoverSizes.height - popoverSizes.marginTop - popoverSizes.marginBottom;
+				top =
+					buttonPosition.top -
+					popoverSizes.height -
+					popoverSizes.marginTop -
+					popoverSizes.marginBottom;
 			}
 
-			if (options.align === 'button-right' || display.hasClass( options.rightAlignClassName )) {
-				left = buttonPosition.left - popoverSizes.width + hostNode.outerWidth(); 
+			if (options.align === 'button-right' || display.hasClass(options.rightAlignClassName)) {
+				left = buttonPosition.left - popoverSizes.width + hostNode.outerWidth();
 			}
 
 			// Container alignment - make sure it doesn't overflow the table container
@@ -18652,9 +18702,16 @@ $.extend( Buttons.prototype, {
 				left = -buttonOffset.left;
 			}
 
-			if (containerPosition.top + top + popoverSizes.height > $(window).height() + $(window).scrollTop()) {
+			if (
+				containerPosition.top + top + popoverSizes.height >
+				$(window).height() + $(window).scrollTop()
+			) {
 				// Pop up if otherwise we'd need the user to scroll down
-				top = buttonPosition.top - popoverSizes.height - popoverSizes.marginTop - popoverSizes.marginBottom;
+				top =
+					buttonPosition.top -
+					popoverSizes.height -
+					popoverSizes.marginTop -
+					popoverSizes.marginBottom;
 			}
 
 			if (containerPosition.top + top < $(window).scrollTop()) {
@@ -18663,10 +18720,10 @@ $.extend( Buttons.prototype, {
 			}
 
 			// Calculations all done - now set it
-			display.css( {
+			display.css({
 				top: top,
 				left: left
-			} );
+			});
 		}
 		else {
 			// Fix position - centre on screen
@@ -18674,11 +18731,11 @@ $.extend( Buttons.prototype, {
 				var half = $(window).height() / 2;
 
 				var top = display.height() / 2;
-				if ( top > half ) {
+				if (top > half) {
 					top = half;
 				}
 
-				display.css( 'marginTop', top*-1 );
+				display.css('marginTop', top * -1);
 			};
 
 			position();
@@ -18688,7 +18745,7 @@ $.extend( Buttons.prototype, {
 			});
 		}
 
-		if ( options.background ) {
+		if (options.background) {
 			Buttons.background(
 				true,
 				options.backgroundClassName,
@@ -18701,28 +18758,27 @@ $.extend( Buttons.prototype, {
 		// background element, iOS Safari will ignore the body click
 		// listener below. An empty function here is all that is
 		// required to make it work...
-		$('div.dt-button-background').on( 'click.dtb-collection', function () {} );
+		$('div.dt-button-background').on('click.dtb-collection', function () {});
 
-		if ( options.autoClose ) {
-			setTimeout( function () {
-				dt.on( 'buttons-action.b-internal', function (e, btn, dt, node) {
-					if ( node[0] === hostNode[0] ) {
+		if (options.autoClose) {
+			setTimeout(function () {
+				dt.on('buttons-action.b-internal', function (e, btn, dt, node) {
+					if (node[0] === hostNode[0]) {
 						return;
 					}
 					close();
-				} );
+				});
 			}, 0);
 		}
-		
-		$(display).trigger('buttons-popover.dt');
 
+		$(display).trigger('buttons-popover.dt');
 
 		dt.on('destroy', close);
 
-		setTimeout(function() {
+		setTimeout(function () {
 			closed = false;
 			$('body')
-				.on( 'click.dtb-collection', function (e) {
+				.on('click.dtb-collection', function (e) {
 					if (closed) {
 						return;
 					}
@@ -18730,22 +18786,27 @@ $.extend( Buttons.prototype, {
 					// andSelf is deprecated in jQ1.8, but we want 1.7 compat
 					var back = $.fn.addBack ? 'addBack' : 'andSelf';
 					var parent = $(e.target).parent()[0];
-	
-					if (( ! $(e.target).parents()[back]().filter( content ).length  && !$(parent).hasClass('dt-buttons')) || $(e.target).hasClass('dt-button-background')) {
+
+					if (
+						(!$(e.target).parents()[back]().filter(content).length &&
+							!$(parent).hasClass('dt-buttons')) ||
+						$(e.target).hasClass('dt-button-background')
+					) {
 						close();
 					}
-				} )
-				.on( 'keyup.dtb-collection', function (e) {
-					if ( e.keyCode === 27 ) {
+				})
+				.on('keyup.dtb-collection', function (e) {
+					if (e.keyCode === 27) {
 						close();
 					}
-				} )
-				.on( 'keydown.dtb-collection', function (e) {
+				})
+				.on('keydown.dtb-collection', function (e) {
 					// Focus trap for tab key
 					var elements = $('a, button', content);
 					var active = document.activeElement;
 
-					if (e.keyCode !== 9) { // tab
+					if (e.keyCode !== 9) {
+						// tab
 						return;
 					}
 
@@ -18767,12 +18828,10 @@ $.extend( Buttons.prototype, {
 							e.preventDefault();
 						}
 					}
-				} );
+				});
 		}, 0);
 	}
-} );
-
-
+});
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  * Statics
@@ -18781,37 +18840,28 @@ $.extend( Buttons.prototype, {
 /**
  * Show / hide a background layer behind a collection
  * @param  {boolean} Flag to indicate if the background should be shown or
- *   hidden 
+ *   hidden
  * @param  {string} Class to assign to the background
  * @static
  */
-Buttons.background = function ( show, className, fade, insertPoint ) {
-	if ( fade === undefined ) {
+Buttons.background = function (show, className, fade, insertPoint) {
+	if (fade === undefined) {
 		fade = 400;
 	}
-	if ( ! insertPoint ) {
+	if (!insertPoint) {
 		insertPoint = document.body;
 	}
 
-	if ( show ) {
+	if (show) {
 		_fadeIn(
-			$('<div/>')
-				.addClass( className )
-				.css( 'display', 'none' )
-				.insertAfter( insertPoint ),
+			$('<div/>').addClass(className).css('display', 'none').insertAfter(insertPoint),
 			fade
 		);
 	}
 	else {
-		_fadeOut(
-			$('div.'+className),
-			fade,
-			function () {
-				$(this)
-					.removeClass( className )
-					.remove();
-			}
-		);
+		_fadeOut($('div.' + className), fade, function () {
+			$(this).removeClass(className).remove();
+		});
 	}
 };
 
@@ -18826,53 +18876,52 @@ Buttons.background = function ( show, className, fade, insertPoint ) {
  * @return {array} Buttons instances
  * @static
  */
-Buttons.instanceSelector = function ( group, buttons )
-{
-	if ( group === undefined || group === null ) {
-		return $.map( buttons, function ( v ) {
+Buttons.instanceSelector = function (group, buttons) {
+	if (group === undefined || group === null) {
+		return $.map(buttons, function (v) {
 			return v.inst;
-		} );
+		});
 	}
 
 	var ret = [];
-	var names = $.map( buttons, function ( v ) {
+	var names = $.map(buttons, function (v) {
 		return v.name;
-	} );
+	});
 
 	// Flatten the group selector into an array of single options
-	var process = function ( input ) {
-		if ( Array.isArray( input ) ) {
-			for ( var i=0, ien=input.length ; i<ien ; i++ ) {
-				process( input[i] );
+	var process = function (input) {
+		if (Array.isArray(input)) {
+			for (var i = 0, ien = input.length; i < ien; i++) {
+				process(input[i]);
 			}
 			return;
 		}
 
-		if ( typeof input === 'string' ) {
-			if ( input.indexOf( ',' ) !== -1 ) {
+		if (typeof input === 'string') {
+			if (input.indexOf(',') !== -1) {
 				// String selector, list of names
-				process( input.split(',') );
+				process(input.split(','));
 			}
 			else {
 				// String selector individual name
-				var idx = $.inArray( input.trim(), names );
+				var idx = $.inArray(input.trim(), names);
 
-				if ( idx !== -1 ) {
-					ret.push( buttons[ idx ].inst );
+				if (idx !== -1) {
+					ret.push(buttons[idx].inst);
 				}
 			}
 		}
-		else if ( typeof input === 'number' ) {
+		else if (typeof input === 'number') {
 			// Index selector
-			ret.push( buttons[ input ].inst );
+			ret.push(buttons[input].inst);
 		}
-		else if ( typeof input === 'object' ) {
+		else if (typeof input === 'object') {
 			// Actual instance selector
-			ret.push( input );
+			ret.push(input);
 		}
 	};
-	
-	process( group );
+
+	process(group);
 
 	return ret;
 };
@@ -18887,129 +18936,127 @@ Buttons.instanceSelector = function ( group, buttons )
  *   the selected buttons so you know which instance each button belongs to.
  * @static
  */
-Buttons.buttonSelector = function ( insts, selector )
-{
+Buttons.buttonSelector = function (insts, selector) {
 	var ret = [];
-	var nodeBuilder = function ( a, buttons, baseIdx ) {
+	var nodeBuilder = function (a, buttons, baseIdx) {
 		var button;
 		var idx;
 
-		for ( var i=0, ien=buttons.length ; i<ien ; i++ ) {
+		for (var i = 0, ien = buttons.length; i < ien; i++) {
 			button = buttons[i];
 
-			if ( button ) {
-				idx = baseIdx !== undefined ?
-					baseIdx+i :
-					i+'';
+			if (button) {
+				idx = baseIdx !== undefined ? baseIdx + i : i + '';
 
-				a.push( {
+				a.push({
 					node: button.node,
 					name: button.conf.name,
-					idx:  idx
-				} );
+					idx: idx
+				});
 
-				if ( button.buttons ) {
-					nodeBuilder( a, button.buttons, idx+'-' );
+				if (button.buttons) {
+					nodeBuilder(a, button.buttons, idx + '-');
 				}
 			}
 		}
 	};
 
-	var run = function ( selector, inst ) {
+	var run = function (selector, inst) {
 		var i, ien;
 		var buttons = [];
-		nodeBuilder( buttons, inst.s.buttons );
+		nodeBuilder(buttons, inst.s.buttons);
 
-		var nodes = $.map( buttons, function (v) {
+		var nodes = $.map(buttons, function (v) {
 			return v.node;
-		} );
+		});
 
-		if ( Array.isArray( selector ) || selector instanceof $ ) {
-			for ( i=0, ien=selector.length ; i<ien ; i++ ) {
-				run( selector[i], inst );
+		if (Array.isArray(selector) || selector instanceof $) {
+			for (i = 0, ien = selector.length; i < ien; i++) {
+				run(selector[i], inst);
 			}
 			return;
 		}
 
-		if ( selector === null || selector === undefined || selector === '*' ) {
+		if (selector === null || selector === undefined || selector === '*') {
 			// Select all
-			for ( i=0, ien=buttons.length ; i<ien ; i++ ) {
-				ret.push( {
+			for (i = 0, ien = buttons.length; i < ien; i++) {
+				ret.push({
 					inst: inst,
 					node: buttons[i].node
-				} );
+				});
 			}
 		}
-		else if ( typeof selector === 'number' ) {
+		else if (typeof selector === 'number') {
 			// Main button index selector
-			if (inst.s.buttons[ selector ]) {
-				ret.push( {
+			if (inst.s.buttons[selector]) {
+				ret.push({
 					inst: inst,
-					node: inst.s.buttons[ selector ].node
-				} );
+					node: inst.s.buttons[selector].node
+				});
 			}
 		}
-		else if ( typeof selector === 'string' ) {
-			if ( selector.indexOf( ',' ) !== -1 ) {
+		else if (typeof selector === 'string') {
+			if (selector.indexOf(',') !== -1) {
 				// Split
 				var a = selector.split(',');
 
-				for ( i=0, ien=a.length ; i<ien ; i++ ) {
-					run( a[i].trim(), inst );
+				for (i = 0, ien = a.length; i < ien; i++) {
+					run(a[i].trim(), inst);
 				}
 			}
-			else if ( selector.match( /^\d+(\-\d+)*$/ ) ) {
+			else if (selector.match(/^\d+(\-\d+)*$/)) {
 				// Sub-button index selector
-				var indexes = $.map( buttons, function (v) {
+				var indexes = $.map(buttons, function (v) {
 					return v.idx;
-				} );
+				});
 
-				ret.push( {
+				ret.push({
 					inst: inst,
-					node: buttons[ $.inArray( selector, indexes ) ].node
-				} );
+					node: buttons[$.inArray(selector, indexes)].node
+				});
 			}
-			else if ( selector.indexOf( ':name' ) !== -1 ) {
+			else if (selector.indexOf(':name') !== -1) {
 				// Button name selector
-				var name = selector.replace( ':name', '' );
+				var name = selector.replace(':name', '');
 
-				for ( i=0, ien=buttons.length ; i<ien ; i++ ) {
-					if ( buttons[i].name === name ) {
-						ret.push( {
+				for (i = 0, ien = buttons.length; i < ien; i++) {
+					if (buttons[i].name === name) {
+						ret.push({
 							inst: inst,
 							node: buttons[i].node
-						} );
+						});
 					}
 				}
 			}
 			else {
 				// jQuery selector on the nodes
-				$( nodes ).filter( selector ).each( function () {
-					ret.push( {
-						inst: inst,
-						node: this
-					} );
-				} );
+				$(nodes)
+					.filter(selector)
+					.each(function () {
+						ret.push({
+							inst: inst,
+							node: this
+						});
+					});
 			}
 		}
-		else if ( typeof selector === 'object' && selector.nodeName ) {
+		else if (typeof selector === 'object' && selector.nodeName) {
 			// Node selector
-			var idx = $.inArray( selector, nodes );
+			var idx = $.inArray(selector, nodes);
 
-			if ( idx !== -1 ) {
-				ret.push( {
+			if (idx !== -1) {
+				ret.push({
 					inst: inst,
-					node: nodes[ idx ]
-				} );
+					node: nodes[idx]
+				});
 			}
 		}
 	};
 
-
-	for ( var i=0, ien=insts.length ; i<ien ; i++ ) {
+	for (var i = 0, ien = insts.length; i < ien; i++) {
 		var inst = insts[i];
 
-		run( selector, inst );
+		run(selector, inst);
 	}
 
 	return ret;
@@ -19019,37 +19066,50 @@ Buttons.buttonSelector = function ( insts, selector )
  * Default function used for formatting output data.
  * @param {*} str Data to strip
  */
-Buttons.stripData = function ( str, config ) {
-	if ( typeof str !== 'string' ) {
+Buttons.stripData = function (str, config) {
+	if (typeof str !== 'string') {
 		return str;
 	}
 
 	// Always remove script tags
-	str = str.replace( /<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '' );
+	str = str.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '');
 
 	// Always remove comments
-	str = str.replace( /<!\-\-.*?\-\->/g, '' );
+	str = str.replace(/<!\-\-.*?\-\->/g, '');
 
-	if ( ! config || config.stripHtml ) {
-		str = str.replace( /<[^>]*>/g, '' );
+	if (!config || config.stripHtml) {
+		str = str.replace(/<[^>]*>/g, '');
 	}
 
-	if ( ! config || config.trim ) {
-		str = str.replace( /^\s+|\s+$/g, '' );
+	if (!config || config.trim) {
+		str = str.replace(/^\s+|\s+$/g, '');
 	}
 
-	if ( ! config || config.stripNewlines ) {
-		str = str.replace( /\n/g, ' ' );
+	if (!config || config.stripNewlines) {
+		str = str.replace(/\n/g, ' ');
 	}
 
-	if ( ! config || config.decodeEntities ) {
-		_exportTextarea.innerHTML = str;
-		str = _exportTextarea.value;
+	if (!config || config.decodeEntities) {
+		if (_entityDecoder) {
+			str = _entityDecoder(str);
+		}
+		else {
+			_exportTextarea.innerHTML = str;
+			str = _exportTextarea.value;
+		}
 	}
 
 	return str;
 };
 
+/**
+ * Provide a custom entity decoding function - e.g. a regex one, which can be
+ * much faster than the built in DOM option, but also larger code size.
+ * @param {function} fn
+ */
+Buttons.entityDecoder = function (fn) {
+	_entityDecoder = fn;
+}
 
 /**
  * Buttons defaults. For full documentation, please refer to the docs/option
@@ -19058,7 +19118,7 @@ Buttons.stripData = function ( str, config ) {
  * @static
  */
 Buttons.defaults = {
-	buttons: [ 'copy', 'excel', 'csv', 'pdf', 'print' ],
+	buttons: ['copy', 'excel', 'csv', 'pdf', 'print'],
 	name: 'main',
 	tabIndex: 0,
 	dom: {
@@ -19067,42 +19127,56 @@ Buttons.defaults = {
 			className: 'dt-buttons'
 		},
 		collection: {
-			tag: 'div',
-			className: ''
+			action: {
+				// action button
+				dropHtml: '<span class="dt-button-down-arrow">&#x25BC;</span>'
+			},
+			container: {
+				// The element used for the dropdown
+				className: 'dt-button-collection',
+				content: {
+					className: '',
+					tag: 'div'
+				},
+				tag: 'div'
+			}
+			// optionally
+			// , button: IButton - buttons inside the collection container
+			// , split: ISplit - splits inside the collection container
 		},
 		button: {
 			tag: 'button',
 			className: 'dt-button',
-			active: 'active',
-			disabled: 'disabled',
-			spacerClass: ''
-		},
-		buttonLiner: {
-			tag: 'span',
-			className: ''
+			active: 'dt-button-active', // class name
+			disabled: 'disabled', // class name
+			spacer: {
+				className: 'dt-button-spacer',
+				tag: 'span'
+			},
+			liner: {
+				tag: 'span',
+				className: ''
+			}
 		},
 		split: {
-			tag: 'div',
-			className: 'dt-button-split',
-		},
-		splitWrapper: {
-			tag: 'div',
-			className: 'dt-btn-split-wrapper',
-		},
-		splitDropdown: {
-			tag: 'button',
-			text: '&#x25BC;',
-			className: 'dt-btn-split-drop',
-			align: 'split-right',
-			splitAlignClass: 'dt-button-split-left'
-		},
-		splitDropdownButton: {
-			tag: 'button',
-			className: 'dt-btn-split-drop-button dt-button',
-		},
-		splitCollection: {
-			tag: 'div',
-			className: 'dt-button-split-collection',
+			action: {
+				// action button
+				className: 'dt-button-split-drop-button dt-button',
+				tag: 'button'
+			},
+			dropdown: {
+				// button to trigger the dropdown
+				align: 'split-right',
+				className: 'dt-button-split-drop',
+				dropHtml: '<span class="dt-button-down-arrow">&#x25BC;</span>',
+				splitAlignClass: 'dt-button-split-left',
+				tag: 'button'
+			},
+			wrapper: {
+				// wrap around both
+				className: 'dt-button-split',
+				tag: 'div'
+			}
 		}
 	}
 };
@@ -19112,21 +19186,20 @@ Buttons.defaults = {
  * @type {string}
  * @static
  */
-Buttons.version = '2.3.4';
+Buttons.version = '2.4.2';
 
-
-$.extend( _dtButtons, {
+$.extend(_dtButtons, {
 	collection: {
-		text: function ( dt ) {
-			return dt.i18n( 'buttons.collection', 'Collection' );
+		text: function (dt) {
+			return dt.i18n('buttons.collection', 'Collection');
 		},
 		className: 'buttons-collection',
 		closeButton: false,
-		init: function ( dt, button, config ) {
-			button.attr( 'aria-expanded', false );
+		init: function (dt, button, config) {
+			button.attr('aria-expanded', false);
 		},
-		action: function ( e, dt, button, config ) {
-			if ( config._collection.parents('body').length ) {
+		action: function (e, dt, button, config) {
+			if (config._collection.parents('body').length) {
 				this.popover(false, config);
 			}
 			else {
@@ -19145,15 +19218,15 @@ $.extend( _dtButtons, {
 		// Also the popover options, defined in Buttons.popover
 	},
 	split: {
-		text: function ( dt ) {
-			return dt.i18n( 'buttons.split', 'Split' );
+		text: function (dt) {
+			return dt.i18n('buttons.split', 'Split');
 		},
 		className: 'buttons-split',
 		closeButton: false,
-		init: function ( dt, button, config ) {
-			return button.attr( 'aria-expanded', false );
+		init: function (dt, button, config) {
+			return button.attr('aria-expanded', false);
 		},
-		action: function ( e, dt, button, config ) {
+		action: function (e, dt, button, config) {
 			this.popover(config._collection, config);
 		},
 		attr: {
@@ -19161,44 +19234,48 @@ $.extend( _dtButtons, {
 		}
 		// Also the popover options, defined in Buttons.popover
 	},
-	copy: function ( dt, conf ) {
-		if ( _dtButtons.copyHtml5 ) {
+	copy: function (dt, conf) {
+		if (_dtButtons.copyHtml5) {
 			return 'copyHtml5';
 		}
 	},
-	csv: function ( dt, conf ) {
-		if ( _dtButtons.csvHtml5 && _dtButtons.csvHtml5.available( dt, conf ) ) {
+	csv: function (dt, conf) {
+		if (_dtButtons.csvHtml5 && _dtButtons.csvHtml5.available(dt, conf)) {
 			return 'csvHtml5';
 		}
 	},
-	excel: function ( dt, conf ) {
-		if ( _dtButtons.excelHtml5 && _dtButtons.excelHtml5.available( dt, conf ) ) {
+	excel: function (dt, conf) {
+		if (_dtButtons.excelHtml5 && _dtButtons.excelHtml5.available(dt, conf)) {
 			return 'excelHtml5';
 		}
 	},
-	pdf: function ( dt, conf ) {
-		if ( _dtButtons.pdfHtml5 && _dtButtons.pdfHtml5.available( dt, conf ) ) {
+	pdf: function (dt, conf) {
+		if (_dtButtons.pdfHtml5 && _dtButtons.pdfHtml5.available(dt, conf)) {
 			return 'pdfHtml5';
 		}
 	},
-	pageLength: function ( dt ) {
+	pageLength: function (dt) {
 		var lengthMenu = dt.settings()[0].aLengthMenu;
 		var vals = [];
 		var lang = [];
-		var text = function ( dt ) {
-			return dt.i18n( 'buttons.pageLength', {
-				"-1": 'Show all rows',
-				_:    'Show %d rows'
-			}, dt.page.len() );
+		var text = function (dt) {
+			return dt.i18n(
+				'buttons.pageLength',
+				{
+					'-1': 'Show all rows',
+					_: 'Show %d rows'
+				},
+				dt.page.len()
+			);
 		};
 
 		// Support for DataTables 1.x 2D array
-		if (Array.isArray( lengthMenu[0] )) {
+		if (Array.isArray(lengthMenu[0])) {
 			vals = lengthMenu[0];
 			lang = lengthMenu[1];
 		}
 		else {
-			for (var i=0 ; i<lengthMenu.length ; i++) {
+			for (var i = 0; i < lengthMenu.length; i++) {
 				var option = lengthMenu[i];
 
 				// Support for DataTables 2 object in the array
@@ -19218,47 +19295,46 @@ $.extend( _dtButtons, {
 			text: text,
 			className: 'buttons-page-length',
 			autoClose: true,
-			buttons: $.map( vals, function ( val, i ) {
+			buttons: $.map(vals, function (val, i) {
 				return {
 					text: lang[i],
 					className: 'button-page-length',
-					action: function ( e, dt ) {
-						dt.page.len( val ).draw();
+					action: function (e, dt) {
+						dt.page.len(val).draw();
 					},
-					init: function ( dt, node, conf ) {
+					init: function (dt, node, conf) {
 						var that = this;
 						var fn = function () {
-							that.active( dt.page.len() === val );
+							that.active(dt.page.len() === val);
 						};
 
-						dt.on( 'length.dt'+conf.namespace, fn );
+						dt.on('length.dt' + conf.namespace, fn);
 						fn();
 					},
-					destroy: function ( dt, node, conf ) {
-						dt.off( 'length.dt'+conf.namespace );
+					destroy: function (dt, node, conf) {
+						dt.off('length.dt' + conf.namespace);
 					}
 				};
-			} ),
-			init: function ( dt, node, conf ) {
+			}),
+			init: function (dt, node, conf) {
 				var that = this;
-				dt.on( 'length.dt'+conf.namespace, function () {
-					that.text( conf.text );
-				} );
+				dt.on('length.dt' + conf.namespace, function () {
+					that.text(conf.text);
+				});
 			},
-			destroy: function ( dt, node, conf ) {
-				dt.off( 'length.dt'+conf.namespace );
+			destroy: function (dt, node, conf) {
+				dt.off('length.dt' + conf.namespace);
 			}
 		};
 	},
 	spacer: {
 		style: 'empty',
 		spacer: true,
-		text: function ( dt ) {
-			return dt.i18n( 'buttons.spacer', '' );
+		text: function (dt) {
+			return dt.i18n('buttons.spacer', '');
 		}
 	}
-} );
-
+});
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  * DataTables API
@@ -19268,260 +19344,269 @@ $.extend( _dtButtons, {
  */
 
 // Buttons group and individual button selector
-DataTable.Api.register( 'buttons()', function ( group, selector ) {
+DataTable.Api.register('buttons()', function (group, selector) {
 	// Argument shifting
-	if ( selector === undefined ) {
+	if (selector === undefined) {
 		selector = group;
 		group = undefined;
 	}
 
 	this.selector.buttonGroup = group;
 
-	var res = this.iterator( true, 'table', function ( ctx ) {
-		if ( ctx._buttons ) {
-			return Buttons.buttonSelector(
-				Buttons.instanceSelector( group, ctx._buttons ),
-				selector
-			);
-		}
-	}, true );
+	var res = this.iterator(
+		true,
+		'table',
+		function (ctx) {
+			if (ctx._buttons) {
+				return Buttons.buttonSelector(
+					Buttons.instanceSelector(group, ctx._buttons),
+					selector
+				);
+			}
+		},
+		true
+	);
 
 	res._groupSelector = group;
 	return res;
-} );
+});
 
 // Individual button selector
-DataTable.Api.register( 'button()', function ( group, selector ) {
+DataTable.Api.register('button()', function (group, selector) {
 	// just run buttons() and truncate
-	var buttons = this.buttons( group, selector );
+	var buttons = this.buttons(group, selector);
 
-	if ( buttons.length > 1 ) {
-		buttons.splice( 1, buttons.length );
+	if (buttons.length > 1) {
+		buttons.splice(1, buttons.length);
 	}
 
 	return buttons;
-} );
+});
 
 // Active buttons
-DataTable.Api.registerPlural( 'buttons().active()', 'button().active()', function ( flag ) {
-	if ( flag === undefined ) {
-		return this.map( function ( set ) {
-			return set.inst.active( set.node );
-		} );
+DataTable.Api.registerPlural('buttons().active()', 'button().active()', function (flag) {
+	if (flag === undefined) {
+		return this.map(function (set) {
+			return set.inst.active(set.node);
+		});
 	}
 
-	return this.each( function ( set ) {
-		set.inst.active( set.node, flag );
-	} );
-} );
+	return this.each(function (set) {
+		set.inst.active(set.node, flag);
+	});
+});
 
 // Get / set button action
-DataTable.Api.registerPlural( 'buttons().action()', 'button().action()', function ( action ) {
-	if ( action === undefined ) {
-		return this.map( function ( set ) {
-			return set.inst.action( set.node );
-		} );
+DataTable.Api.registerPlural('buttons().action()', 'button().action()', function (action) {
+	if (action === undefined) {
+		return this.map(function (set) {
+			return set.inst.action(set.node);
+		});
 	}
 
-	return this.each( function ( set ) {
-		set.inst.action( set.node, action );
-	} );
-} );
+	return this.each(function (set) {
+		set.inst.action(set.node, action);
+	});
+});
 
 // Collection control
-DataTable.Api.registerPlural( 'buttons().collectionRebuild()', 'button().collectionRebuild()', function ( buttons ) {
-	return this.each( function ( set ) {
-		for(var i = 0; i < buttons.length; i++) {
-			if(typeof buttons[i] === 'object') {
-				buttons[i].parentConf = set;
+DataTable.Api.registerPlural(
+	'buttons().collectionRebuild()',
+	'button().collectionRebuild()',
+	function (buttons) {
+		return this.each(function (set) {
+			for (var i = 0; i < buttons.length; i++) {
+				if (typeof buttons[i] === 'object') {
+					buttons[i].parentConf = set;
+				}
 			}
-		}
-		set.inst.collectionRebuild( set.node, buttons );
-	} );
-} );
+			set.inst.collectionRebuild(set.node, buttons);
+		});
+	}
+);
 
 // Enable / disable buttons
-DataTable.Api.register( ['buttons().enable()', 'button().enable()'], function ( flag ) {
-	return this.each( function ( set ) {
-		set.inst.enable( set.node, flag );
-	} );
-} );
+DataTable.Api.register(['buttons().enable()', 'button().enable()'], function (flag) {
+	return this.each(function (set) {
+		set.inst.enable(set.node, flag);
+	});
+});
 
 // Disable buttons
-DataTable.Api.register( ['buttons().disable()', 'button().disable()'], function () {
-	return this.each( function ( set ) {
-		set.inst.disable( set.node );
-	} );
-} );
+DataTable.Api.register(['buttons().disable()', 'button().disable()'], function () {
+	return this.each(function (set) {
+		set.inst.disable(set.node);
+	});
+});
 
 // Button index
-DataTable.Api.register( 'button().index()', function () {
+DataTable.Api.register('button().index()', function () {
 	var idx = null;
 
-	this.each( function ( set ) {
-		var res = set.inst.index( set.node );
+	this.each(function (set) {
+		var res = set.inst.index(set.node);
 
 		if (res !== null) {
 			idx = res;
 		}
-	} );
+	});
 
 	return idx;
-} );
+});
 
 // Get button nodes
-DataTable.Api.registerPlural( 'buttons().nodes()', 'button().node()', function () {
+DataTable.Api.registerPlural('buttons().nodes()', 'button().node()', function () {
 	var jq = $();
 
 	// jQuery will automatically reduce duplicates to a single entry
-	$( this.each( function ( set ) {
-		jq = jq.add( set.inst.node( set.node ) );
-	} ) );
+	$(
+		this.each(function (set) {
+			jq = jq.add(set.inst.node(set.node));
+		})
+	);
 
 	return jq;
-} );
+});
 
 // Get / set button processing state
-DataTable.Api.registerPlural( 'buttons().processing()', 'button().processing()', function ( flag ) {
-	if ( flag === undefined ) {
-		return this.map( function ( set ) {
-			return set.inst.processing( set.node );
-		} );
+DataTable.Api.registerPlural('buttons().processing()', 'button().processing()', function (flag) {
+	if (flag === undefined) {
+		return this.map(function (set) {
+			return set.inst.processing(set.node);
+		});
 	}
 
-	return this.each( function ( set ) {
-		set.inst.processing( set.node, flag );
-	} );
-} );
+	return this.each(function (set) {
+		set.inst.processing(set.node, flag);
+	});
+});
 
 // Get / set button text (i.e. the button labels)
-DataTable.Api.registerPlural( 'buttons().text()', 'button().text()', function ( label ) {
-	if ( label === undefined ) {
-		return this.map( function ( set ) {
-			return set.inst.text( set.node );
-		} );
+DataTable.Api.registerPlural('buttons().text()', 'button().text()', function (label) {
+	if (label === undefined) {
+		return this.map(function (set) {
+			return set.inst.text(set.node);
+		});
 	}
 
-	return this.each( function ( set ) {
-		set.inst.text( set.node, label );
-	} );
-} );
+	return this.each(function (set) {
+		set.inst.text(set.node, label);
+	});
+});
 
 // Trigger a button's action
-DataTable.Api.registerPlural( 'buttons().trigger()', 'button().trigger()', function () {
-	return this.each( function ( set ) {
-		set.inst.node( set.node ).trigger( 'click' );
-	} );
-} );
+DataTable.Api.registerPlural('buttons().trigger()', 'button().trigger()', function () {
+	return this.each(function (set) {
+		set.inst.node(set.node).trigger('click');
+	});
+});
 
 // Button resolver to the popover
-DataTable.Api.register( 'button().popover()', function (content, options) {
-	return this.map( function ( set ) {
-		return set.inst._popover( content, this.button(this[0].node), options );
-	} );
-} );
+DataTable.Api.register('button().popover()', function (content, options) {
+	return this.map(function (set) {
+		return set.inst._popover(content, this.button(this[0].node), options);
+	});
+});
 
 // Get the container elements
-DataTable.Api.register( 'buttons().containers()', function () {
+DataTable.Api.register('buttons().containers()', function () {
 	var jq = $();
 	var groupSelector = this._groupSelector;
 
 	// We need to use the group selector directly, since if there are no buttons
 	// the result set will be empty
-	this.iterator( true, 'table', function ( ctx ) {
-		if ( ctx._buttons ) {
-			var insts = Buttons.instanceSelector( groupSelector, ctx._buttons );
+	this.iterator(true, 'table', function (ctx) {
+		if (ctx._buttons) {
+			var insts = Buttons.instanceSelector(groupSelector, ctx._buttons);
 
-			for ( var i=0, ien=insts.length ; i<ien ; i++ ) {
-				jq = jq.add( insts[i].container() );
+			for (var i = 0, ien = insts.length; i < ien; i++) {
+				jq = jq.add(insts[i].container());
 			}
 		}
-	} );
+	});
 
 	return jq;
-} );
+});
 
-DataTable.Api.register( 'buttons().container()', function () {
+DataTable.Api.register('buttons().container()', function () {
 	// API level of nesting is `buttons()` so we can zip into the containers method
 	return this.containers().eq(0);
-} );
+});
 
 // Add a new button
-DataTable.Api.register( 'button().add()', function ( idx, conf, draw ) {
+DataTable.Api.register('button().add()', function (idx, conf, draw) {
 	var ctx = this.context;
 
 	// Don't use `this` as it could be empty - select the instances directly
-	if ( ctx.length ) {
-		var inst = Buttons.instanceSelector( this._groupSelector, ctx[0]._buttons );
+	if (ctx.length) {
+		var inst = Buttons.instanceSelector(this._groupSelector, ctx[0]._buttons);
 
-		if ( inst.length ) {
-			inst[0].add( conf, idx , draw);
+		if (inst.length) {
+			inst[0].add(conf, idx, draw);
 		}
 	}
 
-	return this.button( this._groupSelector, idx );
-} );
+	return this.button(this._groupSelector, idx);
+});
 
 // Destroy the button sets selected
-DataTable.Api.register( 'buttons().destroy()', function () {
-	this.pluck( 'inst' ).unique().each( function ( inst ) {
-		inst.destroy();
-	} );
+DataTable.Api.register('buttons().destroy()', function () {
+	this.pluck('inst')
+		.unique()
+		.each(function (inst) {
+			inst.destroy();
+		});
 
 	return this;
-} );
+});
 
 // Remove a button
-DataTable.Api.registerPlural( 'buttons().remove()', 'buttons().remove()', function () {
-	this.each( function ( set ) {
-		set.inst.remove( set.node );
-	} );
+DataTable.Api.registerPlural('buttons().remove()', 'buttons().remove()', function () {
+	this.each(function (set) {
+		set.inst.remove(set.node);
+	});
 
 	return this;
-} );
+});
 
 // Information box that can be used by buttons
 var _infoTimer;
-DataTable.Api.register( 'buttons.info()', function ( title, message, time ) {
+DataTable.Api.register('buttons.info()', function (title, message, time) {
 	var that = this;
 
-	if ( title === false ) {
+	if (title === false) {
 		this.off('destroy.btn-info');
-		_fadeOut(
-			$('#datatables_buttons_info'),
-			400,
-			function () {
-				$(this).remove();
-			}
-		);
-		clearTimeout( _infoTimer );
+		_fadeOut($('#datatables_buttons_info'), 400, function () {
+			$(this).remove();
+		});
+		clearTimeout(_infoTimer);
 		_infoTimer = null;
 
 		return this;
 	}
 
-	if ( _infoTimer ) {
-		clearTimeout( _infoTimer );
+	if (_infoTimer) {
+		clearTimeout(_infoTimer);
 	}
 
-	if ( $('#datatables_buttons_info').length ) {
+	if ($('#datatables_buttons_info').length) {
 		$('#datatables_buttons_info').remove();
 	}
 
-	title = title ? '<h2>'+title+'</h2>' : '';
+	title = title ? '<h2>' + title + '</h2>' : '';
 
 	_fadeIn(
 		$('<div id="datatables_buttons_info" class="dt-button-info"/>')
-			.html( title )
-			.append( $('<div/>')[ typeof message === 'string' ? 'html' : 'append' ]( message ) )
-			.css( 'display', 'none' )
-			.appendTo( 'body' )
+			.html(title)
+			.append($('<div/>')[typeof message === 'string' ? 'html' : 'append'](message))
+			.css('display', 'none')
+			.appendTo('body')
 	);
 
-	if ( time !== undefined && time !== 0 ) {
-		_infoTimer = setTimeout( function () {
-			that.buttons.info( false );
-		}, time );
+	if (time !== undefined && time !== 0) {
+		_infoTimer = setTimeout(function () {
+			that.buttons.info(false);
+		}, time);
 	}
 
 	this.on('destroy.btn-info', function () {
@@ -19529,32 +19614,30 @@ DataTable.Api.register( 'buttons.info()', function ( title, message, time ) {
 	});
 
 	return this;
-} );
+});
 
 // Get data from the table for export - this is common to a number of plug-in
 // buttons so it is included in the Buttons core library
-DataTable.Api.register( 'buttons.exportData()', function ( options ) {
-	if ( this.context.length ) {
-		return _exportData( new DataTable.Api( this.context[0] ), options );
+DataTable.Api.register('buttons.exportData()', function (options) {
+	if (this.context.length) {
+		return _exportData(new DataTable.Api(this.context[0]), options);
 	}
-} );
+});
 
 // Get information about the export that is common to many of the export data
 // types (DRY)
-DataTable.Api.register( 'buttons.exportInfo()', function ( conf ) {
-	if ( ! conf ) {
+DataTable.Api.register('buttons.exportInfo()', function (conf) {
+	if (!conf) {
 		conf = {};
 	}
 
 	return {
-		filename: _filename( conf ),
-		title: _title( conf ),
+		filename: _filename(conf),
+		title: _title(conf),
 		messageTop: _message(this, conf.message || conf.messageTop, 'top'),
 		messageBottom: _message(this, conf.messageBottom, 'bottom')
 	};
-} );
-
-
+});
 
 /**
  * Get the file name for an exported file.
@@ -19562,30 +19645,34 @@ DataTable.Api.register( 'buttons.exportInfo()', function ( conf ) {
  * @param {object}	config Button configuration
  * @param {boolean} incExtension Include the file name extension
  */
-var _filename = function ( config )
-{
+var _filename = function (config) {
 	// Backwards compatibility
-	var filename = config.filename === '*' && config.title !== '*' && config.title !== undefined && config.title !== null && config.title !== '' ?
-		config.title :
-		config.filename;
+	var filename =
+		config.filename === '*' &&
+		config.title !== '*' &&
+		config.title !== undefined &&
+		config.title !== null &&
+		config.title !== ''
+			? config.title
+			: config.filename;
 
-	if ( typeof filename === 'function' ) {
+	if (typeof filename === 'function') {
 		filename = filename();
 	}
 
-	if ( filename === undefined || filename === null ) {
+	if (filename === undefined || filename === null) {
 		return null;
 	}
 
-	if ( filename.indexOf( '*' ) !== -1 ) {
-		filename = filename.replace( '*', $('head > title').text() ).trim();
+	if (filename.indexOf('*') !== -1) {
+		filename = filename.replace('*', $('head > title').text()).trim();
 	}
 
 	// Strip characters which the OS will object to
-	filename = filename.replace(/[^a-zA-Z0-9_\u00A1-\uFFFF\.,\-_ !\(\)]/g, "");
+	filename = filename.replace(/[^a-zA-Z0-9_\u00A1-\uFFFF\.,\-_ !\(\)]/g, '');
 
-	var extension = _stringOrFunction( config.extension );
-	if ( ! extension ) {
+	var extension = _stringOrFunction(config.extension);
+	if (!extension) {
 		extension = '';
 	}
 
@@ -19598,12 +19685,11 @@ var _filename = function ( config )
  * @param {undefined|string|function} option Option
  * @return {null|string} Resolved value
  */
-var _stringOrFunction = function ( option )
-{
-	if ( option === null || option === undefined ) {
+var _stringOrFunction = function (option) {
+	if (option === null || option === undefined) {
 		return null;
 	}
-	else if ( typeof option === 'function' ) {
+	else if (typeof option === 'function') {
 		return option();
 	}
 	return option;
@@ -19614,111 +19700,113 @@ var _stringOrFunction = function ( option )
  *
  * @param {object} config	Button configuration
  */
-var _title = function ( config )
-{
-	var title = _stringOrFunction( config.title );
+var _title = function (config) {
+	var title = _stringOrFunction(config.title);
 
-	return title === null ?
-		null : title.indexOf( '*' ) !== -1 ?
-			title.replace( '*', $('head > title').text() || 'Exported data' ) :
-			title;
+	return title === null
+		? null
+		: title.indexOf('*') !== -1
+		? title.replace('*', $('head > title').text() || 'Exported data')
+		: title;
 };
 
-var _message = function ( dt, option, position )
-{
-	var message = _stringOrFunction( option );
-	if ( message === null ) {
+var _message = function (dt, option, position) {
+	var message = _stringOrFunction(option);
+	if (message === null) {
 		return null;
 	}
 
 	var caption = $('caption', dt.table().container()).eq(0);
-	if ( message === '*' ) {
-		var side = caption.css( 'caption-side' );
-		if ( side !== position ) {
+	if (message === '*') {
+		var side = caption.css('caption-side');
+		if (side !== position) {
 			return null;
 		}
 
-		return caption.length ?
-			caption.text() :
-			'';
+		return caption.length ? caption.text() : '';
 	}
 
 	return message;
 };
 
-
-
-
 var _exportTextarea = $('<textarea/>')[0];
-var _exportData = function ( dt, inOpts )
-{
-	var config = $.extend( true, {}, {
-		rows:           null,
-		columns:        '',
-		modifier:       {
-			search: 'applied',
-			order:  'applied'
-		},
-		orthogonal:     'display',
-		stripHtml:      true,
-		stripNewlines:  true,
-		decodeEntities: true,
-		trim:           true,
-		format:         {
-			header: function ( d ) {
-				return Buttons.stripData( d, config );
+var _exportData = function (dt, inOpts) {
+	var config = $.extend(
+		true,
+		{},
+		{
+			rows: null,
+			columns: '',
+			modifier: {
+				search: 'applied',
+				order: 'applied'
 			},
-			footer: function ( d ) {
-				return Buttons.stripData( d, config );
+			orthogonal: 'display',
+			stripHtml: true,
+			stripNewlines: true,
+			decodeEntities: true,
+			trim: true,
+			format: {
+				header: function (d) {
+					return Buttons.stripData(d, config);
+				},
+				footer: function (d) {
+					return Buttons.stripData(d, config);
+				},
+				body: function (d) {
+					return Buttons.stripData(d, config);
+				}
 			},
-			body: function ( d ) {
-				return Buttons.stripData( d, config );
-			}
+			customizeData: null
 		},
-		customizeData: null
-	}, inOpts );
+		inOpts
+	);
 
-	var header = dt.columns( config.columns ).indexes().map( function (idx) {
-		var el = dt.column( idx ).header();
-		return config.format.header( el.innerHTML, idx, el );
-	} ).toArray();
+	var header = dt
+		.columns(config.columns)
+		.indexes()
+		.map(function (idx) {
+			var el = dt.column(idx).header();
+			return config.format.header(el.innerHTML, idx, el);
+		})
+		.toArray();
 
-	var footer = dt.table().footer() ?
-		dt.columns( config.columns ).indexes().map( function (idx) {
-			var el = dt.column( idx ).footer();
-			return config.format.footer( el ? el.innerHTML : '', idx, el );
-		} ).toArray() :
-		null;
-	
+	var footer = dt.table().footer()
+		? dt
+				.columns(config.columns)
+				.indexes()
+				.map(function (idx) {
+					var el = dt.column(idx).footer();
+					return config.format.footer(el ? el.innerHTML : '', idx, el);
+				})
+				.toArray()
+		: null;
+
 	// If Select is available on this table, and any rows are selected, limit the export
 	// to the selected rows. If no rows are selected, all rows will be exported. Specify
 	// a `selected` modifier to control directly.
-	var modifier = $.extend( {}, config.modifier );
-	if ( dt.select && typeof dt.select.info === 'function' && modifier.selected === undefined ) {
-		if ( dt.rows( config.rows, $.extend( { selected: true }, modifier ) ).any() ) {
-			$.extend( modifier, { selected: true } )
+	var modifier = $.extend({}, config.modifier);
+	if (dt.select && typeof dt.select.info === 'function' && modifier.selected === undefined) {
+		if (dt.rows(config.rows, $.extend({ selected: true }, modifier)).any()) {
+			$.extend(modifier, { selected: true });
 		}
 	}
 
-	var rowIndexes = dt.rows( config.rows, modifier ).indexes().toArray();
-	var selectedCells = dt.cells( rowIndexes, config.columns );
-	var cells = selectedCells
-		.render( config.orthogonal )
-		.toArray();
-	var cellNodes = selectedCells
-		.nodes()
-		.toArray();
+	var rowIndexes = dt.rows(config.rows, modifier).indexes().toArray();
+	var selectedCells = dt.cells(rowIndexes, config.columns);
+	var cells = selectedCells.render(config.orthogonal).toArray();
+	var cellNodes = selectedCells.nodes().toArray();
 
 	var columns = header.length;
 	var rows = columns > 0 ? cells.length / columns : 0;
 	var body = [];
 	var cellCounter = 0;
 
-	for ( var i=0, ien=rows ; i<ien ; i++ ) {
-		var row = [ columns ];
+	for (var i = 0, ien = rows; i < ien; i++) {
+		var row = [columns];
 
-		for ( var j=0 ; j<columns ; j++ ) {
-			row[j] = config.format.body( cells[ cellCounter ], i, j, cellNodes[ cellCounter ] );
+		for (var j = 0; j < columns; j++) {
+			row[j] = config.format.body(cells[cellCounter], i, j, cellNodes[cellCounter]);
 			cellCounter++;
 		}
 
@@ -19728,16 +19816,15 @@ var _exportData = function ( dt, inOpts )
 	var data = {
 		header: header,
 		footer: footer,
-		body:   body
+		body: body
 	};
 
-	if ( config.customizeData ) {
-		config.customizeData( data );
+	if (config.customizeData) {
+		config.customizeData(data);
 	}
 
 	return data;
 };
-
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  * DataTables interface
@@ -19747,43 +19834,39 @@ var _exportData = function ( dt, inOpts )
 $.fn.dataTable.Buttons = Buttons;
 $.fn.DataTable.Buttons = Buttons;
 
-
-
 // DataTables creation - check if the buttons have been defined for this table,
 // they will have been if the `B` option was used in `dom`, otherwise we should
 // create the buttons instance here so they can be inserted into the document
 // using the API. Listen for `init` for compatibility with pre 1.10.10, but to
 // be removed in future.
-$(document).on( 'init.dt plugin-init.dt', function (e, settings) {
-	if ( e.namespace !== 'dt' ) {
+$(document).on('init.dt plugin-init.dt', function (e, settings) {
+	if (e.namespace !== 'dt') {
 		return;
 	}
 
 	var opts = settings.oInit.buttons || DataTable.defaults.buttons;
 
-	if ( opts && ! settings._buttons ) {
-		new Buttons( settings, opts ).container();
+	if (opts && !settings._buttons) {
+		new Buttons(settings, opts).container();
 	}
-} );
+});
 
-function _init ( settings, options ) {
-	var api = new DataTable.Api( settings );
-	var opts = options
-		? options
-		: api.init().buttons || DataTable.defaults.buttons;
+function _init(settings, options) {
+	var api = new DataTable.Api(settings);
+	var opts = options ? options : api.init().buttons || DataTable.defaults.buttons;
 
-	return new Buttons( api, opts ).container();
+	return new Buttons(api, opts).container();
 }
 
 // DataTables `dom` feature option
-DataTable.ext.feature.push( {
+DataTable.ext.feature.push({
 	fnInit: _init,
-	cFeature: "B"
-} );
+	cFeature: 'B'
+});
 
 // DataTables 2 layout feature
-if ( DataTable.ext.features ) {
-	DataTable.ext.features.register( 'buttons', _init );
+if (DataTable.ext.features) {
+	DataTable.ext.features.register('buttons', _init);
 }
 
 
@@ -19791,42 +19874,50 @@ return DataTable;
 }));
 
 
-/*! jQuery UI integration for DataTables' Buttons
- * ©2016 SpryMedia Ltd - datatables.net/license
+/*! Bootstrap integration for DataTables' Buttons
+ * © SpryMedia Ltd - datatables.net/license
  */
 
 (function( factory ){
 	if ( typeof define === 'function' && define.amd ) {
 		// AMD
-		define( ['jquery', 'datatables.net-jqui', 'datatables.net-buttons'], function ( $ ) {
+		define( ['jquery', 'datatables.net-bs5', 'datatables.net-buttons'], function ( $ ) {
 			return factory( $, window, document );
 		} );
 	}
 	else if ( typeof exports === 'object' ) {
 		// CommonJS
-		module.exports = function (root, $) {
-			if ( ! root ) {
-				// CommonJS environments without a window global must pass a
-				// root. This will give an error otherwise
-				root = window;
-			}
-
-			if ( ! $ ) {
-				$ = typeof window !== 'undefined' ? // jQuery's factory checks for a global window
-					require('jquery') :
-					require('jquery')( root );
-			}
-
+		var jq = require('jquery');
+		var cjsRequires = function (root, $) {
 			if ( ! $.fn.dataTable ) {
-				require('datatables.net-jqui')(root, $);
+				require('datatables.net-bs5')(root, $);
 			}
 
 			if ( ! $.fn.dataTable.Buttons ) {
 				require('datatables.net-buttons')(root, $);
 			}
-
-			return factory( $, root, root.document );
 		};
+
+		if (typeof window === 'undefined') {
+			module.exports = function (root, $) {
+				if ( ! root ) {
+					// CommonJS environments without a window global must pass a
+					// root. This will give an error otherwise
+					root = window;
+				}
+
+				if ( ! $ ) {
+					$ = jq( root );
+				}
+
+				cjsRequires( root, $ );
+				return factory( $, root, root.document );
+			};
+		}
+		else {
+			cjsRequires( window, jq );
+			module.exports = factory( jq, window, window.document );
+		}
 	}
 	else {
 		// Browser
@@ -19838,46 +19929,71 @@ var DataTable = $.fn.dataTable;
 
 
 
-$.extend( true, DataTable.Buttons.defaults, {
+$.extend(true, DataTable.Buttons.defaults, {
 	dom: {
 		container: {
-			className: 'dt-buttons ui-buttonset'
+			className: 'dt-buttons btn-group flex-wrap'
 		},
 		button: {
-			className: 'dt-button ui-button ui-state-default ui-button-text-only',
-			disabled: 'ui-state-disabled',
-			active: 'ui-state-active'
+			className: 'btn btn-secondary',
+			active: 'active'
 		},
-		buttonLiner: {
-			tag: 'span',
-			className: 'ui-button-text'
+		collection: {
+			action: {
+				dropHtml: ''
+			},
+			container: {
+				tag: 'div',
+				className: 'dropdown-menu dt-button-collection'
+			},
+			closeButton: false,
+			button: {
+				tag: 'a',
+				className: 'dt-button dropdown-item',
+				active: 'dt-button-active',
+				disabled: 'disabled',
+				spacer: {
+					className: 'dropdown-divider',
+					tag: 'hr'
+				}
+			}
 		},
-		splitWrapper: {
-			tag: 'div',
-			className: 'dt-btn-split-wrapper dt-btn-split-wrapper ui-widget ui-controlgroup-item ui-corner-left',
-		},
-		splitDropdown: {
-			tag: 'button',
-			text: '&#x25BC;',
-			className: 'dt-btn-split-drop ui-selectmenu-button demo-splitbutton-select ui-button ui-widget ui-controlgroup-item ui-selectmenu-button-closed ui-corner-right',
-		},
-		splitDropdownButton: {
-			tag: 'button',
-			className: 'dt-btn-split-drop-button ui-button'
+		split: {
+			action: {
+				tag: 'a',
+				className: 'btn btn-secondary dt-button-split-drop-button',
+				closeButton: false
+			},
+			dropdown: {
+				tag: 'button',
+				dropHtml: '',
+				className:
+					'btn btn-secondary dt-button-split-drop dropdown-toggle dropdown-toggle-split',
+				closeButton: false,
+				align: 'split-left',
+				splitAlignClass: 'dt-button-split-left'
+			},
+			wrapper: {
+				tag: 'div',
+				className: 'dt-button-split btn-group',
+				closeButton: false
+			}
 		}
+	},
+	buttonCreated: function (config, button) {
+		return config.buttons ? $('<div class="btn-group"/>').append(button) : button;
 	}
-} );
+});
 
-DataTable.ext.buttons.collection.text = function ( dt ) {
-	return dt.i18n('buttons.collection', 'Collection <span class="ui-button-icon-primary ui-icon ui-icon-triangle-1-s"/>');
-};
+DataTable.ext.buttons.collection.className += ' dropdown-toggle';
+DataTable.ext.buttons.collection.rightAlignClassName = 'dropdown-menu-right';
 
 
 return DataTable;
 }));
 
 
-/*! DateTime picker for DataTables.net v1.3.0
+/*! DateTime picker for DataTables.net v1.5.1
  *
  * © SpryMedia Ltd, all rights reserved.
  * License: MIT datatables.net/license/mit
@@ -19892,21 +20008,29 @@ return DataTable;
 	}
 	else if ( typeof exports === 'object' ) {
 		// CommonJS
-		module.exports = function (root, $) {
-			if ( ! root ) {
-				// CommonJS environments without a window global must pass a
-				// root. This will give an error otherwise
-				root = window;
-			}
+		var jq = require('jquery');
+		var cjsRequires = function (root, $) {		};
 
-			if ( ! $ ) {
-				$ = typeof window !== 'undefined' ? // jQuery's factory checks for a global window
-					require('jquery') :
-					require('jquery')( root );
-			}
+		if (typeof window === 'undefined') {
+			module.exports = function (root, $) {
+				if ( ! root ) {
+					// CommonJS environments without a window global must pass a
+					// root. This will give an error otherwise
+					root = window;
+				}
 
-			return factory( $, root, root.document );
-		};
+				if ( ! $ ) {
+					$ = jq( root );
+				}
+
+				cjsRequires( root, $ );
+				return factory( $, root, root.document );
+			};
+		}
+		else {
+			cjsRequires( window, jq );
+			module.exports = factory( jq, window, window.document );
+		}
 	}
 	else {
 		// Browser
@@ -19919,7 +20043,7 @@ return DataTable;
 
 /**
  * @summary     DateTime picker for DataTables.net
- * @version     1.3.0
+ * @version     1.5.1
  * @file        dataTables.dateTime.js
  * @author      SpryMedia Ltd
  * @contact     www.datatables.net/contact
@@ -19948,6 +20072,12 @@ var dateLib;
  * options based on the `DateTime.defaults` object.
  */
 var DateTime = function ( input, opts ) {
+	// Check if called with a window or jQuery object for DOM less applications
+	// This is for backwards compatibility with CommonJS loader
+	if (DateTime.factory(input, opts)) {
+		return DateTime;
+	}
+
 	// Attempt to auto detect the formatting library (if there is one). Having it in
 	// the constructor allows load order independence.
 	if (typeof dateLib === 'undefined') {
@@ -20062,6 +20192,8 @@ var DateTime = function ( input, opts ) {
 		.append( this.dom.buttons )
 		.append( this.dom.calendar );
 
+	this.dom.input.addClass('dt-datetime');
+
 	this._constructor();
 };
 
@@ -20077,8 +20209,31 @@ $.extend( DateTime.prototype, {
 		this._hide(true);
 		this.dom.container.off().empty();
 		this.dom.input
+			.removeClass('dt-datetime')
 			.removeAttr('autocomplete')
 			.off('.datetime');
+	},
+
+	display: function (year, month) {
+		if (year !== undefined) {
+			this.s.display.setUTCFullYear(year);
+		}
+
+		if (month !== undefined) {
+			this.s.display.setUTCMonth(month - 1);
+		}
+
+		if (year !== undefined || month !== undefined) {
+			this._setTitle();
+			this._setCalander();
+
+			return this;
+		}
+
+		return {
+			month: this.s.display.getUTCMonth() + 1,
+			year: this.s.display.getUTCFullYear()
+		};
 	},
 
 	errorMsg: function ( msg ) {
@@ -20154,7 +20309,9 @@ $.extend( DateTime.prototype, {
 			this.s.d = this._dateToUtc(new Date());
 		}
 		else if ( typeof set === 'string' ) {
-			this.s.d = this._convert(set, this.c.format, null);
+			this.s.d = this._dateToUtc(
+				this._convert(set, this.c.format, null)
+			);
 		}
 
 		if ( write || write === undefined ) {
@@ -20294,6 +20451,15 @@ $.extend( DateTime.prototype, {
 					that.val( that.dom.input.val(), false );
 				}
 			} );
+
+		// Want to prevent the focus bubbling up the document to account for
+		// focus capture in modals (e.g. Editor and Bootstrap). They can see
+		// the focus as outside the modal and thus immediately blur focus on
+		// the picker. Need to use a native addEL since jQuery changes the
+		// focusin to focus for some reason! focusin bubbles, focus does not.
+		this.dom.container[0].addEventListener('focusin', function (e) {
+			e.stopPropagation();
+		});
 
 		// Main event handlers for input in the widget
 		this.dom.container
@@ -20547,7 +20713,7 @@ $.extend( DateTime.prototype, {
 	 * @param {string|null} to Format to convert to. If null a `Date` will be returned
 	 * @returns {string|Date} Converted value
 	 */
-	_convert(val, from, to) {
+	_convert: function(val, from, to) {
 		if (! val) {
 			return val;
 		}
@@ -20569,7 +20735,7 @@ $.extend( DateTime.prototype, {
 				// String in, date back
 				var match = val.match(/(\d{4})\-(\d{2})\-(\d{2})/ );
 				return match ?
-					new Date( Date.UTC(match[1], match[2]-1, match[3]) ) :
+					new Date( match[1], match[2]-1, match[3] ) :
 					null;
 			}
 		}
@@ -20585,13 +20751,13 @@ $.extend( DateTime.prototype, {
 
 			return to
 				? dtLux.toFormat(to)
-				: this._dateToUtc(dtLux.toJSDate());
+				: dtLux.toJSDate();
 		}
 		else {
 			// Moment / DayJS
 			var dtMo = val instanceof Date
 				? dateLib.utc( val, undefined, this.c.locale, this.c.strict )
-				: dateLib.utc( val, from, this.c.locale, this.c.strict );
+				: dateLib( val, from, this.c.locale, this.c.strict );
 			
 			if (! dtMo.isValid()) {
 				return null;
@@ -20650,6 +20816,10 @@ $.extend( DateTime.prototype, {
 	 * @return {Date}   Shifted date
 	 */
 	_dateToUtc: function ( s ) {
+		if (! s) {
+			return s;
+		}
+
 		return new Date( Date.UTC(
 			s.getFullYear(), s.getMonth(), s.getDate(),
 			s.getHours(), s.getMinutes(), s.getSeconds()
@@ -21410,21 +21580,25 @@ $.extend( DateTime.prototype, {
 	_writeOutput: function ( focus ) {
 		var date = this.s.d;
 		var out = '';
+		var input = this.dom.input;
 
 		if (date) {
 			out = this._convert(date, null, this.c.format);
 		}
 
-		this.dom.input
-			.val( out )
-			.trigger('change', {write: date});
+		input.val( out );
+
+		// Create a DOM synthetic event. Can't use $().trigger() as
+		// that doesn't actually trigger non-jQuery event listeners
+		var event = new Event('change', {bubbles: true});
+		input[0].dispatchEvent(event);
 		
-		if ( this.dom.input.attr('type') === 'hidden' ) {
+		if ( input.attr('type') === 'hidden' ) {
 			this.val(out, false);
 		}
 
 		if ( focus ) {
-			this.dom.input.focus();
+			input.focus();
 		}
 	}
 } );
@@ -21443,6 +21617,11 @@ DateTime.use = function (lib) {
  * @private
  */
 DateTime._instance = 0;
+
+/**
+ * To indicate to DataTables what type of library this is
+ */
+DateTime.type = 'DateTime';
 
 /**
  * Defaults for the date time picker
@@ -21509,11 +21688,40 @@ DateTime.defaults = {
 	yearRange: 25
 };
 
-DateTime.version = '1.3.0';
+DateTime.version = '1.5.1';
+
+/**
+ * CommonJS factory function pass through. Matches DataTables.
+ * @param {*} root Window
+ * @param {*} jq jQUery
+ * @returns {boolean} Indicator
+ */
+DateTime.factory = function (root, jq) {
+	var is = false;
+
+	// Test if the first parameter is a window object
+	if (root && root.document) {
+		window = root;
+		document = root.document;
+	}
+
+	// Test if the second parameter is a jQuery object
+	if (jq && jq.fn && jq.fn.jquery) {
+		$ = jq;
+		is = true;
+	}
+
+	return is;
+}
 
 // Global export - if no conflicts
 if (! window.DateTime) {
 	window.DateTime = DateTime;
+}
+
+// Global DataTable
+if (window.DataTable) {
+	window.DataTable.DateTime = DateTime;
 }
 
 // Make available via jQuery
@@ -21538,8 +21746,8 @@ return DateTime;
 }));
 
 
-/*! FixedHeader 3.3.1
- * ©2009-2022 SpryMedia Ltd - datatables.net/license
+/*! Responsive 2.5.0
+ * © SpryMedia Ltd - datatables.net/license
  */
 
 (function( factory ){
@@ -21551,1124 +21759,33 @@ return DateTime;
 	}
 	else if ( typeof exports === 'object' ) {
 		// CommonJS
-		module.exports = function (root, $) {
-			if ( ! root ) {
-				// CommonJS environments without a window global must pass a
-				// root. This will give an error otherwise
-				root = window;
-			}
-
-			if ( ! $ ) {
-				$ = typeof window !== 'undefined' ? // jQuery's factory checks for a global window
-					require('jquery') :
-					require('jquery')( root );
-			}
-
+		var jq = require('jquery');
+		var cjsRequires = function (root, $) {
 			if ( ! $.fn.dataTable ) {
 				require('datatables.net')(root, $);
 			}
-
-
-			return factory( $, root, root.document );
-		};
-	}
-	else {
-		// Browser
-		factory( jQuery, window, document );
-	}
-}(function( $, window, document, undefined ) {
-'use strict';
-var DataTable = $.fn.dataTable;
-
-
-
-/**
- * @summary     FixedHeader
- * @description Fix a table's header or footer, so it is always visible while
- *              scrolling
- * @version     3.3.1
- * @author      SpryMedia Ltd (www.sprymedia.co.uk)
- * @contact     www.sprymedia.co.uk
- * @copyright   SpryMedia Ltd.
- *
- * This source file is free software, available under the following license:
- *   MIT license - http://datatables.net/license/mit
- *
- * This source file is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
- * or FITNESS FOR A PARTICULAR PURPOSE. See the license files for details.
- *
- * For details please refer to: http://www.datatables.net
- */
-
-var _instCounter = 0;
-
-var FixedHeader = function ( dt, config ) {
-	// Sanity check - you just know it will happen
-	if ( ! (this instanceof FixedHeader) ) {
-		throw "FixedHeader must be initialised with the 'new' keyword.";
-	}
-
-	// Allow a boolean true for defaults
-	if ( config === true ) {
-		config = {};
-	}
-
-	dt = new DataTable.Api( dt );
-
-	this.c = $.extend( true, {}, FixedHeader.defaults, config );
-
-	this.s = {
-		dt: dt,
-		position: {
-			theadTop: 0,
-			tbodyTop: 0,
-			tfootTop: 0,
-			tfootBottom: 0,
-			width: 0,
-			left: 0,
-			tfootHeight: 0,
-			theadHeight: 0,
-			windowHeight: $(window).height(),
-			visible: true
-		},
-		headerMode: null,
-		footerMode: null,
-		autoWidth: dt.settings()[0].oFeatures.bAutoWidth,
-		namespace: '.dtfc'+(_instCounter++),
-		scrollLeft: {
-			header: -1,
-			footer: -1
-		},
-		enable: true
-	};
-
-	this.dom = {
-		floatingHeader: null,
-		thead: $(dt.table().header()),
-		tbody: $(dt.table().body()),
-		tfoot: $(dt.table().footer()),
-		header: {
-			host: null,
-			floating: null,
-			floatingParent: $('<div class="dtfh-floatingparent">'),
-			placeholder: null
-		},
-		footer: {
-			host: null,
-			floating: null,
-			floatingParent: $('<div class="dtfh-floatingparent">'),
-			placeholder: null
-		}
-	};
-
-	this.dom.header.host = this.dom.thead.parent();
-	this.dom.footer.host = this.dom.tfoot.parent();
-
-	var dtSettings = dt.settings()[0];
-	if ( dtSettings._fixedHeader ) {
-		throw "FixedHeader already initialised on table "+dtSettings.nTable.id;
-	}
-
-	dtSettings._fixedHeader = this;
-
-	this._constructor();
-};
-
-
-/*
- * Variable: FixedHeader
- * Purpose:  Prototype for FixedHeader
- * Scope:    global
- */
-$.extend( FixedHeader.prototype, {
-	/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
-	 * API methods
-	 */
-
-	/**
-	 * Kill off FH and any events
-	 */
-	destroy: function () {
-		var dom = this.dom;
-
-		this.s.dt.off( '.dtfc' );
-		$(window).off( this.s.namespace );
-
-		// Remove clones of FC blockers
-		if (dom.header.rightBlocker) {
-			dom.header.rightBlocker.remove();
-		}
-		if (dom.header.leftBlocker) {
-			dom.header.leftBlocker.remove();
-		}
-		if (dom.footer.rightBlocker) {
-			dom.footer.rightBlocker.remove();
-		}
-		if (dom.footer.leftBlocker) {
-			dom.footer.leftBlocker.remove();
-		}
-
-		if ( this.c.header ) {
-			this._modeChange( 'in-place', 'header', true );
-		}
-
-		if ( this.c.footer && dom.tfoot.length ) {
-			this._modeChange( 'in-place', 'footer', true );
-		}
-	},
-
-	/**
-	 * Enable / disable the fixed elements
-	 *
-	 * @param  {boolean} enable `true` to enable, `false` to disable
-	 */
-	enable: function ( enable, update )
-	{
-		this.s.enable = enable;
-
-		if ( update || update === undefined ) {
-			this._positions();
-			this._scroll( true );
-		}
-	},
-
-	/**
-	 * Get enabled status
-	 */
-	enabled: function ()
-	{
-		return this.s.enable;
-	},
-	
-	/**
-	 * Set header offset 
-	 *
-	 * @param  {int} new value for headerOffset
-	 */
-	headerOffset: function ( offset )
-	{
-		if ( offset !== undefined ) {
-			this.c.headerOffset = offset;
-			this.update();
-		}
-
-		return this.c.headerOffset;
-	},
-	
-	/**
-	 * Set footer offset
-	 *
-	 * @param  {int} new value for footerOffset
-	 */
-	footerOffset: function ( offset )
-	{
-		if ( offset !== undefined ) {
-			this.c.footerOffset = offset;
-			this.update();
-		}
-
-		return this.c.footerOffset;
-	},
-
-	
-	/**
-	 * Recalculate the position of the fixed elements and force them into place
-	 */
-	update: function (force)
-	{
-		if (! this.s.enable) {
-			return;
-		}
-
-		var table = this.s.dt.table().node();
-
-		if ( $(table).is(':visible') ) {
-			this.enable( true, false );
-		}
-		else {
-			this.enable( false, false );
-		}
-
-		// Don't update if header is not in the document atm (due to
-		// async events)
-		if ($(table).children('thead').length === 0) {
-			return;
-		}
-
-		this._positions();
-		this._scroll( force !== undefined ? force : true );
-	},
-
-
-	/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
-	 * Constructor
-	 */
-	
-	/**
-	 * FixedHeader constructor - adding the required event listeners and
-	 * simple initialisation
-	 *
-	 * @private
-	 */
-	_constructor: function ()
-	{
-		var that = this;
-		var dt = this.s.dt;
-
-		$(window)
-			.on( 'scroll'+this.s.namespace, function () {
-				that._scroll();
-			} )
-			.on( 'resize'+this.s.namespace, DataTable.util.throttle( function () {
-				that.s.position.windowHeight = $(window).height();
-				that.update();
-			}, 50 ) );
-
-		var autoHeader = $('.fh-fixedHeader');
-		if ( ! this.c.headerOffset && autoHeader.length ) {
-			this.c.headerOffset = autoHeader.outerHeight();
-		}
-
-		var autoFooter = $('.fh-fixedFooter');
-		if ( ! this.c.footerOffset && autoFooter.length ) {
-			this.c.footerOffset = autoFooter.outerHeight();
-		}
-
-		dt
-			.on( 'column-reorder.dt.dtfc column-visibility.dt.dtfc column-sizing.dt.dtfc responsive-display.dt.dtfc', function (e, ctx) {
-				that.update();
-			} )
-			.on( 'draw.dt.dtfc', function (e, ctx) {
-				// For updates from our own table, don't reclone, but for all others, do
-				that.update(ctx === dt.settings()[0] ? false : true);
-			} );
-
-		dt.on( 'destroy.dtfc', function () {
-			that.destroy();
-		} );
-
-		this._positions();
-		this._scroll();
-	},
-
-
-	/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
-	 * Private methods
-	 */
-
-	/**
-	 * Clone a fixed item to act as a place holder for the original element
-	 * which is moved into a clone of the table element, and moved around the
-	 * document to give the fixed effect.
-	 *
-	 * @param  {string}  item  'header' or 'footer'
-	 * @param  {boolean} force Force the clone to happen, or allow automatic
-	 *   decision (reuse existing if available)
-	 * @private
-	 */
-	_clone: function ( item, force )
-	{
-		var that = this;
-		var dt = this.s.dt;
-		var itemDom = this.dom[ item ];
-		var itemElement = item === 'header' ?
-			this.dom.thead :
-			this.dom.tfoot;
-
-		// If footer and scrolling is enabled then we don't clone
-		// Instead the table's height is decreased accordingly - see `_scroll()`
-		if (item === 'footer' && this._scrollEnabled()) {
-			return;
-		}	
-
-		if ( ! force && itemDom.floating ) {
-			// existing floating element - reuse it
-			itemDom.floating.removeClass( 'fixedHeader-floating fixedHeader-locked' );
-		}
-		else {
-			var docScrollLeft = $(document).scrollLeft();
-			var docScrollTop = $(document).scrollTop();
-
-			if ( itemDom.floating ) {
-				if(itemDom.placeholder !== null) {
-					itemDom.placeholder.remove();
-				}
-				this._unsize( item );
-				itemDom.floating.children().detach();
-				itemDom.floating.remove();
-			}
-
-			var tableNode = $(dt.table().node()); 
-			var scrollBody = $(tableNode.parent());
-			var scrollEnabled = this._scrollEnabled();
-
-			itemDom.floating = $( dt.table().node().cloneNode( false ) )
-				.attr( 'aria-hidden', 'true' )
-				.css({
-					'table-layout': 'fixed',
-					top: 0,
-					left: 0
-				})
-				.removeAttr( 'id' )
-				.append( itemElement );
-
-			itemDom.floatingParent
-				.css({
-					width: scrollBody.width(),
-					overflow: 'hidden',
-					height: 'fit-content',
-					position: 'fixed',
-					left: scrollEnabled ? tableNode.offset().left + scrollBody.scrollLeft() : 0
-				})
-				.css(
-					item === 'header' ?
-						{
-							top: this.c.headerOffset,
-							bottom: ''
-						} :
-						{
-							top: '',
-							bottom: this.c.footerOffset
-						}
-				)
-				.addClass(item === 'footer' ? 'dtfh-floatingparentfoot' : 'dtfh-floatingparenthead')
-				.append(itemDom.floating)
-				.appendTo( 'body' );
-
-			this._stickyPosition(itemDom.floating, '-');
-
-			var scrollLeftUpdate = function () {
-				var scrollLeft = scrollBody.scrollLeft()
-				that.s.scrollLeft = {footer: scrollLeft, header: scrollLeft};
-				itemDom.floatingParent.scrollLeft(that.s.scrollLeft.header);
-			}
-
-			scrollLeftUpdate();
-			scrollBody
-				.off('scroll.dtfh')
-				.on('scroll.dtfh', scrollLeftUpdate);
-
-			// Insert a fake thead/tfoot into the DataTable to stop it jumping around
-			itemDom.placeholder = itemElement.clone( false );
-			itemDom.placeholder
-				.find( '*[id]' )
-				.removeAttr( 'id' );
-
-			itemDom.host.prepend( itemDom.placeholder );
-
-			// Clone widths
-			this._matchWidths( itemDom.placeholder, itemDom.floating );
-
-			// The above action will remove the table header, potentially causing the table to
-			// collapse to a smaller size, before it is then re-inserted (append). The result
-			// can be that the document, if scrolling, can "jump".
-			$(document)
-				.scrollTop(docScrollTop)
-				.scrollLeft(docScrollLeft);
-		}
-	},
-
-	/**
-	 * This method sets the sticky position of the header elements to match fixed columns
-	 * @param {JQuery<HTMLElement>} el 
-	 * @param {string} sign 
-	 */
-	_stickyPosition: function(el, sign) {
-		if (this._scrollEnabled()) {
-			var that = this
-			var rtl = $(that.s.dt.table().node()).css('direction') === 'rtl';
-
-			el.find('th').each(function() {
-				// Find out if fixed header has previously set this column
-				if ($(this).css('position') === 'sticky') {
-					var right = $(this).css('right');
-					var left = $(this).css('left');
-					if (right !== 'auto' && !rtl) {
-						// New position either adds or dismisses the barWidth
-						var potential = +right.replace(/px/g, '') + (sign === '-' ? -1 : 1) * that.s.dt.settings()[0].oBrowser.barWidth;
-						$(this).css('right', potential > 0 ? potential : 0);
-					}
-					else if(left !== 'auto' && rtl) {
-						var potential = +left.replace(/px/g, '') + (sign === '-' ? -1 : 1) * that.s.dt.settings()[0].oBrowser.barWidth;
-						$(this).css('left', potential > 0 ? potential : 0);
-					}
-				}
-			});
-		}
-	},
-
-	/**
-	 * Copy widths from the cells in one element to another. This is required
-	 * for the footer as the footer in the main table takes its sizes from the
-	 * header columns. That isn't present in the footer so to have it still
-	 * align correctly, the sizes need to be copied over. It is also required
-	 * for the header when auto width is not enabled
-	 *
-	 * @param  {jQuery} from Copy widths from
-	 * @param  {jQuery} to   Copy widths to
-	 * @private
-	 */
-	_matchWidths: function ( from, to ) {
-		var get = function ( name ) {
-			return $(name, from)
-				.map( function () {
-					return $(this).css('width').replace(/[^\d\.]/g, '') * 1;
-				} ).toArray();
 		};
 
-		var set = function ( name, toWidths ) {
-			$(name, to).each( function ( i ) {
-				$(this).css( {
-					width: toWidths[i],
-					minWidth: toWidths[i]
-				} );
-			} );
-		};
-
-		var thWidths = get( 'th' );
-		var tdWidths = get( 'td' );
-
-		set( 'th', thWidths );
-		set( 'td', tdWidths );
-	},
-
-	/**
-	 * Remove assigned widths from the cells in an element. This is required
-	 * when inserting the footer back into the main table so the size is defined
-	 * by the header columns and also when auto width is disabled in the
-	 * DataTable.
-	 *
-	 * @param  {string} item The `header` or `footer`
-	 * @private
-	 */
-	_unsize: function ( item ) {
-		var el = this.dom[ item ].floating;
-
-		if ( el && (item === 'footer' || (item === 'header' && ! this.s.autoWidth)) ) {
-			$('th, td', el).css( {
-				width: '',
-				minWidth: ''
-			} );
-		}
-		else if ( el && item === 'header' ) {
-			$('th, td', el).css( 'min-width', '' );
-		}
-	},
-
-	/**
-	 * Reposition the floating elements to take account of horizontal page
-	 * scroll
-	 *
-	 * @param  {string} item       The `header` or `footer`
-	 * @param  {int}    scrollLeft Document scrollLeft
-	 * @private
-	 */
-	_horizontal: function ( item, scrollLeft )
-	{
-		var itemDom = this.dom[ item ];
-		var position = this.s.position;
-		var lastScrollLeft = this.s.scrollLeft;
-
-		if ( itemDom.floating && lastScrollLeft[ item ] !== scrollLeft ) {
-			// If scrolling is enabled we need to match the floating header to the body
-			if (this._scrollEnabled()) {
-				var newScrollLeft = $($(this.s.dt.table().node()).parent()).scrollLeft()
-				itemDom.floating.scrollLeft(newScrollLeft);
-				itemDom.floatingParent.scrollLeft(newScrollLeft);
-			}
-
-			lastScrollLeft[ item ] = scrollLeft;
-		}
-	},
-
-	/**
-	 * Change from one display mode to another. Each fixed item can be in one
-	 * of:
-	 *
-	 * * `in-place` - In the main DataTable
-	 * * `in` - Floating over the DataTable
-	 * * `below` - (Header only) Fixed to the bottom of the table body
-	 * * `above` - (Footer only) Fixed to the top of the table body
-	 * 
-	 * @param  {string}  mode        Mode that the item should be shown in
-	 * @param  {string}  item        'header' or 'footer'
-	 * @param  {boolean} forceChange Force a redraw of the mode, even if already
-	 *     in that mode.
-	 * @private
-	 */
-	_modeChange: function ( mode, item, forceChange )
-	{
-		var dt = this.s.dt;
-		var itemDom = this.dom[ item ];
-		var position = this.s.position;
-
-		// Just determine if scroll is enabled once
-		var scrollEnabled = this._scrollEnabled();
-
-		// If footer and scrolling is enabled then we don't clone
-		// Instead the table's height is decreased accordingly - see `_scroll()`
-		if (item === 'footer' && scrollEnabled) {
-			return;
-		}		
-
-		// It isn't trivial to add a !important css attribute...
-		var importantWidth = function (w) {
-			itemDom.floating.attr('style', function(i,s) {
-				return (s || '') + 'width: '+w+'px !important;';
-			});
-
-			// If not scrolling also have to update the floatingParent
-			if (!scrollEnabled) {
-				itemDom.floatingParent.attr('style', function(i,s) {
-					return (s || '') + 'width: '+w+'px !important;';
-				});
-			}
-		};
-
-		// Record focus. Browser's will cause input elements to loose focus if
-		// they are inserted else where in the doc
-		var tablePart = this.dom[ item==='footer' ? 'tfoot' : 'thead' ];
-		var focus = $.contains( tablePart[0], document.activeElement ) ?
-			document.activeElement :
-			null;
-		var scrollBody = $($(this.s.dt.table().node()).parent());
-
-		if ( mode === 'in-place' ) {
-			// Insert the header back into the table's real header
-			if ( itemDom.placeholder ) {
-				itemDom.placeholder.remove();
-				itemDom.placeholder = null;
-			}
-
-			this._unsize( item );
-
-			if ( item === 'header' ) {
-				itemDom.host.prepend( tablePart );
-			}
-			else {
-				itemDom.host.append( tablePart );
-			}
-
-			if ( itemDom.floating ) {
-				itemDom.floating.remove();
-				itemDom.floating = null;
-				this._stickyPosition(itemDom.host, '+');
-			}
-
-			if ( itemDom.floatingParent ) {
-				itemDom.floatingParent.remove();
-			}
-
-			$($(itemDom.host.parent()).parent()).scrollLeft(scrollBody.scrollLeft())
-		}
-		else if ( mode === 'in' ) {
-			// Remove the header from the read header and insert into a fixed
-			// positioned floating table clone
-			this._clone( item, forceChange );
-
-			// Get useful position values
-			var scrollOffset = scrollBody.offset();
-			var windowTop = $(document).scrollTop();
-			var windowHeight = $(window).height();
-			var windowBottom = windowTop + windowHeight;
-			var bodyTop = scrollEnabled ? scrollOffset.top : position.tbodyTop;
-			var bodyBottom = scrollEnabled ? scrollOffset.top + scrollBody.outerHeight() : position.tfootTop
-
-			// Calculate the amount that the footer or header needs to be shuffled
-			var shuffle = item === 'footer' ?
-				// footer and top of body isn't on screen
-				bodyTop > windowBottom ?
-					// Yes - push the footer below
-					position.tfootHeight :
-					// No - bottom set to the gap between the top of the body and the bottom of the window
-					bodyTop + position.tfootHeight - windowBottom :
-				// Otherwise must be a header so get the difference from the bottom of the
-				//  desired floating header and the bottom of the table body
-				windowTop + this.c.headerOffset + position.theadHeight - bodyBottom
-				
-			// Set the top or bottom based off of the offset and the shuffle value
-			var prop = item === 'header' ? 'top' : 'bottom';
-			var val = this.c[item+'Offset'] - (shuffle > 0 ? shuffle : 0);
-
-			itemDom.floating.addClass( 'fixedHeader-floating' );
-			itemDom.floatingParent
-				.css(prop, val)
-				.css( {
-					'left': position.left,
-					'height': item === 'header' ? position.theadHeight : position.tfootHeight,
-					'z-index': 2
-				})
-				.append(itemDom.floating);
-
-			importantWidth(position.width);
-
-			if ( item === 'footer' ) {
-				itemDom.floating.css( 'top', '' );
-			}
-		}
-		else if ( mode === 'below' ) { // only used for the header
-			// Fix the position of the floating header at base of the table body
-			this._clone( item, forceChange );
-
-			itemDom.floating.addClass( 'fixedHeader-locked' );
-			itemDom.floatingParent.css({
-				position: 'absolute',
-				top: position.tfootTop - position.theadHeight,
-				left: position.left+'px'
-			});
-
-			importantWidth(position.width);
-		}
-		else if ( mode === 'above' ) { // only used for the footer
-			// Fix the position of the floating footer at top of the table body
-			this._clone( item, forceChange );
-
-			itemDom.floating.addClass( 'fixedHeader-locked' );
-			itemDom.floatingParent.css({
-				position: 'absolute',
-				top: position.tbodyTop,
-				left: position.left+'px'
-			});
-
-			importantWidth(position.width);
-		}
-
-		// Restore focus if it was lost
-		if ( focus && focus !== document.activeElement ) {
-			setTimeout( function () {
-				focus.focus();
-			}, 10 );
-		}
-
-		this.s.scrollLeft.header = -1;
-		this.s.scrollLeft.footer = -1;
-		this.s[item+'Mode'] = mode;
-	},
-
-	/**
-	 * Cache the positional information that is required for the mode
-	 * calculations that FixedHeader performs.
-	 *
-	 * @private
-	 */
-	_positions: function ()
-	{
-		var dt = this.s.dt;
-		var table = dt.table();
-		var position = this.s.position;
-		var dom = this.dom;
-		var tableNode = $(table.node());
-		var scrollEnabled = this._scrollEnabled();
-
-		// Need to use the header and footer that are in the main table,
-		// regardless of if they are clones, since they hold the positions we
-		// want to measure from
-		var thead = $(dt.table().header());
-		var tfoot = $(dt.table().footer());
-		var tbody = dom.tbody;
-		var scrollBody = tableNode.parent();
-
-		position.visible = tableNode.is(':visible');
-		position.width = tableNode.outerWidth();
-		position.left = tableNode.offset().left;
-		position.theadTop = thead.offset().top;
-		position.tbodyTop = scrollEnabled ? scrollBody.offset().top : tbody.offset().top;
-		position.tbodyHeight = scrollEnabled ? scrollBody.outerHeight() : tbody.outerHeight();
-		position.theadHeight = thead.outerHeight();
-		position.theadBottom = position.theadTop + position.theadHeight;
-
-		if ( tfoot.length ) {
-			position.tfootTop = position.tbodyTop + position.tbodyHeight; //tfoot.offset().top;
-			position.tfootBottom = position.tfootTop + tfoot.outerHeight();
-			position.tfootHeight = tfoot.outerHeight();
-		}
-		else {
-			position.tfootTop = position.tbodyTop + tbody.outerHeight();
-			position.tfootBottom = position.tfootTop;
-			position.tfootHeight = position.tfootTop;
-		}
-	},
-
-
-	/**
-	 * Mode calculation - determine what mode the fixed items should be placed
-	 * into.
-	 *
-	 * @param  {boolean} forceChange Force a redraw of the mode, even if already
-	 *     in that mode.
-	 * @private
-	 */
-	_scroll: function ( forceChange )
-	{
-		if (this.s.dt.settings()[0].bDestroying) {
-			return;
-		}
-
-		// ScrollBody details
-		var scrollEnabled = this._scrollEnabled();
-		var scrollBody = $(this.s.dt.table().node()).parent();
-		var scrollOffset =  scrollBody.offset();
-		var scrollHeight =  scrollBody.outerHeight();
-
-		// Window details
-		var windowLeft = $(document).scrollLeft();
-		var windowTop = $(document).scrollTop();
-		var windowHeight = $(window).height();
-		var windowBottom = windowHeight + windowTop
-
-
-		var position = this.s.position;
-		var headerMode, footerMode;
-
-		// Body Details
-		var bodyTop = (scrollEnabled ? scrollOffset.top : position.tbodyTop);
-		var bodyLeft = (scrollEnabled ? scrollOffset.left : position.left);
-		var bodyBottom = (scrollEnabled ? scrollOffset.top + scrollHeight : position.tfootTop);
-		var bodyWidth = (scrollEnabled ? scrollBody.outerWidth() : position.tbodyWidth);
-
-		var windowBottom = windowTop + windowHeight;
-
-		if ( this.c.header ) {
-			if ( ! this.s.enable ) {
-				headerMode = 'in-place';
-			}
-			// The header is in it's normal place if the body top is lower than
-			//  the scroll of the window plus the headerOffset and the height of the header
-			else if ( ! position.visible || windowTop + this.c.headerOffset + position.theadHeight <= bodyTop) {
-				headerMode = 'in-place';
-			}
-			// The header should be floated if
-			else if (
-				// The scrolling plus the header offset plus the height of the header is lower than the top of the body
-				windowTop + this.c.headerOffset + position.theadHeight > bodyTop &&
-				// And the scrolling at the top plus the header offset is above the bottom of the body
-				windowTop + this.c.headerOffset + position.theadHeight < bodyBottom
-			) {
-				headerMode = 'in';
-				var scrollBody = $($(this.s.dt.table().node()).parent());
-
-				// Further to the above, If the scrolling plus the header offset plus the header height is lower
-				// than the bottom of the table a shuffle is required so have to force the calculation
-				if(windowTop + this.c.headerOffset + position.theadHeight > bodyBottom || this.dom.header.floatingParent === undefined){
-					forceChange = true;
+		if (typeof window === 'undefined') {
+			module.exports = function (root, $) {
+				if ( ! root ) {
+					// CommonJS environments without a window global must pass a
+					// root. This will give an error otherwise
+					root = window;
 				}
-				else {
-					this.dom.header.floatingParent
-						.css({
-							'top': this.c.headerOffset,
-							'position': 'fixed'
-						})
-						.append(this.dom.header.floating);
+
+				if ( ! $ ) {
+					$ = jq( root );
 				}
-			}
-			// Anything else and the view is below the table
-			else {
-				headerMode = 'below';
-			}
 
-			if ( forceChange || headerMode !== this.s.headerMode ) {
-				this._modeChange( headerMode, 'header', forceChange );
-			}
-
-			this._horizontal( 'header', windowLeft );
-		}
-
-		var header = {
-			offset: {top: 0, left: 0},
-			height: 0
-		}
-		var footer = {
-			offset: {top: 0, left: 0},
-			height: 0
-		}
-
-		if ( this.c.footer && this.dom.tfoot.length ) {
-			if ( ! this.s.enable ) {
-				footerMode = 'in-place';
-			}
-			else if ( ! position.visible || position.tfootBottom + this.c.footerOffset <= windowBottom ) {
-				footerMode = 'in-place';
-			}
-			else if (
-				bodyBottom + position.tfootHeight + this.c.footerOffset > windowBottom &&
-				bodyTop + this.c.footerOffset < windowBottom
-			) {
-				footerMode = 'in';
-				forceChange = true;
-			}
-			else {
-				footerMode = 'above';
-			}
-			
-			if ( forceChange || footerMode !== this.s.footerMode ) {
-				this._modeChange( footerMode, 'footer', forceChange );
-			}
-
-			this._horizontal( 'footer', windowLeft );
-			
-			var getOffsetHeight = function (el) {
-				return {
-					offset: el.offset(),
-					height: el.outerHeight()
-				};
+				cjsRequires( root, $ );
+				return factory( $, root, root.document );
 			};
-		
-			header = this.dom.header.floating ? getOffsetHeight(this.dom.header.floating) : getOffsetHeight(this.dom.thead);
-			footer = this.dom.footer.floating ? getOffsetHeight(this.dom.footer.floating) : getOffsetHeight(this.dom.tfoot);
-
-			// If scrolling is enabled and the footer is off the screen
-			if (scrollEnabled && footer.offset.top > windowTop){// && footer.offset.top >= windowBottom) {
-				// Calculate the gap between the top of the scrollBody and the top of the window
-				var overlap = windowTop - scrollOffset.top;
-				// The new height is the bottom of the window
-				var newHeight = windowBottom +
-					// If the gap between the top of the scrollbody and the window is more than
-					//  the height of the header then the top of the table is still visible so add that gap
-					// Doing this has effectively calculated the height from the top of the table to the bottom of the current page
-					(overlap > -header.height ? overlap : 0) -
-					// Take from that
-					(
-						// The top of the header plus
-						header.offset.top +
-						// The header height if the standard header is present
-						(overlap < -header.height ? header.height : 0) +
-						// And the height of the footer
-						footer.height
-					)
-
-					// Don't want a negative height
-				if (newHeight < 0) {
-					newHeight = 0;
-				}
-
-				// At the end of the above calculation the space between the header (top of the page if floating)
-				// and the point just above the footer should be the new value for the height of the table.
-				scrollBody.outerHeight(newHeight);
-				
-				// Need some rounding here as sometimes very small decimal places are encountered
-				// If the actual height is bigger or equal to the height we just applied then the footer is "Floating"
-				if(Math.round(scrollBody.outerHeight()) >= Math.round(newHeight)) {
-					$(this.dom.tfoot.parent()).addClass("fixedHeader-floating");
-				}
-				// Otherwise max-width has kicked in so it is not floating
-				else {
-					$(this.dom.tfoot.parent()).removeClass("fixedHeader-floating");
-				}
-			}
 		}
-
-		if(this.dom.header.floating){
-			this.dom.header.floatingParent.css('left', bodyLeft-windowLeft);
+		else {
+			cjsRequires( window, jq );
+			module.exports = factory( jq, window, window.document );
 		}
-		if(this.dom.footer.floating){
-			this.dom.footer.floatingParent.css('left', bodyLeft-windowLeft);
-		}
-
-		// If fixed columns is being used on this table then the blockers need to be copied across
-		// Cloning these is cleaner than creating as our own as it will keep consistency with fixedColumns automatically
-		// ASSUMING that the class remains the same
-		if (this.s.dt.settings()[0]._fixedColumns !== undefined) {
-			var adjustBlocker = function (side, end, el) {
-				if (el === undefined) {
-					var blocker = $('div.dtfc-'+side+'-'+end+'-blocker');
-
-					el = blocker.length === 0 ?
-						null :
-						blocker.clone().css('z-index', 1);
-				}
-
-				if(el !== null) {
-					if (headerMode === 'in' || headerMode === 'below') {
-						el
-							.appendTo('body')
-							.css({
-								top: end === 'top' ? header.offset.top : footer.offset.top,
-								left: side === 'right' ? bodyLeft + bodyWidth - el.width() : bodyLeft
-							});
-					}
-					else {
-						el.detach();
-					}
-				}
-
-				return el;
-			}
-
-			// Adjust all blockers
-			this.dom.header.rightBlocker = adjustBlocker('right', 'top', this.dom.header.rightBlocker);
-			this.dom.header.leftBlocker = adjustBlocker('left', 'top', this.dom.header.leftBlocker);
-			this.dom.footer.rightBlocker = adjustBlocker('right', 'bottom', this.dom.footer.rightBlocker);
-			this.dom.footer.leftBlocker = adjustBlocker('left', 'bottom', this.dom.footer.leftBlocker);
-		}
-	},
-
-	/**
-	 * Function to check if scrolling is enabled on the table or not
-	 * @returns Boolean value indicating if scrolling on the table is enabled or not
-	 */
-	_scrollEnabled: function() {
-		var oScroll = this.s.dt.settings()[0].oScroll;
-		if(oScroll.sY !== "" || oScroll.sX !== "") {
-			return true;
-		}
-		return false
-	}
-} );
-
-
-/**
- * Version
- * @type {String}
- * @static
- */
-FixedHeader.version = "3.3.1";
-
-/**
- * Defaults
- * @type {Object}
- * @static
- */
-FixedHeader.defaults = {
-	header: true,
-	footer: false,
-	headerOffset: 0,
-	footerOffset: 0
-};
-
-
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
- * DataTables interfaces
- */
-
-// Attach for constructor access
-$.fn.dataTable.FixedHeader = FixedHeader;
-$.fn.DataTable.FixedHeader = FixedHeader;
-
-
-// DataTables creation - check if the FixedHeader option has been defined on the
-// table and if so, initialise
-$(document).on( 'init.dt.dtfh', function (e, settings, json) {
-	if ( e.namespace !== 'dt' ) {
-		return;
-	}
-
-	var init = settings.oInit.fixedHeader;
-	var defaults = DataTable.defaults.fixedHeader;
-
-	if ( (init || defaults) && ! settings._fixedHeader ) {
-		var opts = $.extend( {}, defaults, init );
-
-		if ( init !== false ) {
-			new FixedHeader( settings, opts );
-		}
-	}
-} );
-
-// DataTables API methods
-DataTable.Api.register( 'fixedHeader()', function () {} );
-
-DataTable.Api.register( 'fixedHeader.adjust()', function () {
-	return this.iterator( 'table', function ( ctx ) {
-		var fh = ctx._fixedHeader;
-
-		if ( fh ) {
-			fh.update();
-		}
-	} );
-} );
-
-DataTable.Api.register( 'fixedHeader.enable()', function ( flag ) {
-	return this.iterator( 'table', function ( ctx ) {
-		var fh = ctx._fixedHeader;
-
-		flag = ( flag !== undefined ? flag : true );
-		if ( fh && flag !== fh.enabled() ) {
-			fh.enable( flag );
-		}
-	} );
-} );
-
-DataTable.Api.register( 'fixedHeader.enabled()', function () {
-	if ( this.context.length ) {
-		var fh = this.context[0]._fixedHeader;
-
-		if ( fh ) {
-			return fh.enabled();
-		}
-	}
-
-	return false;
-} );
-
-DataTable.Api.register( 'fixedHeader.disable()', function ( ) {
-	return this.iterator( 'table', function ( ctx ) {
-		var fh = ctx._fixedHeader;
-
-		if ( fh && fh.enabled() ) {
-			fh.enable( false );
-		}
-	} );
-} );
-
-$.each( ['header', 'footer'], function ( i, el ) {
-	DataTable.Api.register( 'fixedHeader.'+el+'Offset()', function ( offset ) {
-		var ctx = this.context;
-
-		if ( offset === undefined ) {
-			return ctx.length && ctx[0]._fixedHeader ?
-				ctx[0]._fixedHeader[el +'Offset']() :
-				undefined;
-		}
-
-		return this.iterator( 'table', function ( ctx ) {
-			var fh = ctx._fixedHeader;
-
-			if ( fh ) {
-				fh[ el +'Offset' ]( offset );
-			}
-		} );
-	} );
-} );
-
-
-return DataTable;
-}));
-
-
-/*! Responsive 2.4.0
- * 2014-2022 SpryMedia Ltd - datatables.net/license
- */
-
-(function( factory ){
-	if ( typeof define === 'function' && define.amd ) {
-		// AMD
-		define( ['jquery', 'datatables.net'], function ( $ ) {
-			return factory( $, window, document );
-		} );
-	}
-	else if ( typeof exports === 'object' ) {
-		// CommonJS
-		module.exports = function (root, $) {
-			if ( ! root ) {
-				// CommonJS environments without a window global must pass a
-				// root. This will give an error otherwise
-				root = window;
-			}
-
-			if ( ! $ ) {
-				$ = typeof window !== 'undefined' ? // jQuery's factory checks for a global window
-					require('jquery') :
-					require('jquery')( root );
-			}
-
-			if ( ! $.fn.dataTable ) {
-				require('datatables.net')(root, $);
-			}
-
-
-			return factory( $, root, root.document );
-		};
 	}
 	else {
 		// Browser
@@ -22683,9 +21800,8 @@ var DataTable = $.fn.dataTable;
 /**
  * @summary     Responsive
  * @description Responsive tables plug-in for DataTables
- * @version     2.4.0
- * @author      SpryMedia Ltd (www.sprymedia.co.uk)
- * @contact     www.sprymedia.co.uk/contact
+ * @version     2.5.0
+ * @author      SpryMedia Ltd
  * @copyright   SpryMedia Ltd.
  *
  * This source file is free software, available under the following license:
@@ -22743,9 +21859,9 @@ var DataTable = $.fn.dataTable;
  *      } );
  *    } );
  */
-var Responsive = function ( settings, opts ) {
+var Responsive = function (settings, opts) {
 	// Sanity check that we are using DataTables 1.10 or newer
-	if ( ! DataTable.versionCheck || ! DataTable.versionCheck( '1.10.10' ) ) {
+	if (!DataTable.versionCheck || !DataTable.versionCheck('1.10.10')) {
 		throw 'DataTables Responsive requires DataTables 1.10.10 or newer';
 	}
 
@@ -22753,32 +21869,32 @@ var Responsive = function ( settings, opts ) {
 		childNodeStore: {},
 		columns: [],
 		current: [],
-		dt: new DataTable.Api( settings )
+		dt: new DataTable.Api(settings)
 	};
 
 	// Check if responsive has already been initialised on this table
-	if ( this.s.dt.settings()[0].responsive ) {
+	if (this.s.dt.settings()[0].responsive) {
 		return;
 	}
 
 	// details is an object, but for simplicity the user can give it as a string
 	// or a boolean
-	if ( opts && typeof opts.details === 'string' ) {
+	if (opts && typeof opts.details === 'string') {
 		opts.details = { type: opts.details };
 	}
-	else if ( opts && opts.details === false ) {
+	else if (opts && opts.details === false) {
 		opts.details = { type: false };
 	}
-	else if ( opts && opts.details === true ) {
+	else if (opts && opts.details === true) {
 		opts.details = { type: 'inline' };
 	}
 
-	this.c = $.extend( true, {}, Responsive.defaults, DataTable.defaults.responsive, opts );
+	this.c = $.extend(true, {}, Responsive.defaults, DataTable.defaults.responsive, opts);
 	settings.responsive = this;
 	this._constructor();
 };
 
-$.extend( Responsive.prototype, {
+$.extend(Responsive.prototype, {
 	/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
 	 * Constructor
 	 */
@@ -22788,8 +21904,7 @@ $.extend( Responsive.prototype, {
 	 *
 	 * @private
 	 */
-	_constructor: function ()
-	{
+	_constructor: function () {
 		var that = this;
 		var dt = this.s.dt;
 		var dtPrivateSettings = dt.settings()[0];
@@ -22799,53 +21914,59 @@ $.extend( Responsive.prototype, {
 
 		// Use DataTables' throttle function to avoid processor thrashing on
 		// resize
-		$(window).on( 'resize.dtr orientationchange.dtr', DataTable.util.throttle( function () {
-			// iOS has a bug whereby resize can fire when only scrolling
-			// See: http://stackoverflow.com/questions/8898412
-			var width = $(window).innerWidth();
+		$(window).on(
+			'resize.dtr orientationchange.dtr',
+			DataTable.util.throttle(function () {
+				// iOS has a bug whereby resize can fire when only scrolling
+				// See: http://stackoverflow.com/questions/8898412
+				var width = $(window).innerWidth();
 
-			if ( width !== oldWindowWidth ) {
-				that._resize();
-				oldWindowWidth = width;
-			}
-		} ) );
+				if (width !== oldWindowWidth) {
+					that._resize();
+					oldWindowWidth = width;
+				}
+			})
+		);
 
 		// DataTables doesn't currently trigger an event when a row is added, so
 		// we need to hook into its private API to enforce the hidden rows when
 		// new data is added
-		dtPrivateSettings.oApi._fnCallbackReg( dtPrivateSettings, 'aoRowCreatedCallback', function (tr, data, idx) {
-			if ( $.inArray( false, that.s.current ) !== -1 ) {
-				$('>td, >th', tr).each( function ( i ) {
-					var idx = dt.column.index( 'toData', i );
+		dtPrivateSettings.oApi._fnCallbackReg(
+			dtPrivateSettings,
+			'aoRowCreatedCallback',
+			function (tr, data, idx) {
+				if ($.inArray(false, that.s.current) !== -1) {
+					$('>td, >th', tr).each(function (i) {
+						var idx = dt.column.index('toData', i);
 
-					if ( that.s.current[idx] === false ) {
-						$(this).css('display', 'none');
-					}
-				} );
+						if (that.s.current[idx] === false) {
+							$(this).css('display', 'none');
+						}
+					});
+				}
 			}
-		} );
+		);
 
 		// Destroy event handler
-		dt.on( 'destroy.dtr', function () {
-			dt.off( '.dtr' );
-			$( dt.table().body() ).off( '.dtr' );
-			$(window).off( 'resize.dtr orientationchange.dtr' );
+		dt.on('destroy.dtr', function () {
+			dt.off('.dtr');
+			$(dt.table().body()).off('.dtr');
+			$(window).off('resize.dtr orientationchange.dtr');
 			dt.cells('.dtr-control').nodes().to$().removeClass('dtr-control');
 
 			// Restore the columns that we've hidden
-			$.each( that.s.current, function ( i, val ) {
-				if ( val === false ) {
-					that._setColumnVis( i, true );
+			$.each(that.s.current, function (i, val) {
+				if (val === false) {
+					that._setColumnVis(i, true);
 				}
-			} );
-		} );
+			});
+		});
 
 		// Reorder the breakpoints array here in case they have been added out
 		// of order
-		this.c.breakpoints.sort( function (a, b) {
-			return a.width < b.width ? 1 :
-				a.width > b.width ? -1 : 0;
-		} );
+		this.c.breakpoints.sort(function (a, b) {
+			return a.width < b.width ? 1 : a.width > b.width ? -1 : 0;
+		});
 
 		this._classLogic();
 		this._resizeAuto();
@@ -22853,18 +21974,18 @@ $.extend( Responsive.prototype, {
 		// Details handler
 		var details = this.c.details;
 
-		if ( details.type !== false ) {
+		if (details.type !== false) {
 			that._detailsInit();
 
 			// DataTables will trigger this event on every column it shows and
 			// hides individually
-			dt.on( 'column-visibility.dtr', function () {
+			dt.on('column-visibility.dtr', function () {
 				// Use a small debounce to allow multiple columns to be set together
-				if ( that._timer ) {
-					clearTimeout( that._timer );
+				if (that._timer) {
+					clearTimeout(that._timer);
 				}
 
-				that._timer = setTimeout( function () {
+				that._timer = setTimeout(function () {
 					that._timer = null;
 
 					that._classLogic();
@@ -22872,87 +21993,84 @@ $.extend( Responsive.prototype, {
 					that._resize(true);
 
 					that._redrawChildren();
-				}, 100 );
-			} );
+				}, 100);
+			});
 
 			// Redraw the details box on each draw which will happen if the data
 			// has changed. This is used until DataTables implements a native
 			// `updated` event for rows
-			dt.on( 'draw.dtr', function () {
+			dt.on('draw.dtr', function () {
 				that._redrawChildren();
-			} );
+			});
 
-			$(dt.table().node()).addClass( 'dtr-'+details.type );
+			$(dt.table().node()).addClass('dtr-' + details.type);
 		}
 
-		dt.on( 'column-reorder.dtr', function (e, settings, details) {
+		dt.on('column-reorder.dtr', function (e, settings, details) {
 			that._classLogic();
 			that._resizeAuto();
 			that._resize(true);
-		} );
+		});
 
 		// Change in column sizes means we need to calc
-		dt.on( 'column-sizing.dtr', function () {
+		dt.on('column-sizing.dtr', function () {
 			that._resizeAuto();
 			that._resize();
 		});
 
 		// DT2 let's us tell it if we are hiding columns
-		dt.on( 'column-calc.dt', function (e, d) {
+		dt.on('column-calc.dt', function (e, d) {
 			var curr = that.s.current;
 
-			for (var i=0 ; i<curr.length ; i++) {
+			for (var i = 0; i < curr.length; i++) {
 				var idx = d.visible.indexOf(i);
 
 				if (curr[i] === false && idx >= 0) {
 					d.visible.splice(idx, 1);
 				}
 			}
-		} );
+		});
 
 		// On Ajax reload we want to reopen any child rows which are displayed
 		// by responsive
-		dt.on( 'preXhr.dtr', function () {
+		dt.on('preXhr.dtr', function () {
 			var rowIds = [];
-			dt.rows().every( function () {
-				if ( this.child.isShown() ) {
-					rowIds.push( this.id(true) );
+			dt.rows().every(function () {
+				if (this.child.isShown()) {
+					rowIds.push(this.id(true));
 				}
-			} );
+			});
 
-			dt.one( 'draw.dtr', function () {
+			dt.one('draw.dtr', function () {
 				that._resizeAuto();
 				that._resize();
 
-				dt.rows( rowIds ).every( function () {
-					that._detailsDisplay( this, false );
-				} );
-			} );
+				dt.rows(rowIds).every(function () {
+					that._detailsDisplay(this, false);
+				});
+			});
 		});
 
-		dt
-			.on( 'draw.dtr', function () {
-				that._controlClass();
-			})
-			.on( 'init.dtr', function (e, settings, details) {
-				if ( e.namespace !== 'dt' ) {
-					return;
-				}
+		dt.on('draw.dtr', function () {
+			that._controlClass();
+		}).on('init.dtr', function (e, settings, details) {
+			if (e.namespace !== 'dt') {
+				return;
+			}
 
-				that._resizeAuto();
-				that._resize();
+			that._resizeAuto();
+			that._resize();
 
-				// If columns were hidden, then DataTables needs to adjust the
-				// column sizing
-				if ( $.inArray( false, that.s.current ) ) {
-					dt.columns.adjust();
-				}
-			} );
+			// If columns were hidden, then DataTables needs to adjust the
+			// column sizing
+			if ($.inArray(false, that.s.current)) {
+				dt.columns.adjust();
+			}
+		});
 
 		// First pass - draw the table for the current viewport size
 		this._resize();
 	},
-
 
 	/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
 	 * Private methods
@@ -22965,21 +22083,21 @@ $.extend( Responsive.prototype, {
 	 * @param {*} row Row index
 	 * @param {*} col Column index
 	 */
-	_childNodes: function( dt, row, col ) {
-		var name = row+'-'+col;
+	_childNodes: function (dt, row, col) {
+		var name = row + '-' + col;
 
-		if ( this.s.childNodeStore[ name ] ) {
-			return this.s.childNodeStore[ name ];
+		if (this.s.childNodeStore[name]) {
+			return this.s.childNodeStore[name];
 		}
 
 		// https://jsperf.com/childnodes-array-slice-vs-loop
 		var nodes = [];
-		var children = dt.cell( row, col ).node().childNodes;
-		for ( var i=0, ien=children.length ; i<ien ; i++ ) {
-			nodes.push( children[i] );
+		var children = dt.cell(row, col).node().childNodes;
+		for (var i = 0, ien = children.length; i < ien; i++) {
+			nodes.push(children[i]);
 		}
 
-		this.s.childNodeStore[ name ] = nodes;
+		this.s.childNodeStore[name] = nodes;
 
 		return nodes;
 	},
@@ -22991,28 +22109,28 @@ $.extend( Responsive.prototype, {
 	 * @param {*} row Row index
 	 * @param {*} col Column index
 	 */
-	_childNodesRestore: function( dt, row, col ) {
-		var name = row+'-'+col;
+	_childNodesRestore: function (dt, row, col) {
+		var name = row + '-' + col;
 
-		if ( ! this.s.childNodeStore[ name ] ) {
+		if (!this.s.childNodeStore[name]) {
 			return;
 		}
 
-		var node = dt.cell( row, col ).node();
-		var store = this.s.childNodeStore[ name ];
+		var node = dt.cell(row, col).node();
+		var store = this.s.childNodeStore[name];
 		var parent = store[0].parentNode;
 		var parentChildren = parent.childNodes;
 		var a = [];
 
-		for ( var i=0, ien=parentChildren.length ; i<ien ; i++ ) {
-			a.push( parentChildren[i] );
+		for (var i = 0, ien = parentChildren.length; i < ien; i++) {
+			a.push(parentChildren[i]);
 		}
 
-		for ( var j=0, jen=a.length ; j<jen ; j++ ) {
-			node.appendChild( a[j] );
+		for (var j = 0, jen = a.length; j < jen; j++) {
+			node.appendChild(a[j]);
 		}
 
-		this.s.childNodeStore[ name ] = undefined;
+		this.s.childNodeStore[name] = undefined;
 	},
 
 	/**
@@ -23027,8 +22145,7 @@ $.extend( Responsive.prototype, {
 	 *   column.
 	 *  @private
 	 */
-	_columnsVisiblity: function ( breakpoint )
-	{
+	_columnsVisiblity: function (breakpoint) {
 		var dt = this.s.dt;
 		var columns = this.s.columns;
 		var i, ien;
@@ -23037,38 +22154,38 @@ $.extend( Responsive.prototype, {
 		// column's priority, and secondly the column index. This allows the
 		// columns to be removed from the right if the priority matches
 		var order = columns
-			.map( function ( col, idx ) {
+			.map(function (col, idx) {
 				return {
 					columnIdx: idx,
 					priority: col.priority
 				};
-			} )
-			.sort( function ( a, b ) {
-				if ( a.priority !== b.priority ) {
+			})
+			.sort(function (a, b) {
+				if (a.priority !== b.priority) {
 					return a.priority - b.priority;
 				}
 				return a.columnIdx - b.columnIdx;
-			} );
+			});
 
 		// Class logic - determine which columns are in this breakpoint based
 		// on the classes. If no class control (i.e. `auto`) then `-` is used
 		// to indicate this to the rest of the function
-		var display = $.map( columns, function ( col, i ) {
-			if ( dt.column(i).visible() === false ) {
+		var display = $.map(columns, function (col, i) {
+			if (dt.column(i).visible() === false) {
 				return 'not-visible';
 			}
-			return col.auto && col.minWidth === null ?
-				false :
-				col.auto === true ?
-					'-' :
-					$.inArray( breakpoint, col.includeIn ) !== -1;
-		} );
+			return col.auto && col.minWidth === null
+				? false
+				: col.auto === true
+				? '-'
+				: $.inArray(breakpoint, col.includeIn) !== -1;
+		});
 
 		// Auto column control - first pass: how much width is taken by the
 		// ones that must be included from the non-auto columns
 		var requiredWidth = 0;
-		for ( i=0, ien=display.length ; i<ien ; i++ ) {
-			if ( display[i] === true ) {
+		for (i = 0, ien = display.length; i < ien; i++) {
+			if (display[i] === true) {
 				requiredWidth += columns[i].minWidth;
 			}
 		}
@@ -23088,8 +22205,8 @@ $.extend( Responsive.prototype, {
 		// thrashing or overflow. Also we need to account for the control column
 		// width first so we know how much width is available for the other
 		// columns, since the control column might not be the first one shown
-		for ( i=0, ien=display.length ; i<ien ; i++ ) {
-			if ( columns[i].control ) {
+		for (i = 0, ien = display.length; i < ien; i++) {
+			if (columns[i].control) {
 				usedWidth -= columns[i].minWidth;
 			}
 		}
@@ -23097,14 +22214,14 @@ $.extend( Responsive.prototype, {
 		// Allow columns to be shown (counting by priority and then right to
 		// left) until we run out of room
 		var empty = false;
-		for ( i=0, ien=order.length ; i<ien ; i++ ) {
+		for (i = 0, ien = order.length; i < ien; i++) {
 			var colIdx = order[i].columnIdx;
 
-			if ( display[colIdx] === '-' && ! columns[colIdx].control && columns[colIdx].minWidth ) {
+			if (display[colIdx] === '-' && !columns[colIdx].control && columns[colIdx].minWidth) {
 				// Once we've found a column that won't fit we don't let any
 				// others display either, or columns might disappear in the
 				// middle of the table
-				if ( empty || usedWidth - columns[colIdx].minWidth < 0 ) {
+				if (empty || usedWidth - columns[colIdx].minWidth < 0) {
 					empty = true;
 					display[colIdx] = false;
 				}
@@ -23123,33 +22240,32 @@ $.extend( Responsive.prototype, {
 		// first , before the action in the second can be taken
 		var showControl = false;
 
-		for ( i=0, ien=columns.length ; i<ien ; i++ ) {
-			if ( ! columns[i].control && ! columns[i].never && display[i] === false ) {
+		for (i = 0, ien = columns.length; i < ien; i++) {
+			if (!columns[i].control && !columns[i].never && display[i] === false) {
 				showControl = true;
 				break;
 			}
 		}
 
-		for ( i=0, ien=columns.length ; i<ien ; i++ ) {
-			if ( columns[i].control ) {
+		for (i = 0, ien = columns.length; i < ien; i++) {
+			if (columns[i].control) {
 				display[i] = showControl;
 			}
 
 			// Replace not visible string with false from the control column detection above
-			if ( display[i] === 'not-visible' ) {
+			if (display[i] === 'not-visible') {
 				display[i] = false;
 			}
 		}
 
 		// Finally we need to make sure that there is at least one column that
 		// is visible
-		if ( $.inArray( true, display ) === -1 ) {
+		if ($.inArray(true, display) === -1) {
 			display[0] = true;
 		}
 
 		return display;
 	},
-
 
 	/**
 	 * Create the internal `columns` array with information about the columns
@@ -23159,75 +22275,78 @@ $.extend( Responsive.prototype, {
 	 *
 	 * @private
 	 */
-	_classLogic: function ()
-	{
+	_classLogic: function () {
 		var that = this;
 		var calc = {};
 		var breakpoints = this.c.breakpoints;
 		var dt = this.s.dt;
-		var columns = dt.columns().eq(0).map( function (i) {
-			var column = this.column(i);
-			var className = column.header().className;
-			var priority = dt.settings()[0].aoColumns[i].responsivePriority;
-			var dataPriority = column.header().getAttribute('data-priority');
+		var columns = dt
+			.columns()
+			.eq(0)
+			.map(function (i) {
+				var column = this.column(i);
+				var className = column.header().className;
+				var priority = dt.settings()[0].aoColumns[i].responsivePriority;
+				var dataPriority = column.header().getAttribute('data-priority');
 
-			if ( priority === undefined ) {
-				priority = dataPriority === undefined || dataPriority === null?
-					10000 :
-					dataPriority * 1;
-			}
+				if (priority === undefined) {
+					priority =
+						dataPriority === undefined || dataPriority === null
+							? 10000
+							: dataPriority * 1;
+				}
 
-			return {
-				className: className,
-				includeIn: [],
-				auto:      false,
-				control:   false,
-				never:     className.match(/\b(dtr\-)?never\b/) ? true : false,
-				priority:  priority
-			};
-		} );
+				return {
+					className: className,
+					includeIn: [],
+					auto: false,
+					control: false,
+					never: className.match(/\b(dtr\-)?never\b/) ? true : false,
+					priority: priority
+				};
+			});
 
 		// Simply add a breakpoint to `includeIn` array, ensuring that there are
 		// no duplicates
-		var add = function ( colIdx, name ) {
-			var includeIn = columns[ colIdx ].includeIn;
+		var add = function (colIdx, name) {
+			var includeIn = columns[colIdx].includeIn;
 
-			if ( $.inArray( name, includeIn ) === -1 ) {
-				includeIn.push( name );
+			if ($.inArray(name, includeIn) === -1) {
+				includeIn.push(name);
 			}
 		};
 
-		var column = function ( colIdx, name, operator, matched ) {
+		var column = function (colIdx, name, operator, matched) {
 			var size, i, ien;
 
-			if ( ! operator ) {
-				columns[ colIdx ].includeIn.push( name );
+			if (!operator) {
+				columns[colIdx].includeIn.push(name);
 			}
-			else if ( operator === 'max-' ) {
+			else if (operator === 'max-') {
 				// Add this breakpoint and all smaller
-				size = that._find( name ).width;
+				size = that._find(name).width;
 
-				for ( i=0, ien=breakpoints.length ; i<ien ; i++ ) {
-					if ( breakpoints[i].width <= size ) {
-						add( colIdx, breakpoints[i].name );
+				for (i = 0, ien = breakpoints.length; i < ien; i++) {
+					if (breakpoints[i].width <= size) {
+						add(colIdx, breakpoints[i].name);
 					}
 				}
 			}
-			else if ( operator === 'min-' ) {
+			else if (operator === 'min-') {
 				// Add this breakpoint and all larger
-				size = that._find( name ).width;
+				size = that._find(name).width;
 
-				for ( i=0, ien=breakpoints.length ; i<ien ; i++ ) {
-					if ( breakpoints[i].width >= size ) {
-						add( colIdx, breakpoints[i].name );
+				for (i = 0, ien = breakpoints.length; i < ien; i++) {
+					if (breakpoints[i].width >= size) {
+						add(colIdx, breakpoints[i].name);
 					}
 				}
 			}
-			else if ( operator === 'not-' ) {
+			else if (operator === 'not-') {
 				// Add all but this breakpoint
-				for ( i=0, ien=breakpoints.length ; i<ien ; i++ ) {
-					if ( breakpoints[i].name.indexOf( matched ) === -1 ) {
-						add( colIdx, breakpoints[i].name );
+				for (i = 0, ien = breakpoints.length; i < ien; i++) {
+					if (breakpoints[i].name.indexOf(matched) === -1) {
+						add(colIdx, breakpoints[i].name);
 					}
 				}
 			}
@@ -23235,28 +22354,28 @@ $.extend( Responsive.prototype, {
 
 		// Loop over each column and determine if it has a responsive control
 		// class
-		columns.each( function ( col, i ) {
+		columns.each(function (col, i) {
 			var classNames = col.className.split(' ');
 			var hasClass = false;
 
 			// Split the class name up so multiple rules can be applied if needed
-			for ( var k=0, ken=classNames.length ; k<ken ; k++ ) {
+			for (var k = 0, ken = classNames.length; k < ken; k++) {
 				var className = classNames[k].trim();
 
-				if ( className === 'all' || className === 'dtr-all' ) {
+				if (className === 'all' || className === 'dtr-all') {
 					// Include in all
 					hasClass = true;
-					col.includeIn = $.map( breakpoints, function (a) {
+					col.includeIn = $.map(breakpoints, function (a) {
 						return a.name;
-					} );
+					});
 					return;
 				}
-				else if ( className === 'none' || className === 'dtr-none' || col.never ) {
+				else if (className === 'none' || className === 'dtr-none' || col.never) {
 					// Include in none (default) and no auto
 					hasClass = true;
 					return;
 				}
-				else if ( className === 'control' || className === 'dtr-control' ) {
+				else if (className === 'control' || className === 'dtr-control') {
 					// Special column that is only visible, when one of the other
 					// columns is hidden. This is used for the details control
 					hasClass = true;
@@ -23264,32 +22383,34 @@ $.extend( Responsive.prototype, {
 					return;
 				}
 
-				$.each( breakpoints, function ( j, breakpoint ) {
+				$.each(breakpoints, function (j, breakpoint) {
 					// Does this column have a class that matches this breakpoint?
 					var brokenPoint = breakpoint.name.split('-');
-					var re = new RegExp( '(min\\-|max\\-|not\\-)?('+brokenPoint[0]+')(\\-[_a-zA-Z0-9])?' );
-					var match = className.match( re );
+					var re = new RegExp(
+						'(min\\-|max\\-|not\\-)?(' + brokenPoint[0] + ')(\\-[_a-zA-Z0-9])?'
+					);
+					var match = className.match(re);
 
-					if ( match ) {
+					if (match) {
 						hasClass = true;
 
-						if ( match[2] === brokenPoint[0] && match[3] === '-'+brokenPoint[1] ) {
+						if (match[2] === brokenPoint[0] && match[3] === '-' + brokenPoint[1]) {
 							// Class name matches breakpoint name fully
-							column( i, breakpoint.name, match[1], match[2]+match[3] );
+							column(i, breakpoint.name, match[1], match[2] + match[3]);
 						}
-						else if ( match[2] === brokenPoint[0] && ! match[3] ) {
+						else if (match[2] === brokenPoint[0] && !match[3]) {
 							// Class name matched primary breakpoint name with no qualifier
-							column( i, breakpoint.name, match[1], match[2] );
+							column(i, breakpoint.name, match[1], match[2]);
 						}
 					}
-				} );
+				});
 			}
 
 			// If there was no control class, then automatic sizing is used
-			if ( ! hasClass ) {
+			if (!hasClass) {
 				col.auto = true;
 			}
-		} );
+		});
 
 		this.s.columns = columns;
 	},
@@ -23298,9 +22419,8 @@ $.extend( Responsive.prototype, {
 	 * Update the cells to show the correct control class / button
 	 * @private
 	 */
-	_controlClass: function ()
-	{
-		if ( this.c.details.type === 'inline' ) {
+	_controlClass: function () {
+		if (this.c.details.type === 'inline') {
 			var dt = this.s.dt;
 			var columnsVis = this.s.current;
 			var firstVisible = $.inArray(true, columnsVis);
@@ -23308,20 +22428,17 @@ $.extend( Responsive.prototype, {
 			// Remove from any cells which shouldn't have it
 			dt.cells(
 				null,
-				function(idx) {
+				function (idx) {
 					return idx !== firstVisible;
 				},
-				{page: 'current'}
+				{ page: 'current' }
 			)
 				.nodes()
 				.to$()
 				.filter('.dtr-control')
 				.removeClass('dtr-control');
 
-			dt.cells(null, firstVisible, {page: 'current'})
-				.nodes()
-				.to$()
-				.addClass('dtr-control');
+			dt.cells(null, firstVisible, { page: 'current' }).nodes().to$().addClass('dtr-control');
 		}
 	},
 
@@ -23332,143 +22449,142 @@ $.extend( Responsive.prototype, {
 	 * @param  {boolean}        update Update flag
 	 * @private
 	 */
-	_detailsDisplay: function ( row, update )
-	{
+	_detailsDisplay: function (row, update) {
 		var that = this;
 		var dt = this.s.dt;
 		var details = this.c.details;
+		var event = function (res) {
+			$(row.node()).toggleClass('parent', res !== false);
+			$(dt.table().node()).triggerHandler('responsive-display.dt', [dt, row, res, update]);
+		};
 
-		if ( details && details.type !== false ) {
-			var renderer = typeof details.renderer === 'string'
-				? Responsive.renderer[details.renderer]()
-				: details.renderer;
+		if (details && details.type !== false) {
+			var renderer =
+				typeof details.renderer === 'string'
+					? Responsive.renderer[details.renderer]()
+					: details.renderer;
 
-			var res = details.display( row, update, function () {
-				return renderer.call(
-					that, dt, row[0], that._detailsObj(row[0])
-				);
-			} );
+			var res = details.display(
+				row,
+				update,
+				function () {
+					return renderer.call(that, dt, row[0], that._detailsObj(row[0]));
+				},
+				function () {
+					event(false);
+				}
+			);
 
-			if ( res === true || res === false ) {
-				$(dt.table().node()).triggerHandler( 'responsive-display.dt', [dt, row, res, update] );
+			if (typeof res === 'boolean') {
+				event(res);
 			}
 		}
 	},
-
 
 	/**
 	 * Initialisation for the details handler
 	 *
 	 * @private
 	 */
-	_detailsInit: function ()
-	{
-		var that    = this;
-		var dt      = this.s.dt;
+	_detailsInit: function () {
+		var that = this;
+		var dt = this.s.dt;
 		var details = this.c.details;
 
 		// The inline type always uses the first child as the target
-		if ( details.type === 'inline' ) {
+		if (details.type === 'inline') {
 			details.target = 'td.dtr-control, th.dtr-control';
 		}
 
 		// Keyboard accessibility
-		dt.on( 'draw.dtr', function () {
+		dt.on('draw.dtr', function () {
 			that._tabIndexes();
-		} );
+		});
 		that._tabIndexes(); // Initial draw has already happened
 
-		$( dt.table().body() ).on( 'keyup.dtr', 'td, th', function (e) {
-			if ( e.keyCode === 13 && $(this).data('dtr-keyboard') ) {
+		$(dt.table().body()).on('keyup.dtr', 'td, th', function (e) {
+			if (e.keyCode === 13 && $(this).data('dtr-keyboard')) {
 				$(this).click();
 			}
-		} );
+		});
 
 		// type.target can be a string jQuery selector or a column index
-		var target   = details.target;
+		var target = details.target;
 		var selector = typeof target === 'string' ? target : 'td, th';
 
-		if ( target !== undefined || target !== null ) {
+		if (target !== undefined || target !== null) {
 			// Click handler to show / hide the details rows when they are available
-			$( dt.table().body() )
-				.on( 'click.dtr mousedown.dtr mouseup.dtr', selector, function (e) {
-					// If the table is not collapsed (i.e. there is no hidden columns)
-					// then take no action
-					if ( ! $(dt.table().node()).hasClass('collapsed' ) ) {
+			$(dt.table().body()).on('click.dtr mousedown.dtr mouseup.dtr', selector, function (e) {
+				// If the table is not collapsed (i.e. there is no hidden columns)
+				// then take no action
+				if (!$(dt.table().node()).hasClass('collapsed')) {
+					return;
+				}
+
+				// Check that the row is actually a DataTable's controlled node
+				if ($.inArray($(this).closest('tr').get(0), dt.rows().nodes().toArray()) === -1) {
+					return;
+				}
+
+				// For column index, we determine if we should act or not in the
+				// handler - otherwise it is already okay
+				if (typeof target === 'number') {
+					var targetIdx = target < 0 ? dt.columns().eq(0).length + target : target;
+
+					if (dt.cell(this).index().column !== targetIdx) {
 						return;
 					}
+				}
 
-					// Check that the row is actually a DataTable's controlled node
-					if ( $.inArray( $(this).closest('tr').get(0), dt.rows().nodes().toArray() ) === -1 ) {
-						return;
-					}
+				// $().closest() includes itself in its check
+				var row = dt.row($(this).closest('tr'));
 
-					// For column index, we determine if we should act or not in the
-					// handler - otherwise it is already okay
-					if ( typeof target === 'number' ) {
-						var targetIdx = target < 0 ?
-							dt.columns().eq(0).length + target :
-							target;
-
-						if ( dt.cell( this ).index().column !== targetIdx ) {
-							return;
-						}
-					}
-
-					// $().closest() includes itself in its check
-					var row = dt.row( $(this).closest('tr') );
-
-					// Check event type to do an action
-					if ( e.type === 'click' ) {
-						// The renderer is given as a function so the caller can execute it
-						// only when they need (i.e. if hiding there is no point is running
-						// the renderer)
-						that._detailsDisplay( row, false );
-					}
-					else if ( e.type === 'mousedown' ) {
-						// For mouse users, prevent the focus ring from showing
-						$(this).css('outline', 'none');
-					}
-					else if ( e.type === 'mouseup' ) {
-						// And then re-allow at the end of the click
-						$(this).trigger('blur').css('outline', '');
-					}
-				} );
+				// Check event type to do an action
+				if (e.type === 'click') {
+					// The renderer is given as a function so the caller can execute it
+					// only when they need (i.e. if hiding there is no point is running
+					// the renderer)
+					that._detailsDisplay(row, false);
+				}
+				else if (e.type === 'mousedown') {
+					// For mouse users, prevent the focus ring from showing
+					$(this).css('outline', 'none');
+				}
+				else if (e.type === 'mouseup') {
+					// And then re-allow at the end of the click
+					$(this).trigger('blur').css('outline', '');
+				}
+			});
 		}
 	},
-
 
 	/**
 	 * Get the details to pass to a renderer for a row
 	 * @param  {int} rowIdx Row index
 	 * @private
 	 */
-	_detailsObj: function ( rowIdx )
-	{
+	_detailsObj: function (rowIdx) {
 		var that = this;
 		var dt = this.s.dt;
 
-		return $.map( this.s.columns, function( col, i ) {
+		return $.map(this.s.columns, function (col, i) {
 			// Never and control columns should not be passed to the renderer
-			if ( col.never || col.control ) {
+			if (col.never || col.control) {
 				return;
 			}
 
-			var dtCol = dt.settings()[0].aoColumns[ i ];
+			var dtCol = dt.settings()[0].aoColumns[i];
 
 			return {
-				className:   dtCol.sClass,
+				className: dtCol.sClass,
 				columnIndex: i,
-				data:        dt.cell( rowIdx, i ).render( that.c.orthogonal ),
-				hidden:      dt.column( i ).visible() && !that.s.current[ i ],
-				rowIndex:    rowIdx,
-				title:       dtCol.sTitle !== null ?
-					dtCol.sTitle :
-					$(dt.column(i).header()).text()
+				data: dt.cell(rowIdx, i).render(that.c.orthogonal),
+				hidden: dt.column(i).visible() && !that.s.current[i],
+				rowIndex: rowIdx,
+				title: dtCol.sTitle !== null ? dtCol.sTitle : $(dt.column(i).header()).text()
 			};
-		} );
+		});
 	},
-
 
 	/**
 	 * Find a breakpoint object from a name
@@ -23477,17 +22593,15 @@ $.extend( Responsive.prototype, {
 	 * @return {object}      Breakpoint description object
 	 * @private
 	 */
-	_find: function ( name )
-	{
+	_find: function (name) {
 		var breakpoints = this.c.breakpoints;
 
-		for ( var i=0, ien=breakpoints.length ; i<ien ; i++ ) {
-			if ( breakpoints[i].name === name ) {
+		for (var i = 0, ien = breakpoints.length; i < ien; i++) {
+			if (breakpoints[i].name === name) {
 				return breakpoints[i];
 			}
 		}
 	},
-
 
 	/**
 	 * Re-create the contents of the child rows as the display has changed in
@@ -23495,18 +22609,14 @@ $.extend( Responsive.prototype, {
 	 *
 	 * @private
 	 */
-	_redrawChildren: function ()
-	{
+	_redrawChildren: function () {
 		var that = this;
 		var dt = this.s.dt;
 
-		dt.rows( {page: 'current'} ).iterator( 'row', function ( settings, idx ) {
-			var row = dt.row( idx );
-
-			that._detailsDisplay( dt.row( idx ), true );
-		} );
+		dt.rows({ page: 'current' }).iterator('row', function (settings, idx) {
+			that._detailsDisplay(dt.row(idx), true);
+		});
 	},
-
 
 	/**
 	 * Alter the table display for a resized viewport. This involves first
@@ -23516,8 +22626,7 @@ $.extend( Responsive.prototype, {
 	 * @param  {boolean} forceRedraw Force a redraw
 	 * @private
 	 */
-	_resize: function (forceRedraw)
-	{
+	_resize: function (forceRedraw) {
 		var that = this;
 		var dt = this.s.dt;
 		var width = $(window).innerWidth();
@@ -23528,62 +22637,68 @@ $.extend( Responsive.prototype, {
 		var oldVis = this.s.current.slice();
 
 		// Determine what breakpoint we are currently at
-		for ( i=breakpoints.length-1 ; i>=0 ; i-- ) {
-			if ( width <= breakpoints[i].width ) {
+		for (i = breakpoints.length - 1; i >= 0; i--) {
+			if (width <= breakpoints[i].width) {
 				breakpoint = breakpoints[i].name;
 				break;
 			}
 		}
-		
+
 		// Show the columns for that break point
-		var columnsVis = this._columnsVisiblity( breakpoint );
+		var columnsVis = this._columnsVisiblity(breakpoint);
 		this.s.current = columnsVis;
 
 		// Set the class before the column visibility is changed so event
 		// listeners know what the state is. Need to determine if there are
 		// any columns that are not visible but can be shown
 		var collapsedClass = false;
-	
-		for ( i=0, ien=columns.length ; i<ien ; i++ ) {
-			if ( columnsVis[i] === false && ! columns[i].never && ! columns[i].control && ! dt.column(i).visible() === false ) {
+
+		for (i = 0, ien = columns.length; i < ien; i++) {
+			if (
+				columnsVis[i] === false &&
+				!columns[i].never &&
+				!columns[i].control &&
+				!dt.column(i).visible() === false
+			) {
 				collapsedClass = true;
 				break;
 			}
 		}
 
-		$( dt.table().node() ).toggleClass( 'collapsed', collapsedClass );
+		$(dt.table().node()).toggleClass('collapsed', collapsedClass);
 
 		var changed = false;
 		var visible = 0;
 
-		dt.columns().eq(0).each( function ( colIdx, i ) {
-			if ( columnsVis[i] === true ) {
-				visible++;
-			}
+		dt.columns()
+			.eq(0)
+			.each(function (colIdx, i) {
+				if (columnsVis[i] === true) {
+					visible++;
+				}
 
-			if ( forceRedraw || columnsVis[i] !== oldVis[i] ) {
-				changed = true;
-				that._setColumnVis( colIdx, columnsVis[i] );
-			}
-		} );
+				if (forceRedraw || columnsVis[i] !== oldVis[i]) {
+					changed = true;
+					that._setColumnVis(colIdx, columnsVis[i]);
+				}
+			});
 
 		// Always need to update the display, regardless of if it has changed or not, so nodes
 		// can be re-inserted for listHiddenNodes
 		this._redrawChildren();
 
-		if ( changed ) {
+		if (changed) {
 			// Inform listeners of the change
-			$(dt.table().node()).trigger( 'responsive-resize.dt', [dt, this.s.current] );
+			$(dt.table().node()).trigger('responsive-resize.dt', [dt, this.s.current]);
 
 			// If no records, update the "No records" display element
-			if ( dt.page.info().recordsDisplay === 0 ) {
+			if (dt.page.info().recordsDisplay === 0) {
 				$('td', dt.table().body()).eq(0).attr('colspan', visible);
 			}
 		}
 
 		that._controlClass();
 	},
-
 
 	/**
 	 * Determine the width of each column in the table so the auto column hiding
@@ -23593,113 +22708,118 @@ $.extend( Responsive.prototype, {
 	 *
 	 * @private
 	 */
-	_resizeAuto: function ()
-	{
+	_resizeAuto: function () {
 		var dt = this.s.dt;
 		var columns = this.s.columns;
 		var that = this;
 
 		// Are we allowed to do auto sizing?
-		if ( ! this.c.auto ) {
+		if (!this.c.auto) {
 			return;
 		}
 
 		// Are there any columns that actually need auto-sizing, or do they all
 		// have classes defined
-		if ( $.inArray( true, $.map( columns, function (c) { return c.auto; } ) ) === -1 ) {
+		if (
+			$.inArray(
+				true,
+				$.map(columns, function (c) {
+					return c.auto;
+				})
+			) === -1
+		) {
 			return;
 		}
 
 		// Need to restore all children. They will be reinstated by a re-render
-		if ( ! $.isEmptyObject( this.s.childNodeStore ) ) {
-			$.each( this.s.childNodeStore, function ( key ) {
+		if (!$.isEmptyObject(this.s.childNodeStore)) {
+			$.each(this.s.childNodeStore, function (key) {
 				var idx = key.split('-');
 
-				that._childNodesRestore( dt, idx[0]*1, idx[1]*1 );
-			} );
+				that._childNodesRestore(dt, idx[0] * 1, idx[1] * 1);
+			});
 		}
 
 		// Clone the table with the current data in it
-		var tableWidth   = dt.table().node().offsetWidth;
+		var tableWidth = dt.table().node().offsetWidth;
 		var columnWidths = dt.columns;
-		var clonedTable  = dt.table().node().cloneNode( false );
-		var clonedHeader = $( dt.table().header().cloneNode( false ) ).appendTo( clonedTable );
-		var clonedBody   = $( dt.table().body() ).clone( false, false ).empty().appendTo( clonedTable ); // use jQuery because of IE8
+		var clonedTable = dt.table().node().cloneNode(false);
+		var clonedHeader = $(dt.table().header().cloneNode(false)).appendTo(clonedTable);
+		var clonedBody = $(dt.table().body()).clone(false, false).empty().appendTo(clonedTable); // use jQuery because of IE8
 
 		clonedTable.style.width = 'auto';
 
 		// Header
-		var headerCells = dt.columns()
+		var headerCells = dt
+			.columns()
 			.header()
-			.filter( function (idx) {
+			.filter(function (idx) {
 				return dt.column(idx).visible();
-			} )
+			})
 			.to$()
-			.clone( false )
-			.css( 'display', 'table-cell' )
-			.css( 'width', 'auto' )
-			.css( 'min-width', 0 );
+			.clone(false)
+			.css('display', 'table-cell')
+			.css('width', 'auto')
+			.css('min-width', 0);
 
 		// Body rows - we don't need to take account of DataTables' column
 		// visibility since we implement our own here (hence the `display` set)
 		$(clonedBody)
-			.append( $(dt.rows( { page: 'current' } ).nodes()).clone( false ) )
-			.find( 'th, td' ).css( 'display', '' );
+			.append($(dt.rows({ page: 'current' }).nodes()).clone(false))
+			.find('th, td')
+			.css('display', '');
 
 		// Footer
 		var footer = dt.table().footer();
-		if ( footer ) {
-			var clonedFooter = $( footer.cloneNode( false ) ).appendTo( clonedTable );
-			var footerCells = dt.columns()
+		if (footer) {
+			var clonedFooter = $(footer.cloneNode(false)).appendTo(clonedTable);
+			var footerCells = dt
+				.columns()
 				.footer()
-				.filter( function (idx) {
+				.filter(function (idx) {
 					return dt.column(idx).visible();
-				} )
+				})
 				.to$()
-				.clone( false )
-				.css( 'display', 'table-cell' );
+				.clone(false)
+				.css('display', 'table-cell');
 
-			$('<tr/>')
-				.append( footerCells )
-				.appendTo( clonedFooter );
+			$('<tr/>').append(footerCells).appendTo(clonedFooter);
 		}
 
-		$('<tr/>')
-			.append( headerCells )
-			.appendTo( clonedHeader );
+		$('<tr/>').append(headerCells).appendTo(clonedHeader);
 
 		// In the inline case extra padding is applied to the first column to
 		// give space for the show / hide icon. We need to use this in the
 		// calculation
-		if ( this.c.details.type === 'inline' ) {
-			$(clonedTable).addClass( 'dtr-inline collapsed' );
+		if (this.c.details.type === 'inline') {
+			$(clonedTable).addClass('dtr-inline collapsed');
 		}
-		
+
 		// It is unsafe to insert elements with the same name into the DOM
 		// multiple times. For example, cloning and inserting a checked radio
 		// clears the chcecked state of the original radio.
-		$( clonedTable ).find( '[name]' ).removeAttr( 'name' );
+		$(clonedTable).find('[name]').removeAttr('name');
 
 		// A position absolute table would take the table out of the flow of
 		// our container element, bypassing the height and width (Scroller)
-		$( clonedTable ).css( 'position', 'relative' )
-		
+		$(clonedTable).css('position', 'relative');
+
 		var inserted = $('<div/>')
-			.css( {
+			.css({
 				width: 1,
 				height: 1,
 				overflow: 'hidden',
 				clear: 'both'
-			} )
-			.append( clonedTable );
+			})
+			.append(clonedTable);
 
-		inserted.insertBefore( dt.table().node() );
+		inserted.insertBefore(dt.table().node());
 
 		// The cloned header now contains the smallest that each column can be
-		headerCells.each( function (i) {
-			var idx = dt.column.index( 'fromVisible', i );
-			columns[ idx ].minWidth =  this.offsetWidth || 0;
-		} );
+		headerCells.each(function (i) {
+			var idx = dt.column.index('fromVisible', i);
+			columns[idx].minWidth = this.offsetWidth || 0;
+		});
 
 		inserted.remove();
 	},
@@ -23707,18 +22827,17 @@ $.extend( Responsive.prototype, {
 	/**
 	 * Get the state of the current hidden columns - controlled by Responsive only
 	 */
-	_responsiveOnlyHidden: function ()
-	{
+	_responsiveOnlyHidden: function () {
 		var dt = this.s.dt;
 
-		return $.map( this.s.current, function (v, i) {
+		return $.map(this.s.current, function (v, i) {
 			// If the column is hidden by DataTables then it can't be hidden by
 			// Responsive!
-			if ( dt.column(i).visible() === false ) {
+			if (dt.column(i).visible() === false) {
 				return true;
 			}
 			return v;
-		} );
+		});
 	},
 
 	/**
@@ -23733,32 +22852,26 @@ $.extend( Responsive.prototype, {
 	 * @param {boolean} showHide Show or hide (true or false)
 	 * @private
 	 */
-	_setColumnVis: function ( col, showHide )
-	{
+	_setColumnVis: function (col, showHide) {
 		var that = this;
 		var dt = this.s.dt;
 		var display = showHide ? '' : 'none'; // empty string will remove the attr
 
-		$( dt.column( col ).header() )
-			.css( 'display', display )
-			.toggleClass('dtr-hidden', !showHide);
+		$(dt.column(col).header()).css('display', display).toggleClass('dtr-hidden', !showHide);
 
-		$( dt.column( col ).footer() )
-			.css( 'display', display )
-			.toggleClass('dtr-hidden', !showHide);
+		$(dt.column(col).footer()).css('display', display).toggleClass('dtr-hidden', !showHide);
 
-		dt.column( col ).nodes().to$()
-			.css( 'display', display )
-			.toggleClass('dtr-hidden', !showHide);
+		dt.column(col).nodes().to$().css('display', display).toggleClass('dtr-hidden', !showHide);
 
 		// If the are child nodes stored, we might need to reinsert them
-		if ( ! $.isEmptyObject( this.s.childNodeStore ) ) {
-			dt.cells( null, col ).indexes().each( function (idx) {
-				that._childNodesRestore( dt, idx.row, idx.column );
-			} );
+		if (!$.isEmptyObject(this.s.childNodeStore)) {
+			dt.cells(null, col)
+				.indexes()
+				.each(function (idx) {
+					that._childNodesRestore(dt, idx.row, idx.column);
+				});
 		}
 	},
-
 
 	/**
 	 * Update the cell tab indexes for keyboard accessibility. This is called on
@@ -23769,34 +22882,34 @@ $.extend( Responsive.prototype, {
 	 *
 	 * @private
 	 */
-	_tabIndexes: function ()
-	{
+	_tabIndexes: function () {
 		var dt = this.s.dt;
-		var cells = dt.cells( { page: 'current' } ).nodes().to$();
+		var cells = dt.cells({ page: 'current' }).nodes().to$();
 		var ctx = dt.settings()[0];
 		var target = this.c.details.target;
 
-		cells.filter( '[data-dtr-keyboard]' ).removeData( '[data-dtr-keyboard]' );
+		cells.filter('[data-dtr-keyboard]').removeData('[data-dtr-keyboard]');
 
-		if ( typeof target === 'number' ) {
-			dt.cells( null, target, { page: 'current' } ).nodes().to$()
-				.attr( 'tabIndex', ctx.iTabIndex )
-				.data( 'dtr-keyboard', 1 );
+		if (typeof target === 'number') {
+			dt.cells(null, target, { page: 'current' })
+				.nodes()
+				.to$()
+				.attr('tabIndex', ctx.iTabIndex)
+				.data('dtr-keyboard', 1);
 		}
 		else {
 			// This is a bit of a hack - we need to limit the selected nodes to just
 			// those of this table
-			if ( target === 'td:first-child, th:first-child' ) {
+			if (target === 'td:first-child, th:first-child') {
 				target = '>td:first-child, >th:first-child';
 			}
 
-			$( target, dt.rows( { page: 'current' } ).nodes() )
-				.attr( 'tabIndex', ctx.iTabIndex )
-				.data( 'dtr-keyboard', 1 );
+			$(target, dt.rows({ page: 'current' }).nodes())
+				.attr('tabIndex', ctx.iTabIndex)
+				.data('dtr-keyboard', 1);
 		}
 	}
-} );
-
+});
 
 /**
  * List of default breakpoints. Each item in the array is an object with two
@@ -23809,13 +22922,12 @@ $.extend( Responsive.prototype, {
  * @static
  */
 Responsive.breakpoints = [
-	{ name: 'desktop',  width: Infinity },
+	{ name: 'desktop', width: Infinity },
 	{ name: 'tablet-l', width: 1024 },
 	{ name: 'tablet-p', width: 768 },
 	{ name: 'mobile-l', width: 480 },
 	{ name: 'mobile-p', width: 320 }
 ];
-
 
 /**
  * Display methods - functions which define how the hidden data should be shown
@@ -23826,42 +22938,38 @@ Responsive.breakpoints = [
  * @static
  */
 Responsive.display = {
-	childRow: function ( row, update, render ) {
-		if ( update ) {
-			if ( $(row.node()).hasClass('parent') ) {
-				row.child( render(), 'child' ).show();
+	childRow: function (row, update, render) {
+		if (update) {
+			if ($(row.node()).hasClass('parent')) {
+				row.child(render(), 'child').show();
 
 				return true;
 			}
 		}
 		else {
-			if ( ! row.child.isShown()  ) {
-				row.child( render(), 'child' ).show();
-				$( row.node() ).addClass( 'parent' );
+			if (!row.child.isShown()) {
+				row.child(render(), 'child').show();
 
 				return true;
 			}
 			else {
-				row.child( false );
-				$( row.node() ).removeClass( 'parent' );
+				row.child(false);
 
 				return false;
 			}
 		}
 	},
 
-	childRowImmediate: function ( row, update, render ) {
-		if ( (! update && row.child.isShown()) || ! row.responsive.hasHidden() ) {
+	childRowImmediate: function (row, update, render) {
+		if ((!update && row.child.isShown()) || !row.responsive.hasHidden()) {
 			// User interaction and the row is show, or nothing to show
-			row.child( false );
-			$( row.node() ).removeClass( 'parent' );
+			row.child(false);
 
 			return false;
 		}
 		else {
 			// Display
-			row.child( render(), 'child' ).show();
-			$( row.node() ).addClass( 'parent' );
+			row.child(render(), 'child').show();
 
 			return true;
 		}
@@ -23870,56 +22978,69 @@ Responsive.display = {
 	// This is a wrapper so the modal options for Bootstrap and jQuery UI can
 	// have options passed into them. This specific one doesn't need to be a
 	// function but it is for consistency in the `modal` name
-	modal: function ( options ) {
-		return function ( row, update, render ) {
-			if ( ! update ) {
+	modal: function (options) {
+		return function (row, update, render, closeCallback) {
+			if (!update) {
 				// Show a modal
 				var close = function () {
 					modal.remove(); // will tidy events for us
-					$(document).off( 'keypress.dtr' );
+					$(document).off('keypress.dtr');
+					$(row.node()).removeClass('parent');
+
+					closeCallback();
 				};
 
 				var modal = $('<div class="dtr-modal"/>')
-					.append( $('<div class="dtr-modal-display"/>')
-						.append( $('<div class="dtr-modal-content"/>')
-							.append( render() )
-						)
-						.append( $('<div class="dtr-modal-close">&times;</div>' )
-							.click( function () {
-								close();
-							} )
-						)
+					.append(
+						$('<div class="dtr-modal-display"/>')
+							.append(
+								$('<div class="dtr-modal-content"/>')
+									.data('dtr-row-idx', row.index())
+									.append(render())
+							)
+							.append(
+								$('<div class="dtr-modal-close">&times;</div>').click(function () {
+									close();
+								})
+							)
 					)
-					.append( $('<div class="dtr-modal-background"/>')
-						.click( function () {
+					.append(
+						$('<div class="dtr-modal-background"/>').click(function () {
 							close();
-						} )
+						})
 					)
-					.appendTo( 'body' );
+					.appendTo('body');
 
-				$(document).on( 'keyup.dtr', function (e) {
-					if ( e.keyCode === 27 ) {
+				$(row.node()).addClass('parent');
+
+				$(document).on('keyup.dtr', function (e) {
+					if (e.keyCode === 27) {
 						e.stopPropagation();
 
 						close();
 					}
-				} );
+				});
 			}
 			else {
-				$('div.dtr-modal-content')
-					.empty()
-					.append( render() );
+				var modal = $('div.dtr-modal-content');
+
+				if (modal.length && row.index() === modal.data('dtr-row-idx')) {
+					modal.empty().append(render());
+				}
+				else {
+					// Modal not shown, nothing to update
+					return null;
+				}
 			}
 
-			if ( options && options.header ) {
-				$('div.dtr-modal-content').prepend(
-					'<h2>'+options.header( row )+'</h2>'
-				);
+			if (options && options.header) {
+				$('div.dtr-modal-content').prepend('<h2>' + options.header(row) + '</h2>');
 			}
+
+			return true;
 		};
 	}
 };
-
 
 /**
  * Display methods - functions which define how the hidden data should be shown
@@ -23931,81 +23052,111 @@ Responsive.display = {
  */
 Responsive.renderer = {
 	listHiddenNodes: function () {
-		return function ( api, rowIdx, columns ) {
+		return function (api, rowIdx, columns) {
 			var that = this;
-			var ul = $('<ul data-dtr-index="'+rowIdx+'" class="dtr-details"/>');
+			var ul = $('<ul data-dtr-index="' + rowIdx + '" class="dtr-details"/>');
 			var found = false;
 
-			var data = $.each( columns, function ( i, col ) {
-				if ( col.hidden ) {
-					var klass = col.className ?
-						'class="'+ col.className +'"' :
-						'';
-	
+			var data = $.each(columns, function (i, col) {
+				if (col.hidden) {
+					var klass = col.className ? 'class="' + col.className + '"' : '';
+
 					$(
-						'<li '+klass+' data-dtr-index="'+col.columnIndex+'" data-dt-row="'+col.rowIndex+'" data-dt-column="'+col.columnIndex+'">'+
-							'<span class="dtr-title">'+
-								col.title+
-							'</span> '+
-						'</li>'
+						'<li ' +
+							klass +
+							' data-dtr-index="' +
+							col.columnIndex +
+							'" data-dt-row="' +
+							col.rowIndex +
+							'" data-dt-column="' +
+							col.columnIndex +
+							'">' +
+							'<span class="dtr-title">' +
+							col.title +
+							'</span> ' +
+							'</li>'
 					)
-						.append( $('<span class="dtr-data"/>').append( that._childNodes( api, col.rowIndex, col.columnIndex ) ) )// api.cell( col.rowIndex, col.columnIndex ).node().childNodes ) )
-						.appendTo( ul );
+						.append(
+							$('<span class="dtr-data"/>').append(
+								that._childNodes(api, col.rowIndex, col.columnIndex)
+							)
+						) // api.cell( col.rowIndex, col.columnIndex ).node().childNodes ) )
+						.appendTo(ul);
 
 					found = true;
 				}
-			} );
+			});
 
-			return found ?
-				ul :
-				false;
+			return found ? ul : false;
 		};
 	},
 
 	listHidden: function () {
-		return function ( api, rowIdx, columns ) {
-			var data = $.map( columns, function ( col ) {
-				var klass = col.className ?
-					'class="'+ col.className +'"' :
-					'';
+		return function (api, rowIdx, columns) {
+			var data = $.map(columns, function (col) {
+				var klass = col.className ? 'class="' + col.className + '"' : '';
 
-				return col.hidden ?
-					'<li '+klass+' data-dtr-index="'+col.columnIndex+'" data-dt-row="'+col.rowIndex+'" data-dt-column="'+col.columnIndex+'">'+
-						'<span class="dtr-title">'+
-							col.title+
-						'</span> '+
-						'<span class="dtr-data">'+
-							col.data+
-						'</span>'+
-					'</li>' :
-					'';
-			} ).join('');
+				return col.hidden
+					? '<li ' +
+							klass +
+							' data-dtr-index="' +
+							col.columnIndex +
+							'" data-dt-row="' +
+							col.rowIndex +
+							'" data-dt-column="' +
+							col.columnIndex +
+							'">' +
+							'<span class="dtr-title">' +
+							col.title +
+							'</span> ' +
+							'<span class="dtr-data">' +
+							col.data +
+							'</span>' +
+							'</li>'
+					: '';
+			}).join('');
 
-			return data ?
-				$('<ul data-dtr-index="'+rowIdx+'" class="dtr-details"/>').append( data ) :
-				false;
-		}
+			return data
+				? $('<ul data-dtr-index="' + rowIdx + '" class="dtr-details"/>').append(data)
+				: false;
+		};
 	},
 
-	tableAll: function ( options ) {
-		options = $.extend( {
-			tableClass: ''
-		}, options );
+	tableAll: function (options) {
+		options = $.extend(
+			{
+				tableClass: ''
+			},
+			options
+		);
 
-		return function ( api, rowIdx, columns ) {
-			var data = $.map( columns, function ( col ) {
-				var klass = col.className ?
-					'class="'+ col.className +'"' :
-					'';
+		return function (api, rowIdx, columns) {
+			var data = $.map(columns, function (col) {
+				var klass = col.className ? 'class="' + col.className + '"' : '';
 
-				return '<tr '+klass+' data-dt-row="'+col.rowIndex+'" data-dt-column="'+col.columnIndex+'">'+
-						'<td>'+col.title+':'+'</td> '+
-						'<td>'+col.data+'</td>'+
-					'</tr>';
-			} ).join('');
+				return (
+					'<tr ' +
+					klass +
+					' data-dt-row="' +
+					col.rowIndex +
+					'" data-dt-column="' +
+					col.columnIndex +
+					'">' +
+					'<td>' +
+					col.title +
+					':' +
+					'</td> ' +
+					'<td>' +
+					col.data +
+					'</td>' +
+					'</tr>'
+				);
+			}).join('');
 
-			return $('<table class="'+options.tableClass+' dtr-details" width="100%"/>').append( data );
-		}
+			return $('<table class="' + options.tableClass + ' dtr-details" width="100%"/>').append(
+				data
+			);
+		};
 	}
 };
 
@@ -24073,59 +23224,61 @@ Responsive.defaults = {
 	orthogonal: 'display'
 };
 
-
 /*
  * API
  */
 var Api = $.fn.dataTable.Api;
 
 // Doesn't do anything - work around for a bug in DT... Not documented
-Api.register( 'responsive()', function () {
+Api.register('responsive()', function () {
 	return this;
-} );
+});
 
-Api.register( 'responsive.index()', function ( li ) {
+Api.register('responsive.index()', function (li) {
 	li = $(li);
 
 	return {
 		column: li.data('dtr-index'),
-		row:    li.parent().data('dtr-index')
+		row: li.parent().data('dtr-index')
 	};
-} );
+});
 
-Api.register( 'responsive.rebuild()', function () {
-	return this.iterator( 'table', function ( ctx ) {
-		if ( ctx._responsive ) {
+Api.register('responsive.rebuild()', function () {
+	return this.iterator('table', function (ctx) {
+		if (ctx._responsive) {
 			ctx._responsive._classLogic();
 		}
-	} );
-} );
+	});
+});
 
-Api.register( 'responsive.recalc()', function () {
-	return this.iterator( 'table', function ( ctx ) {
-		if ( ctx._responsive ) {
+Api.register('responsive.recalc()', function () {
+	return this.iterator('table', function (ctx) {
+		if (ctx._responsive) {
 			ctx._responsive._resizeAuto();
 			ctx._responsive._resize();
 		}
-	} );
-} );
+	});
+});
 
-Api.register( 'responsive.hasHidden()', function () {
+Api.register('responsive.hasHidden()', function () {
 	var ctx = this.context[0];
 
-	return ctx._responsive ?
-		$.inArray( false, ctx._responsive._responsiveOnlyHidden() ) !== -1 :
-		false;
-} );
+	return ctx._responsive
+		? $.inArray(false, ctx._responsive._responsiveOnlyHidden()) !== -1
+		: false;
+});
 
-Api.registerPlural( 'columns().responsiveHidden()', 'column().responsiveHidden()', function () {
-	return this.iterator( 'column', function ( settings, column ) {
-		return settings._responsive ?
-			settings._responsive._responsiveOnlyHidden()[ column ] :
-			false;
-	}, 1 );
-} );
-
+Api.registerPlural('columns().responsiveHidden()', 'column().responsiveHidden()', function () {
+	return this.iterator(
+		'column',
+		function (settings, column) {
+			return settings._responsive
+				? settings._responsive._responsiveOnlyHidden()[column]
+				: false;
+		},
+		1
+	);
+});
 
 /**
  * Version information
@@ -24133,74 +23286,81 @@ Api.registerPlural( 'columns().responsiveHidden()', 'column().responsiveHidden()
  * @name Responsive.version
  * @static
  */
-Responsive.version = '2.4.0';
-
+Responsive.version = '2.5.0';
 
 $.fn.dataTable.Responsive = Responsive;
 $.fn.DataTable.Responsive = Responsive;
 
 // Attach a listener to the document which listens for DataTables initialisation
 // events so we can automatically initialise
-$(document).on( 'preInit.dt.dtr', function (e, settings, json) {
-	if ( e.namespace !== 'dt' ) {
+$(document).on('preInit.dt.dtr', function (e, settings, json) {
+	if (e.namespace !== 'dt') {
 		return;
 	}
 
-	if ( $(settings.nTable).hasClass( 'responsive' ) ||
-		 $(settings.nTable).hasClass( 'dt-responsive' ) ||
-		 settings.oInit.responsive ||
-		 DataTable.defaults.responsive
+	if (
+		$(settings.nTable).hasClass('responsive') ||
+		$(settings.nTable).hasClass('dt-responsive') ||
+		settings.oInit.responsive ||
+		DataTable.defaults.responsive
 	) {
 		var init = settings.oInit.responsive;
 
-		if ( init !== false ) {
-			new Responsive( settings, $.isPlainObject( init ) ? init : {}  );
+		if (init !== false) {
+			new Responsive(settings, $.isPlainObject(init) ? init : {});
 		}
 	}
-} );
+});
 
 
 return DataTable;
 }));
 
 
-/*! jQuery UI integration for DataTables' Responsive
+/*! Bootstrap 5 integration for DataTables' Responsive
  * © SpryMedia Ltd - datatables.net/license
  */
 
 (function( factory ){
 	if ( typeof define === 'function' && define.amd ) {
 		// AMD
-		define( ['jquery', 'datatables.net-ju', 'datatables.net-responsive'], function ( $ ) {
+		define( ['jquery', 'datatables.net-bs5', 'datatables.net-responsive'], function ( $ ) {
 			return factory( $, window, document );
 		} );
 	}
 	else if ( typeof exports === 'object' ) {
 		// CommonJS
-		module.exports = function (root, $) {
-			if ( ! root ) {
-				// CommonJS environments without a window global must pass a
-				// root. This will give an error otherwise
-				root = window;
-			}
-
-			if ( ! $ ) {
-				$ = typeof window !== 'undefined' ? // jQuery's factory checks for a global window
-					require('jquery') :
-					require('jquery')( root );
-			}
-
+		var jq = require('jquery');
+		var cjsRequires = function (root, $) {
 			if ( ! $.fn.dataTable ) {
-				require('datatables.net-ju')(root, $);
+				require('datatables.net-bs5')(root, $);
 			}
 
-			if ( ! $.fn.dataTable ) {
+			if ( ! $.fn.dataTable.Responsive ) {
 				require('datatables.net-responsive')(root, $);
 			}
-
-
-			return factory( $, root, root.document );
 		};
+
+		if (typeof window === 'undefined') {
+			module.exports = function (root, $) {
+				if ( ! root ) {
+					// CommonJS environments without a window global must pass a
+					// root. This will give an error otherwise
+					root = window;
+				}
+
+				if ( ! $ ) {
+					$ = jq( root );
+				}
+
+				cjsRequires( root, $ );
+				return factory( $, root, root.document );
+			};
+		}
+		else {
+			cjsRequires( window, jq );
+			module.exports = factory( jq, window, window.document );
+		}
 	}
 	else {
 		// Browser
@@ -24214,5346 +23374,120 @@ var DataTable = $.fn.dataTable;
 
 var _display = DataTable.Responsive.display;
 var _original = _display.modal;
+var _modal = $(
+	'<div class="modal fade dtr-bs-modal" role="dialog">' +
+		'<div class="modal-dialog" role="document">' +
+		'<div class="modal-content">' +
+		'<div class="modal-header">' +
+		'<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>' +
+		'</div>' +
+		'<div class="modal-body"/>' +
+		'</div>' +
+		'</div>' +
+		'</div>'
+);
+var modal;
 
-_display.modal = function ( options ) {
-	return function ( row, update, render ) {
-		if ( ! $.fn.dialog ) {
-			_original( row, update, render );
-		}
-		else {
-			if ( ! update ) {
-				$( '<div/>' )
-					.append( render() )
-					.appendTo( 'body' )
-					.dialog( $.extend( true, {
-						title: options && options.header ? options.header( row ) : '',
-						width: 500
-					}, options.dialog ) );
-			}
-		}
-	};
+// Note this could be undefined at the time of initialisation - the
+// DataTable.Responsive.bootstrap function can be used to set a different
+// bootstrap object
+var _bs = window.bootstrap;
+
+DataTable.Responsive.bootstrap = function (bs) {
+	_bs = bs;
 };
 
-
-return DataTable;
-}));
-
-
-/*! Scroller 2.1.0
- * ©2011-2022 SpryMedia Ltd - datatables.net/license
- */
-
-(function( factory ){
-	if ( typeof define === 'function' && define.amd ) {
-		// AMD
-		define( ['jquery', 'datatables.net'], function ( $ ) {
-			return factory( $, window, document );
-		} );
-	}
-	else if ( typeof exports === 'object' ) {
-		// CommonJS
-		module.exports = function (root, $) {
-			if ( ! root ) {
-				// CommonJS environments without a window global must pass a
-				// root. This will give an error otherwise
-				root = window;
-			}
-
-			if ( ! $ ) {
-				$ = typeof window !== 'undefined' ? // jQuery's factory checks for a global window
-					require('jquery') :
-					require('jquery')( root );
-			}
-
-			if ( ! $.fn.dataTable ) {
-				require('datatables.net')(root, $);
-			}
-
-			return factory( $, root, root.document );
-		};
-	}
-	else {
-		// Browser
-		factory( jQuery, window, document );
-	}
-}(function( $, window, document, undefined ) {
-'use strict';
-var DataTable = $.fn.dataTable;
-
-
-
-/**
- * @summary     Scroller
- * @description Virtual rendering for DataTables
- * @version     2.1.0
- * @author      SpryMedia Ltd (www.sprymedia.co.uk)
- * @contact     www.sprymedia.co.uk/contact
- * @copyright   SpryMedia Ltd.
- *
- * This source file is free software, available under the following license:
- *   MIT license - http://datatables.net/license/mit
- *
- * This source file is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
- * or FITNESS FOR A PARTICULAR PURPOSE. See the license files for details.
- *
- * For details please refer to: http://www.datatables.net
- */
-
-
-/**
- * Scroller is a virtual rendering plug-in for DataTables which allows large
- * datasets to be drawn on screen every quickly. What the virtual rendering means
- * is that only the visible portion of the table (and a bit to either side to make
- * the scrolling smooth) is drawn, while the scrolling container gives the
- * visual impression that the whole table is visible. This is done by making use
- * of the pagination abilities of DataTables and moving the table around in the
- * scrolling container DataTables adds to the page. The scrolling container is
- * forced to the height it would be for the full table display using an extra
- * element.
- *
- * Note that rows in the table MUST all be the same height. Information in a cell
- * which expands on to multiple lines will cause some odd behaviour in the scrolling.
- *
- * Scroller is initialised by simply including the letter 'S' in the sDom for the
- * table you want to have this feature enabled on. Note that the 'S' must come
- * AFTER the 't' parameter in `dom`.
- *
- * Key features include:
- *   <ul class="limit_length">
- *     <li>Speed! The aim of Scroller for DataTables is to make rendering large data sets fast</li>
- *     <li>Full compatibility with deferred rendering in DataTables for maximum speed</li>
- *     <li>Display millions of rows</li>
- *     <li>Integration with state saving in DataTables (scrolling position is saved)</li>
- *     <li>Easy to use</li>
- *   </ul>
- *
- *  @class
- *  @constructor
- *  @global
- *  @param {object} dt DataTables settings object or API instance
- *  @param {object} [opts={}] Configuration object for Scroller. Options 
- *    are defined by {@link Scroller.defaults}
- *
- *  @requires jQuery 1.7+
- *  @requires DataTables 1.10.0+
- *
- *  @example
- *    $(document).ready(function() {
- *        $('#example').DataTable( {
- *            "scrollY": "200px",
- *            "ajax": "media/dataset/large.txt",
- *            "scroller": true,
- *            "deferRender": true
- *        } );
- *    } );
- */
-var Scroller = function ( dt, opts ) {
-	/* Sanity check - you just know it will happen */
-	if ( ! (this instanceof Scroller) ) {
-		alert( "Scroller warning: Scroller must be initialised with the 'new' keyword." );
-		return;
+_display.modal = function (options) {
+	if (!modal) {
+		modal = new _bs.Modal(_modal[0]);
 	}
 
-	if ( opts === undefined ) {
-		opts = {};
-	}
-
-	var dtApi = $.fn.dataTable.Api( dt );
-
-	/**
-	 * Settings object which contains customisable information for the Scroller instance
-	 * @namespace
-	 * @private
-	 * @extends Scroller.defaults
-	 */
-	this.s = {
-		/**
-		 * DataTables settings object
-		 *  @type     object
-		 *  @default  Passed in as first parameter to constructor
-		 */
-		dt: dtApi.settings()[0],
-
-		/**
-		 * DataTables API instance
-		 *  @type     DataTable.Api
-		 */
-		dtApi: dtApi,
-
-		/**
-		 * Pixel location of the top of the drawn table in the viewport
-		 *  @type     int
-		 *  @default  0
-		 */
-		tableTop: 0,
-
-		/**
-		 * Pixel location of the bottom of the drawn table in the viewport
-		 *  @type     int
-		 *  @default  0
-		 */
-		tableBottom: 0,
-
-		/**
-		 * Pixel location of the boundary for when the next data set should be loaded and drawn
-		 * when scrolling up the way.
-		 *  @type     int
-		 *  @default  0
-		 *  @private
-		 */
-		redrawTop: 0,
-
-		/**
-		 * Pixel location of the boundary for when the next data set should be loaded and drawn
-		 * when scrolling down the way. Note that this is actually calculated as the offset from
-		 * the top.
-		 *  @type     int
-		 *  @default  0
-		 *  @private
-		 */
-		redrawBottom: 0,
-
-		/**
-		 * Auto row height or not indicator
-		 *  @type     bool
-		 *  @default  0
-		 */
-		autoHeight: true,
-
-		/**
-		 * Number of rows calculated as visible in the visible viewport
-		 *  @type     int
-		 *  @default  0
-		 */
-		viewportRows: 0,
-
-		/**
-		 * setTimeout reference for state saving, used when state saving is enabled in the DataTable
-		 * and when the user scrolls the viewport in order to stop the cookie set taking too much
-		 * CPU!
-		 *  @type     int
-		 *  @default  0
-		 */
-		stateTO: null,
-
-		stateSaveThrottle: function () {},
-
-		/**
-		 * setTimeout reference for the redraw, used when server-side processing is enabled in the
-		 * DataTables in order to prevent DoSing the server
-		 *  @type     int
-		 *  @default  null
-		 */
-		drawTO: null,
-
-		heights: {
-			jump: null,
-			page: null,
-			virtual: null,
-			scroll: null,
-
-			/**
-			 * Height of rows in the table
-			 *  @type     int
-			 *  @default  0
-			 */
-			row: null,
-
-			/**
-			 * Pixel height of the viewport
-			 *  @type     int
-			 *  @default  0
-			 */
-			viewport: null,
-			labelHeight: 0,
-			xbar: 0
-		},
-
-		topRowFloat: 0,
-		scrollDrawDiff: null,
-		loaderVisible: false,
-		forceReposition: false,
-		baseRowTop: 0,
-		baseScrollTop: 0,
-		mousedown: false,
-		lastScrollTop: 0
-	};
-
-	// @todo The defaults should extend a `c` property and the internal settings
-	// only held in the `s` property. At the moment they are mixed
-	this.s = $.extend( this.s, Scroller.oDefaults, opts );
-
-	// Workaround for row height being read from height object (see above comment)
-	this.s.heights.row = this.s.rowHeight;
-
-	/**
-	 * DOM elements used by the class instance
-	 * @private
-	 * @namespace
-	 *
-	 */
-	this.dom = {
-		"force":    document.createElement('div'),
-		"label":    $('<div class="dts_label">0</div>'),
-		"scroller": null,
-		"table":    null,
-		"loader":   null
-	};
-
-	// Attach the instance to the DataTables instance so it can be accessed in
-	// future. Don't initialise Scroller twice on the same table
-	if ( this.s.dt.oScroller ) {
-		return;
-	}
-
-	this.s.dt.oScroller = this;
-
-	/* Let's do it */
-	this.construct();
-};
-
-
-
-$.extend( Scroller.prototype, {
-	/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
-	 * Public methods - to be exposed via the DataTables API
-	 */
-
-	/**
-	 * Calculate and store information about how many rows are to be displayed
-	 * in the scrolling viewport, based on current dimensions in the browser's
-	 * rendering. This can be particularly useful if the table is initially
-	 * drawn in a hidden element - for example in a tab.
-	 *  @param {bool} [redraw=true] Redraw the table automatically after the recalculation, with
-	 *    the new dimensions forming the basis for the draw.
-	 *  @returns {void}
-	 */
-	measure: function ( redraw )
-	{
-		if ( this.s.autoHeight )
-		{
-			this._calcRowHeight();
-		}
-
-		var heights = this.s.heights;
-
-		if ( heights.row ) {
-			heights.viewport = this._parseHeight($(this.dom.scroller).css('max-height'));
-
-			this.s.viewportRows = parseInt( heights.viewport / heights.row, 10 )+1;
-			this.s.dt._iDisplayLength = this.s.viewportRows * this.s.displayBuffer;
-		}
-
-		var label = this.dom.label.outerHeight();
-		
-		heights.xbar = this.dom.scroller.offsetHeight - this.dom.scroller.clientHeight;
-		heights.labelHeight = label;
-
-		if ( redraw === undefined || redraw )
-		{
-			this.s.dt.oInstance.fnDraw( false );
-		}
-	},
-
-	/**
-	 * Get information about current displayed record range. This corresponds to
-	 * the information usually displayed in the "Info" block of the table.
-	 *
-	 * @returns {object} info as an object:
-	 *  {
-	 *      start: {int}, // the 0-indexed record at the top of the viewport
-	 *      end:   {int}, // the 0-indexed record at the bottom of the viewport
-	 *  }
-	*/
-	pageInfo: function()
-	{
-		var 
-			dt = this.s.dt,
-			iScrollTop = this.dom.scroller.scrollTop,
-			iTotal = dt.fnRecordsDisplay(),
-			iPossibleEnd = Math.ceil(this.pixelsToRow(iScrollTop + this.s.heights.viewport, false, this.s.ani));
-
-		return {
-			start: Math.floor(this.pixelsToRow(iScrollTop, false, this.s.ani)),
-			end: iTotal < iPossibleEnd ? iTotal-1 : iPossibleEnd-1
-		};
-	},
-
-	/**
-	 * Calculate the row number that will be found at the given pixel position
-	 * (y-scroll).
-	 *
-	 * Please note that when the height of the full table exceeds 1 million
-	 * pixels, Scroller switches into a non-linear mode for the scrollbar to fit
-	 * all of the records into a finite area, but this function returns a linear
-	 * value (relative to the last non-linear positioning).
-	 *  @param {int} pixels Offset from top to calculate the row number of
-	 *  @param {int} [intParse=true] If an integer value should be returned
-	 *  @param {int} [virtual=false] Perform the calculations in the virtual domain
-	 *  @returns {int} Row index
-	 */
-	pixelsToRow: function ( pixels, intParse, virtual )
-	{
-		var diff = pixels - this.s.baseScrollTop;
-		var row = virtual ?
-			(this._domain( 'physicalToVirtual', this.s.baseScrollTop ) + diff) / this.s.heights.row :
-			( diff / this.s.heights.row ) + this.s.baseRowTop;
-
-		return intParse || intParse === undefined ?
-			parseInt( row, 10 ) :
-			row;
-	},
-
-	/**
-	 * Calculate the pixel position from the top of the scrolling container for
-	 * a given row
-	 *  @param {int} iRow Row number to calculate the position of
-	 *  @returns {int} Pixels
-	 */
-	rowToPixels: function ( rowIdx, intParse, virtual )
-	{
-		var pixels;
-		var diff = rowIdx - this.s.baseRowTop;
-
-		if ( virtual ) {
-			pixels = this._domain( 'virtualToPhysical', this.s.baseScrollTop );
-			pixels += diff * this.s.heights.row;
+	return function (row, update, render, closeCallback) {
+		if (!$.fn.modal) {
+			return _original(row, update, render, closeCallback);
 		}
 		else {
-			pixels = this.s.baseScrollTop;
-			pixels += diff * this.s.heights.row;
-		}
+			if (!update) {
+				if (options && options.header) {
+					var header = _modal.find('div.modal-header');
+					var button = header.find('button').detach();
 
-		return intParse || intParse === undefined ?
-			parseInt( pixels, 10 ) :
-			pixels;
-	},
-
-
-	/**
-	 * Calculate the row number that will be found at the given pixel position (y-scroll)
-	 *  @param {int} row Row index to scroll to
-	 *  @param {bool} [animate=true] Animate the transition or not
-	 *  @returns {void}
-	 */
-	scrollToRow: function ( row, animate )
-	{
-		var that = this;
-		var ani = false;
-		var px = this.rowToPixels( row );
-
-		// We need to know if the table will redraw or not before doing the
-		// scroll. If it will not redraw, then we need to use the currently
-		// displayed table, and scroll with the physical pixels. Otherwise, we
-		// need to calculate the table's new position from the virtual
-		// transform.
-		var preRows = ((this.s.displayBuffer-1)/2) * this.s.viewportRows;
-		var drawRow = row - preRows;
-		if ( drawRow < 0 ) {
-			drawRow = 0;
-		}
-
-		if ( (px > this.s.redrawBottom || px < this.s.redrawTop) && this.s.dt._iDisplayStart !== drawRow ) {
-			ani = true;
-			px = this._domain( 'virtualToPhysical', row * this.s.heights.row );
-
-			// If we need records outside the current draw region, but the new
-			// scrolling position is inside that (due to the non-linear nature
-			// for larger numbers of records), we need to force position update.
-			if ( this.s.redrawTop < px && px < this.s.redrawBottom ) {
-				this.s.forceReposition = true;
-				animate = false;
-			}
-		}
-
-		if ( animate === undefined || animate )
-		{
-			this.s.ani = ani;
-			$(this.dom.scroller).animate( {
-				"scrollTop": px
-			}, function () {
-				// This needs to happen after the animation has completed and
-				// the final scroll event fired
-				setTimeout( function () {
-					that.s.ani = false;
-				}, 250 );
-			} );
-		}
-		else
-		{
-			$(this.dom.scroller).scrollTop( px );
-		}
-	},
-
-
-	/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
-	 * Constructor
-	 */
-
-	/**
-	 * Initialisation for Scroller
-	 *  @returns {void}
-	 *  @private
-	 */
-	construct: function ()
-	{
-		var that = this;
-		var dt = this.s.dtApi;
-
-		/* Sanity check */
-		if ( !this.s.dt.oFeatures.bPaginate ) {
-			this.s.dt.oApi._fnLog( this.s.dt, 0, 'Pagination must be enabled for Scroller' );
-			return;
-		}
-
-		/* Insert a div element that we can use to force the DT scrolling container to
-		 * the height that would be required if the whole table was being displayed
-		 */
-		this.dom.force.style.position = "relative";
-		this.dom.force.style.top = "0px";
-		this.dom.force.style.left = "0px";
-		this.dom.force.style.width = "1px";
-
-		this.dom.scroller = $('div.'+this.s.dt.oClasses.sScrollBody, this.s.dt.nTableWrapper)[0];
-		this.dom.scroller.appendChild( this.dom.force );
-		this.dom.scroller.style.position = "relative";
-
-		this.dom.table = $('>table', this.dom.scroller)[0];
-		this.dom.table.style.position = "absolute";
-		this.dom.table.style.top = "0px";
-		this.dom.table.style.left = "0px";
-
-		// Add class to 'announce' that we are a Scroller table
-		$(dt.table().container()).addClass('dts DTS');
-
-		// Add a 'loading' indicator
-		if ( this.s.loadingIndicator )
-		{
-			this.dom.loader = $('<div class="dataTables_processing dts_loading">'+this.s.dt.oLanguage.sLoadingRecords+'</div>')
-				.css('display', 'none');
-
-			$(this.dom.scroller.parentNode)
-				.css('position', 'relative')
-				.append( this.dom.loader );
-		}
-
-		this.dom.label.appendTo(this.dom.scroller);
-
-		/* Initial size calculations */
-		if ( this.s.heights.row && this.s.heights.row != 'auto' )
-		{
-			this.s.autoHeight = false;
-		}
-
-		// Scrolling callback to see if a page change is needed
-		this.s.ingnoreScroll = true;
-		$(this.dom.scroller).on( 'scroll.dt-scroller', function (e) {
-			that._scroll.call( that );
-		} );
-
-		// In iOS we catch the touchstart event in case the user tries to scroll
-		// while the display is already scrolling
-		$(this.dom.scroller).on('touchstart.dt-scroller', function () {
-			that._scroll.call( that );
-		} );
-
-		$(this.dom.scroller)
-			.on('mousedown.dt-scroller', function () {
-				that.s.mousedown = true;
-			})
-			.on('mouseup.dt-scroller', function () {
-				that.s.labelVisible = false;
-				that.s.mousedown = false;
-				that.dom.label.css('display', 'none');
-			});
-
-		// On resize, update the information element, since the number of rows shown might change
-		$(window).on( 'resize.dt-scroller', function () {
-			that.measure( false );
-			that._info();
-		} );
-
-		// Add a state saving parameter to the DT state saving so we can restore the exact
-		// position of the scrolling.
-		var initialStateSave = true;
-		var loadedState = dt.state.loaded();
-
-		dt.on( 'stateSaveParams.scroller', function ( e, settings, data ) {
-			if ( initialStateSave && loadedState ) {
-				data.scroller = loadedState.scroller;
-				initialStateSave = false;
-
-				if (data.scroller) {
-					that.s.lastScrollTop = data.scroller.scrollTop;
+					header
+						.empty()
+						.append('<h4 class="modal-title">' + options.header(row) + '</h4>')
+						.append(button);
 				}
+
+				_modal.find('div.modal-body').empty().append(render());
+
+				_modal
+					.data('dtr-row-idx', row.index())
+					.one('hidden.bs.modal', closeCallback)
+					.appendTo('body')
+					.modal();
+
+				modal.show();
 			}
 			else {
-				// Need to used the saved position on init
-				data.scroller = {
-					topRow: that.s.topRowFloat,
-					baseScrollTop: that.s.baseScrollTop,
-					baseRowTop: that.s.baseRowTop,
-					scrollTop: that.s.lastScrollTop
-				};
-			}
-		} );
-
-		dt.on( 'stateLoadParams.scroller', function( e, settings, data ) {
-			if (data.scroller !== undefined) {
-				that.scrollToRow(data.scroller.topRow);
-			}
-		});
-
-		if ( loadedState && loadedState.scroller ) {
-			this.s.topRowFloat = loadedState.scroller.topRow;
-			this.s.baseScrollTop = loadedState.scroller.baseScrollTop;
-			this.s.baseRowTop = loadedState.scroller.baseRowTop;
-		}
-
-		this.measure( false );
-	
-		that.s.stateSaveThrottle = that.s.dt.oApi._fnThrottle( function () {
-			that.s.dtApi.state.save();
-		}, 500 );
-
-		dt.on( 'init.scroller', function () {
-			that.measure( false );
-
-			// Setting to `jump` will instruct _draw to calculate the scroll top
-			// position
-			that.s.scrollType = 'jump';
-			that._draw();
-
-			// Update the scroller when the DataTable is redrawn
-			dt.on( 'draw.scroller', function () {
-				that._draw();
-			});
-		} );
-
-		// Set height before the draw happens, allowing everything else to update
-		// on draw complete without worry for roder.
-		dt.on( 'preDraw.dt.scroller', function () {
-			that._scrollForce();
-		} );
-
-		// Destructor
-		dt.on( 'destroy.scroller', function () {
-			$(window).off( 'resize.dt-scroller' );
-			$(that.dom.scroller).off('.dt-scroller');
-			$(that.s.dt.nTable).off( '.scroller' );
-
-			$(that.s.dt.nTableWrapper).removeClass('DTS');
-			$('div.DTS_Loading', that.dom.scroller.parentNode).remove();
-
-			that.dom.table.style.position = "";
-			that.dom.table.style.top = "";
-			that.dom.table.style.left = "";
-		} );
-	},
-
-
-	/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
-	 * Private methods
-	 */
-
-	/**
-	 * Automatic calculation of table row height. This is just a little tricky here as using
-	 * initialisation DataTables has tale the table out of the document, so we need to create
-	 * a new table and insert it into the document, calculate the row height and then whip the
-	 * table out.
-	 *  @returns {void}
-	 *  @private
-	 */
-	_calcRowHeight: function ()
-	{
-		var dt = this.s.dt;
-		var origTable = dt.nTable;
-		var nTable = origTable.cloneNode( false );
-		var tbody = $('<tbody/>').appendTo( nTable );
-		var container = $(
-			'<div class="'+dt.oClasses.sWrapper+' DTS">'+
-				'<div class="'+dt.oClasses.sScrollWrapper+'">'+
-					'<div class="'+dt.oClasses.sScrollBody+'"></div>'+
-				'</div>'+
-			'</div>'
-		);
-
-		// Want 3 rows in the sizing table so :first-child and :last-child
-		// CSS styles don't come into play - take the size of the middle row
-		$('tbody tr:lt(4)', origTable).clone().appendTo( tbody );
-        var rowsCount = $('tr', tbody).length;
-
-        if ( rowsCount === 1 ) {
-            tbody.prepend('<tr><td>&#160;</td></tr>');
-            tbody.append('<tr><td>&#160;</td></tr>');
-		}
-		else {
-            for (; rowsCount < 3; rowsCount++) {
-                tbody.append('<tr><td>&#160;</td></tr>');
-            }
-		}
-	
-		$('div.'+dt.oClasses.sScrollBody, container).append( nTable );
-
-		// If initialised using `dom`, use the holding element as the insert point
-		var insertEl = this.s.dt.nHolding || origTable.parentNode;
-
-		if ( ! $(insertEl).is(':visible') ) {
-			insertEl = 'body';
-		}
-
-		// Remove form element links as they might select over others (particularly radio and checkboxes)
-		container.find("input").removeAttr("name");
-
-		container.appendTo( insertEl );
-		this.s.heights.row = $('tr', tbody).eq(1).outerHeight();
-
-		container.remove();
-	},
-
-	/**
-	 * Draw callback function which is fired when the DataTable is redrawn. The main function of
-	 * this method is to position the drawn table correctly the scrolling container for the rows
-	 * that is displays as a result of the scrolling position.
-	 *  @returns {void}
-	 *  @private
-	 */
-	_draw: function ()
-	{
-		var
-			that = this,
-			heights = this.s.heights,
-			iScrollTop = this.dom.scroller.scrollTop,
-			iTableHeight = $(this.s.dt.nTable).height(),
-			displayStart = this.s.dt._iDisplayStart,
-			displayLen = this.s.dt._iDisplayLength,
-			displayEnd = this.s.dt.fnRecordsDisplay(),
-			viewportEndY = iScrollTop + heights.viewport;
-
-		// Disable the scroll event listener while we are updating the DOM
-		this.s.skip = true;
-
-		// If paging is reset
-		if ( (this.s.dt.bSorted || this.s.dt.bFiltered) && displayStart === 0 && !this.s.dt._drawHold ) {
-			this.s.topRowFloat = 0;
-		}
-
-		iScrollTop = this.s.scrollType === 'jump' ?
-			this._domain( 'virtualToPhysical', this.s.topRowFloat * heights.row ) :
-			iScrollTop;
-
-		// Store positional information so positional calculations can be based
-		// upon the current table draw position
-		this.s.baseScrollTop = iScrollTop;
-		this.s.baseRowTop = this.s.topRowFloat;
-
-		// Position the table in the virtual scroller
-		var tableTop = iScrollTop - ((this.s.topRowFloat - displayStart) * heights.row);
-		if ( displayStart === 0 ) {
-			tableTop = 0;
-		}
-		else if ( displayStart + displayLen >= displayEnd ) {
-			tableTop = heights.scroll - iTableHeight;
-		}
-		else {
-			var iTableBottomY = tableTop + iTableHeight;
-			if (iTableBottomY < viewportEndY) {
-				// The last row of the data is above the end of the viewport.
-				// This means the background is visible, which is not what the user expects.
-				var newTableTop = viewportEndY - iTableHeight;
-				var diffPx = newTableTop - tableTop;
-				this.s.baseScrollTop += diffPx + 1; // Update start row number in footer.
-				tableTop = newTableTop; // Move table so last line of data is at the bottom of the viewport.
-			}
-		}
-
-		this.dom.table.style.top = tableTop+'px';
-
-		/* Cache some information for the scroller */
-		this.s.tableTop = tableTop;
-		this.s.tableBottom = iTableHeight + this.s.tableTop;
-
-		// Calculate the boundaries for where a redraw will be triggered by the
-		// scroll event listener
-		var boundaryPx = (iScrollTop - this.s.tableTop) * this.s.boundaryScale;
-		this.s.redrawTop = iScrollTop - boundaryPx;
-		this.s.redrawBottom = iScrollTop + boundaryPx > heights.scroll - heights.viewport - heights.row ?
-			heights.scroll - heights.viewport - heights.row :
-			iScrollTop + boundaryPx;
-
-		this.s.skip = false;
-
-		if(that.s.ingnoreScroll) {
-			// Restore the scrolling position that was saved by DataTable's state
-			// saving Note that this is done on the second draw when data is Ajax
-			// sourced, and the first draw when DOM soured
-			if ( this.s.dt.oFeatures.bStateSave && this.s.dt.oLoadedState !== null &&
-				 typeof this.s.dt.oLoadedState.scroller != 'undefined' )
-			{
-				// A quirk of DataTables is that the draw callback will occur on an
-				// empty set if Ajax sourced, but not if server-side processing.
-				var ajaxSourced = (this.s.dt.sAjaxSource || that.s.dt.ajax) && ! this.s.dt.oFeatures.bServerSide ?
-					true :
-					false;
-	
-				if ( ( ajaxSourced && this.s.dt.iDraw >= 2) ||
-					 (!ajaxSourced && this.s.dt.iDraw >= 1) )
-				{
-					setTimeout( function () {
-						$(that.dom.scroller).scrollTop( that.s.dt.oLoadedState.scroller.scrollTop );
-	
-						// In order to prevent layout thrashing we need another
-						// small delay
-						setTimeout( function () {
-							that.s.ingnoreScroll = false;
-						}, 0 );
-					}, 0 );
-				}
-			}
-			else {
-				that.s.ingnoreScroll = false;
-			}
-		}
-
-
-		// Because of the order of the DT callbacks, the info update will
-		// take precedence over the one we want here. So a 'thread' break is
-		// needed.  Only add the thread break if bInfo is set
-		if ( this.s.dt.oFeatures.bInfo ) {
-			setTimeout( function () {
-				that._info.call( that );
-			}, 0 );
-		}
-
-		$(this.s.dt.nTable).triggerHandler('position.dts.dt', tableTop);
-
-		// Hide the loading indicator
-		if ( this.dom.loader && this.s.loaderVisible ) {
-			this.dom.loader.css( 'display', 'none' );
-			this.s.loaderVisible = false;
-		}
-	},
-
-	/**
-	 * Convert from one domain to another. The physical domain is the actual
-	 * pixel count on the screen, while the virtual is if we had browsers which
-	 * had scrolling containers of infinite height (i.e. the absolute value)
-	 *
-	 *  @param {string} dir Domain transform direction, `virtualToPhysical` or
-	 *    `physicalToVirtual` 
-	 *  @returns {number} Calculated transform
-	 *  @private
-	 */
-	_domain: function ( dir, val )
-	{
-		var heights = this.s.heights;
-		var diff;
-		var magic = 10000; // the point at which the non-linear calculations start to happen
-
-		// If the virtual and physical height match, then we use a linear
-		// transform between the two, allowing the scrollbar to be linear
-		if ( heights.virtual === heights.scroll ) {
-			return val;
-		}
-
-		// In the first 10k pixels and the last 10k pixels, we want the scrolling
-		// to be linear. After that it can be non-linear. It would be unusual for
-		// anyone to mouse wheel through that much.
-		if ( val < magic ) {
-			return val;
-		}
-		else if ( dir === 'virtualToPhysical' && val >= heights.virtual - magic ) {
-			diff = heights.virtual - val;
-			return heights.scroll - diff;
-		}
-		else if ( dir === 'physicalToVirtual' && val >= heights.scroll - magic ) {
-			diff = heights.scroll - val;
-			return heights.virtual - diff;
-		}
-
-		// Otherwise, we want a non-linear scrollbar to take account of the
-		// redrawing regions at the start and end of the table, otherwise these
-		// can stutter badly - on large tables 30px (for example) scroll might
-		// be hundreds of rows, so the table would be redrawing every few px at
-		// the start and end. Use a simple linear eq. to stop this, effectively
-		// causing a kink in the scrolling ratio. It does mean the scrollbar is
-		// non-linear, but with such massive data sets, the scrollbar is going
-		// to be a best guess anyway
-		var m = (heights.virtual - magic - magic) / (heights.scroll - magic - magic);
-		var c = magic - (m*magic);
-
-		return dir === 'virtualToPhysical' ?
-			(val-c) / m :
-			(m*val) + c;
-	},
-
-	/**
-	 * Update any information elements that are controlled by the DataTable based on the scrolling
-	 * viewport and what rows are visible in it. This function basically acts in the same way as
-	 * _fnUpdateInfo in DataTables, and effectively replaces that function.
-	 *  @returns {void}
-	 *  @private
-	 */
-	_info: function ()
-	{
-		if ( !this.s.dt.oFeatures.bInfo )
-		{
-			return;
-		}
-
-		var
-			dt = this.s.dt,
-			language = dt.oLanguage,
-			iScrollTop = this.dom.scroller.scrollTop,
-			iStart = Math.floor( this.pixelsToRow(iScrollTop, false, this.s.ani)+1 ),
-			iMax = dt.fnRecordsTotal(),
-			iTotal = dt.fnRecordsDisplay(),
-			iPossibleEnd = Math.ceil( this.pixelsToRow(iScrollTop+this.s.heights.viewport, false, this.s.ani) ),
-			iEnd = iTotal < iPossibleEnd ? iTotal : iPossibleEnd,
-			sStart = dt.fnFormatNumber( iStart ),
-			sEnd = dt.fnFormatNumber( iEnd ),
-			sMax = dt.fnFormatNumber( iMax ),
-			sTotal = dt.fnFormatNumber( iTotal ),
-			sOut;
-
-		if ( dt.fnRecordsDisplay() === 0 &&
-			   dt.fnRecordsDisplay() == dt.fnRecordsTotal() )
-		{
-			/* Empty record set */
-			sOut = language.sInfoEmpty+ language.sInfoPostFix;
-		}
-		else if ( dt.fnRecordsDisplay() === 0 )
-		{
-			/* Empty record set after filtering */
-			sOut = language.sInfoEmpty +' '+
-				language.sInfoFiltered.replace('_MAX_', sMax)+
-					language.sInfoPostFix;
-		}
-		else if ( dt.fnRecordsDisplay() == dt.fnRecordsTotal() )
-		{
-			/* Normal record set */
-			sOut = language.sInfo.
-					replace('_START_', sStart).
-					replace('_END_',   sEnd).
-					replace('_MAX_',   sMax).
-					replace('_TOTAL_', sTotal)+
-				language.sInfoPostFix;
-		}
-		else
-		{
-			/* Record set after filtering */
-			sOut = language.sInfo.
-					replace('_START_', sStart).
-					replace('_END_',   sEnd).
-					replace('_MAX_',   sMax).
-					replace('_TOTAL_', sTotal) +' '+
-				language.sInfoFiltered.replace(
-					'_MAX_',
-					dt.fnFormatNumber(dt.fnRecordsTotal())
-				)+
-				language.sInfoPostFix;
-		}
-
-		var callback = language.fnInfoCallback;
-		if ( callback ) {
-			sOut = callback.call( dt.oInstance,
-				dt, iStart, iEnd, iMax, iTotal, sOut
-			);
-		}
-
-		var n = dt.aanFeatures.i;
-		if ( typeof n != 'undefined' )
-		{
-			for ( var i=0, iLen=n.length ; i<iLen ; i++ )
-			{
-				$(n[i]).html( sOut );
-			}
-		}
-
-		// DT doesn't actually (yet) trigger this event, but it will in future
-		$(dt.nTable).triggerHandler( 'info.dt' );
-	},
-
-	/**
-	 * Parse CSS height property string as number
-	 *
-	 * An attempt is made to parse the string as a number. Currently supported units are 'px',
-	 * 'vh', and 'rem'. 'em' is partially supported; it works as long as the parent element's
-	 * font size matches the body element. Zero is returned for unrecognized strings.
-	 *  @param {string} cssHeight CSS height property string
-	 *  @returns {number} height
-	 *  @private
-	 */
-	_parseHeight: function(cssHeight) {
-		var height;
-		var matches = /^([+-]?(?:\d+(?:\.\d+)?|\.\d+))(px|em|rem|vh)$/.exec(cssHeight);
-
-		if (matches === null) {
-			return 0;
-		}
-
-		var value = parseFloat(matches[1]);
-		var unit = matches[2];
-
-		if ( unit === 'px' ) {
-			height = value;
-		}
-		else if ( unit === 'vh' ) {
-			height = ( value / 100 ) * $(window).height();
-		}
-		else if ( unit === 'rem' ) {
-			height = value * parseFloat($(':root').css('font-size'));
-		}
-		else if ( unit === 'em' ) {
-			height = value * parseFloat($('body').css('font-size'));
-		}
-
-		return height ?
-			height :
-			0;
-	},
-
-	/**
-	 * Scrolling function - fired whenever the scrolling position is changed.
-	 * This method needs to use the stored values to see if the table should be
-	 * redrawn as we are moving towards the end of the information that is
-	 * currently drawn or not. If needed, then it will redraw the table based on
-	 * the new position.
-	 *  @returns {void}
-	 *  @private
-	 */
-	_scroll: function ()
-	{
-		var
-			that = this,
-			heights = this.s.heights,
-			iScrollTop = this.dom.scroller.scrollTop,
-			iTopRow;
-
-		if ( this.s.skip ) {
-			return;
-		}
-
-		if ( this.s.ingnoreScroll ) {
-			return;
-		}
-
-		if ( iScrollTop === this.s.lastScrollTop ) {
-			return;
-		}
-
-		/* If the table has been sorted or filtered, then we use the redraw that
-		 * DataTables as done, rather than performing our own
-		 */
-		if ( this.s.dt.bFiltered || this.s.dt.bSorted ) {
-			this.s.lastScrollTop = 0;
-			return;
-		}
-
-		/* Update the table's information display for what is now in the viewport */
-		this._info();
-
-		/* We don't want to state save on every scroll event - that's heavy
-		 * handed, so use a timeout to update the state saving only when the
-		 * scrolling has finished
-		 */
-		clearTimeout( this.s.stateTO );
-		this.s.stateTO = setTimeout( function () {
-			that.s.dtApi.state.save();
-		}, 250 );
-
-		this.s.scrollType = Math.abs(iScrollTop - this.s.lastScrollTop) > heights.viewport ?
-			'jump' :
-			'cont';
-
-		this.s.topRowFloat = this.s.scrollType === 'cont' ?
-			this.pixelsToRow( iScrollTop, false, false ) :
-			this._domain( 'physicalToVirtual', iScrollTop ) / heights.row;
-
-		if ( this.s.topRowFloat < 0 ) {
-			this.s.topRowFloat = 0;
-		}
-
-		/* Check if the scroll point is outside the trigger boundary which would required
-		 * a DataTables redraw
-		 */
-		if ( this.s.forceReposition || iScrollTop < this.s.redrawTop || iScrollTop > this.s.redrawBottom ) {
-			var preRows = Math.ceil( ((this.s.displayBuffer-1)/2) * this.s.viewportRows );
-
-			iTopRow = parseInt(this.s.topRowFloat, 10) - preRows;
-			this.s.forceReposition = false;
-
-			if ( iTopRow <= 0 ) {
-				/* At the start of the table */
-				iTopRow = 0;
-			}
-			else if ( iTopRow + this.s.dt._iDisplayLength > this.s.dt.fnRecordsDisplay() ) {
-				/* At the end of the table */
-				iTopRow = this.s.dt.fnRecordsDisplay() - this.s.dt._iDisplayLength;
-				if ( iTopRow < 0 ) {
-					iTopRow = 0;
-				}
-			}
-			else if ( iTopRow % 2 !== 0 ) {
-				// For the row-striping classes (odd/even) we want only to start
-				// on evens otherwise the stripes will change between draws and
-				// look rubbish
-				iTopRow++;
-			}
-
-			// Store calcuated value, in case the following condition is not met, but so
-			// that the draw function will still use it.
-			this.s.targetTop = iTopRow;
-
-			if ( iTopRow != this.s.dt._iDisplayStart ) {
-				/* Cache the new table position for quick lookups */
-				this.s.tableTop = $(this.s.dt.nTable).offset().top;
-				this.s.tableBottom = $(this.s.dt.nTable).height() + this.s.tableTop;
-
-				var draw = function () {
-					that.s.dt._iDisplayStart = that.s.targetTop;
-					that.s.dt.oApi._fnDraw( that.s.dt );
-				};
-
-				/* Do the DataTables redraw based on the calculated start point - note that when
-				 * using server-side processing we introduce a small delay to not DoS the server...
-				 */
-				if ( this.s.dt.oFeatures.bServerSide ) {
-					this.s.forceReposition = true;
-
-					clearTimeout( this.s.drawTO );
-					this.s.drawTO = setTimeout( draw, this.s.serverWait );
+				if ($.contains(document, _modal[0]) && row.index() === _modal.data('dtr-row-idx')) {
+					_modal.find('div.modal-body').empty().append(render());
 				}
 				else {
-					draw();
-				}
-
-				if ( this.dom.loader && ! this.s.loaderVisible ) {
-					this.dom.loader.css( 'display', 'block' );
-					this.s.loaderVisible = true;
+					// Modal not shown for this row - do nothing
+					return null;
 				}
 			}
+
+			return true;
 		}
-		else {
-			this.s.topRowFloat = this.pixelsToRow( iScrollTop, false, true );
-		}
-
-		this.s.lastScrollTop = iScrollTop;
-		this.s.stateSaveThrottle();
-
-		if ( this.s.scrollType === 'jump' && this.s.mousedown ) {
-			this.s.labelVisible = true;
-		}
-		if (this.s.labelVisible) {
-			var labelFactor = (heights.viewport-heights.labelHeight - heights.xbar) / heights.scroll;
-
-			this.dom.label
-				.html( this.s.dt.fnFormatNumber( parseInt( this.s.topRowFloat, 10 )+1 ) )
-				.css( 'top', iScrollTop + (iScrollTop * labelFactor) )
-				.css( 'right', 10 - this.dom.scroller.scrollLeft)
-				.css( 'display', 'block' );
-		}
-	},
-
-	/**
-	 * Force the scrolling container to have height beyond that of just the
-	 * table that has been drawn so the user can scroll the whole data set.
-	 *
-	 * Note that if the calculated required scrolling height exceeds a maximum
-	 * value (1 million pixels - hard-coded) the forcing element will be set
-	 * only to that maximum value and virtual / physical domain transforms will
-	 * be used to allow Scroller to display tables of any number of records.
-	 *  @returns {void}
-	 *  @private
-	 */
-	_scrollForce: function ()
-	{
-		var heights = this.s.heights;
-		var max = 1000000;
-
-		heights.virtual = heights.row * this.s.dt.fnRecordsDisplay();
-		heights.scroll = heights.virtual;
-
-		if ( heights.scroll > max ) {
-			heights.scroll = max;
-		}
-
-		// Minimum height so there is always a row visible (the 'no rows found'
-		// if reduced to zero filtering)
-		this.dom.force.style.height = heights.scroll > this.s.heights.row ?
-			heights.scroll+'px' :
-			this.s.heights.row+'px';
-	}
-} );
-
-
-
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
- * Statics
- * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-
-
-/**
- * Scroller default settings for initialisation
- *  @namespace
- *  @name Scroller.defaults
- *  @static
- */
-Scroller.defaults = {
-	/**
-	 * Scroller uses the boundary scaling factor to decide when to redraw the table - which it
-	 * typically does before you reach the end of the currently loaded data set (in order to
-	 * allow the data to look continuous to a user scrolling through the data). If given as 0
-	 * then the table will be redrawn whenever the viewport is scrolled, while 1 would not
-	 * redraw the table until the currently loaded data has all been shown. You will want
-	 * something in the middle - the default factor of 0.5 is usually suitable.
-	 *  @type     float
-	 *  @default  0.5
-	 *  @static
-	 */
-	boundaryScale: 0.5,
-
-	/**
-	 * The display buffer is what Scroller uses to calculate how many rows it should pre-fetch
-	 * for scrolling. Scroller automatically adjusts DataTables' display length to pre-fetch
-	 * rows that will be shown in "near scrolling" (i.e. just beyond the current display area).
-	 * The value is based upon the number of rows that can be displayed in the viewport (i.e.
-	 * a value of 1), and will apply the display range to records before before and after the
-	 * current viewport - i.e. a factor of 3 will allow Scroller to pre-fetch 1 viewport's worth
-	 * of rows before the current viewport, the current viewport's rows and 1 viewport's worth
-	 * of rows after the current viewport. Adjusting this value can be useful for ensuring
-	 * smooth scrolling based on your data set.
-	 *  @type     int
-	 *  @default  7
-	 *  @static
-	 */
-	displayBuffer: 9,
-
-	/**
-	 * Show (or not) the loading element in the background of the table. Note that you should
-	 * include the dataTables.scroller.css file for this to be displayed correctly.
-	 *  @type     boolean
-	 *  @default  false
-	 *  @static
-	 */
-	loadingIndicator: false,
-
-	/**
-	 * Scroller will attempt to automatically calculate the height of rows for it's internal
-	 * calculations. However the height that is used can be overridden using this parameter.
-	 *  @type     int|string
-	 *  @default  auto
-	 *  @static
-	 */
-	rowHeight: "auto",
-
-	/**
-	 * When using server-side processing, Scroller will wait a small amount of time to allow
-	 * the scrolling to finish before requesting more data from the server. This prevents
-	 * you from DoSing your own server! The wait time can be configured by this parameter.
-	 *  @type     int
-	 *  @default  200
-	 *  @static
-	 */
-	serverWait: 200
+	};
 };
 
-Scroller.oDefaults = Scroller.defaults;
-
-
-
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
- * Constants
- * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-
-/**
- * Scroller version
- *  @type      String
- *  @default   See code
- *  @name      Scroller.version
- *  @static
- */
-Scroller.version = "2.1.0";
-
-
-
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
- * Initialisation
- * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-
-// Attach a listener to the document which listens for DataTables initialisation
-// events so we can automatically initialise
-$(document).on( 'preInit.dt.dtscroller', function (e, settings) {
-	if ( e.namespace !== 'dt' ) {
-		return;
-	}
-
-	var init = settings.oInit.scroller;
-	var defaults = DataTable.defaults.scroller;
-
-	if ( init || defaults ) {
-		var opts = $.extend( {}, init, defaults );
-
-		if ( init !== false ) {
-			new Scroller( settings, opts  );
-		}
-	}
-} );
-
-
-// Attach Scroller to DataTables so it can be accessed as an 'extra'
-$.fn.dataTable.Scroller = Scroller;
-$.fn.DataTable.Scroller = Scroller;
-
-
-// DataTables 1.10 API method aliases
-var Api = $.fn.dataTable.Api;
-
-Api.register( 'scroller()', function () {
-	return this;
-} );
-
-// Undocumented and deprecated - is it actually useful at all?
-Api.register( 'scroller().rowToPixels()', function ( rowIdx, intParse, virtual ) {
-	var ctx = this.context;
-
-	if ( ctx.length && ctx[0].oScroller ) {
-		return ctx[0].oScroller.rowToPixels( rowIdx, intParse, virtual );
-	}
-	// undefined
-} );
-
-// Undocumented and deprecated - is it actually useful at all?
-Api.register( 'scroller().pixelsToRow()', function ( pixels, intParse, virtual ) {
-	var ctx = this.context;
-
-	if ( ctx.length && ctx[0].oScroller ) {
-		return ctx[0].oScroller.pixelsToRow( pixels, intParse, virtual );
-	}
-	// undefined
-} );
-
-// `scroller().scrollToRow()` is undocumented and deprecated. Use `scroller.toPosition()
-Api.register( ['scroller().scrollToRow()', 'scroller.toPosition()'], function ( idx, ani ) {
-	this.iterator( 'table', function ( ctx ) {
-		if ( ctx.oScroller ) {
-			ctx.oScroller.scrollToRow( idx, ani );
-		}
-	} );
-
-	return this;
-} );
-
-Api.register( 'row().scrollTo()', function ( ani ) {
-	var that = this;
-
-	this.iterator( 'row', function ( ctx, rowIdx ) {
-		if ( ctx.oScroller ) {
-			var displayIdx = that
-				.rows( { order: 'applied', search: 'applied' } )
-				.indexes()
-				.indexOf( rowIdx );
-
-			ctx.oScroller.scrollToRow( displayIdx, ani );
-		}
-	} );
-
-	return this;
-} );
-
-Api.register( 'scroller.measure()', function ( redraw ) {
-	this.iterator( 'table', function ( ctx ) {
-		if ( ctx.oScroller ) {
-			ctx.oScroller.measure( redraw );
-		}
-	} );
-
-	return this;
-} );
-
-Api.register( 'scroller.page()', function() {
-	var ctx = this.context;
-
-	if ( ctx.length && ctx[0].oScroller ) {
-		return ctx[0].oScroller.pageInfo();
-	}
-	// undefined
-} );
-
 
 return DataTable;
 }));
 
 
-/*! SearchBuilder 1.4.0
- * ©SpryMedia Ltd - datatables.net/license/mit
- */
-
-(function( factory ){
-	if ( typeof define === 'function' && define.amd ) {
-		// AMD
-		define( ['jquery', 'datatables.net'], function ( $ ) {
-			return factory( $, window, document );
-		} );
-	}
-	else if ( typeof exports === 'object' ) {
-		// CommonJS
-		module.exports = function (root, $) {
-			if ( ! root ) {
-				// CommonJS environments without a window global must pass a
-				// root. This will give an error otherwise
-				root = window;
-			}
-
-			if ( ! $ ) {
-				$ = typeof window !== 'undefined' ? // jQuery's factory checks for a global window
-					require('jquery') :
-					require('jquery')( root );
-			}
-
-			if ( ! $.fn.dataTable ) {
-				require('datatables.net')(root, $);
-			}
-
-
-			return factory( $, root, root.document );
-		};
-	}
-	else {
-		// Browser
-		factory( jQuery, window, document );
-	}
-}(function( $, window, document, undefined ) {
-'use strict';
-var DataTable = $.fn.dataTable;
-
-
-(function () {
-    'use strict';
-
-    var $$3;
-    var dataTable$3;
-    function moment() {
-        return window.moment;
-    }
-    function luxon() {
-        return window.luxon;
-    }
-    /**
-     * Sets the value of jQuery for use in the file
-     *
-     * @param jq the instance of jQuery to be set
-     */
-    function setJQuery$2(jq) {
-        $$3 = jq;
-        dataTable$3 = jq.fn.dataTable;
-    }
-    /**
-     * The Criteria class is used within SearchBuilder to represent a search criteria
-     */
-    var Criteria = /** @class */ (function () {
-        function Criteria(table, opts, topGroup, index, depth, serverData) {
-            var _this = this;
-            if (index === void 0) { index = 0; }
-            if (depth === void 0) { depth = 1; }
-            if (serverData === void 0) { serverData = undefined; }
-            // Check that the required version of DataTables is included
-            if (!dataTable$3 || !dataTable$3.versionCheck || !dataTable$3.versionCheck('1.10.0')) {
-                throw new Error('SearchPane requires DataTables 1.10 or newer');
-            }
-            this.classes = $$3.extend(true, {}, Criteria.classes);
-            // Get options from user and any extra conditions/column types defined by plug-ins
-            this.c = $$3.extend(true, {}, Criteria.defaults, $$3.fn.dataTable.ext.searchBuilder, opts);
-            var i18n = this.c.i18n;
-            this.s = {
-                condition: undefined,
-                conditions: {},
-                data: undefined,
-                dataIdx: -1,
-                dataPoints: [],
-                dateFormat: false,
-                depth: depth,
-                dt: table,
-                filled: false,
-                index: index,
-                origData: undefined,
-                preventRedraw: false,
-                serverData: serverData,
-                topGroup: topGroup,
-                type: '',
-                value: []
-            };
-            this.dom = {
-                buttons: $$3('<div/>')
-                    .addClass(this.classes.buttonContainer),
-                condition: $$3('<select disabled/>')
-                    .addClass(this.classes.condition)
-                    .addClass(this.classes.dropDown)
-                    .addClass(this.classes.italic)
-                    .attr('autocomplete', 'hacking'),
-                conditionTitle: $$3('<option value="" disabled selected hidden/>')
-                    .html(this.s.dt.i18n('searchBuilder.condition', i18n.condition)),
-                container: $$3('<div/>')
-                    .addClass(this.classes.container),
-                data: $$3('<select/>')
-                    .addClass(this.classes.data)
-                    .addClass(this.classes.dropDown)
-                    .addClass(this.classes.italic),
-                dataTitle: $$3('<option value="" disabled selected hidden/>')
-                    .html(this.s.dt.i18n('searchBuilder.data', i18n.data)),
-                defaultValue: $$3('<select disabled/>')
-                    .addClass(this.classes.value)
-                    .addClass(this.classes.dropDown)
-                    .addClass(this.classes.select)
-                    .addClass(this.classes.italic),
-                "delete": $$3('<button/>')
-                    .html(this.s.dt.i18n('searchBuilder.delete', i18n["delete"]))
-                    .addClass(this.classes["delete"])
-                    .addClass(this.classes.button)
-                    .attr('title', this.s.dt.i18n('searchBuilder.deleteTitle', i18n.deleteTitle))
-                    .attr('type', 'button'),
-                inputCont: $$3('<div/>')
-                    .addClass(this.classes.inputCont),
-                // eslint-disable-next-line no-useless-escape
-                left: $$3('<button/>')
-                    .html(this.s.dt.i18n('searchBuilder.left', i18n.left))
-                    .addClass(this.classes.left)
-                    .addClass(this.classes.button)
-                    .attr('title', this.s.dt.i18n('searchBuilder.leftTitle', i18n.leftTitle))
-                    .attr('type', 'button'),
-                // eslint-disable-next-line no-useless-escape
-                right: $$3('<button/>')
-                    .html(this.s.dt.i18n('searchBuilder.right', i18n.right))
-                    .addClass(this.classes.right)
-                    .addClass(this.classes.button)
-                    .attr('title', this.s.dt.i18n('searchBuilder.rightTitle', i18n.rightTitle))
-                    .attr('type', 'button'),
-                value: [
-                    $$3('<select disabled/>')
-                        .addClass(this.classes.value)
-                        .addClass(this.classes.dropDown)
-                        .addClass(this.classes.italic)
-                        .addClass(this.classes.select)
-                ],
-                valueTitle: $$3('<option value="--valueTitle--" disabled selected hidden/>')
-                    .html(this.s.dt.i18n('searchBuilder.value', i18n.value))
-            };
-            // If the greyscale option is selected then add the class to add the grey colour to SearchBuilder
-            if (this.c.greyscale) {
-                this.dom.data.addClass(this.classes.greyscale);
-                this.dom.condition.addClass(this.classes.greyscale);
-                this.dom.defaultValue.addClass(this.classes.greyscale);
-                for (var _i = 0, _a = this.dom.value; _i < _a.length; _i++) {
-                    var val = _a[_i];
-                    val.addClass(this.classes.greyscale);
-                }
-            }
-            $$3(window).on('resize.dtsb', dataTable$3.util.throttle(function () {
-                _this.s.topGroup.trigger('dtsb-redrawLogic');
-            }));
-            this._buildCriteria();
-            return this;
-        }
-        /**
-         * Escape html characters within a string
-         *
-         * @param txt the string to be escaped
-         * @returns the escaped string
-         */
-        Criteria._escapeHTML = function (txt) {
-            return txt
-                .toString()
-                .replace(/&amp;/g, '&')
-                .replace(/&lt;/g, '<')
-                .replace(/&gt;/g, '>')
-                .replace(/&quot;/g, '"');
-        };
-        /**
-         * Parses formatted numbers down to a form where they can be compared
-         *
-         * @param val the value to convert
-         * @returns the converted value
-         */
-        Criteria.parseNumFmt = function (val) {
-            return +val.replace(/(?!^-)[^0-9.]/g, '');
-        };
-        /**
-         * Adds the left button to the criteria
-         */
-        Criteria.prototype.updateArrows = function (hasSiblings) {
-            if (hasSiblings === void 0) { hasSiblings = false; }
-            // Empty the container and append all of the elements in the correct order
-            this.dom.container.children().detach();
-            this.dom.container
-                .append(this.dom.data)
-                .append(this.dom.condition)
-                .append(this.dom.inputCont);
-            this.setListeners();
-            // Trigger the inserted events for the value elements as they are inserted
-            if (this.dom.value[0] !== undefined) {
-                this.dom.value[0].trigger('dtsb-inserted');
-            }
-            for (var i = 1; i < this.dom.value.length; i++) {
-                this.dom.inputCont.append(this.dom.value[i]);
-                this.dom.value[i].trigger('dtsb-inserted');
-            }
-            // If this is a top level criteria then don't let it move left
-            if (this.s.depth > 1) {
-                this.dom.buttons.append(this.dom.left);
-            }
-            // If the depthLimit of the query has been hit then don't add the right button
-            if ((this.c.depthLimit === false || this.s.depth < this.c.depthLimit) && hasSiblings) {
-                this.dom.buttons.append(this.dom.right);
-            }
-            else {
-                this.dom.right.remove();
-            }
-            this.dom.buttons.append(this.dom["delete"]);
-            this.dom.container.append(this.dom.buttons);
-        };
-        /**
-         * Destroys the criteria, removing listeners and container from the dom
-         */
-        Criteria.prototype.destroy = function () {
-            // Turn off listeners
-            this.dom.data.off('.dtsb');
-            this.dom.condition.off('.dtsb');
-            this.dom["delete"].off('.dtsb');
-            for (var _i = 0, _a = this.dom.value; _i < _a.length; _i++) {
-                var val = _a[_i];
-                val.off('.dtsb');
-            }
-            // Remove container from the dom
-            this.dom.container.remove();
-        };
-        /**
-         * Passes in the data for the row and compares it against this single criteria
-         *
-         * @param rowData The data for the row to be compared
-         * @returns boolean Whether the criteria has passed
-         */
-        Criteria.prototype.search = function (rowData, rowIdx) {
-            var condition = this.s.conditions[this.s.condition];
-            if (this.s.condition !== undefined && condition !== undefined) {
-                var filter = rowData[this.s.dataIdx];
-                // This check is in place for if a custom decimal character is in place
-                if (this.s.type.includes('num') &&
-                    (this.s.dt.settings()[0].oLanguage.sDecimal !== '' ||
-                        this.s.dt.settings()[0].oLanguage.sThousands !== '')) {
-                    var splitRD = [rowData[this.s.dataIdx]];
-                    if (this.s.dt.settings()[0].oLanguage.sDecimal !== '') {
-                        splitRD = rowData[this.s.dataIdx].split(this.s.dt.settings()[0].oLanguage.sDecimal);
-                    }
-                    if (this.s.dt.settings()[0].oLanguage.sThousands !== '') {
-                        for (var i = 0; i < splitRD.length; i++) {
-                            splitRD[i] = splitRD[i].replace(this.s.dt.settings()[0].oLanguage.sThousands, ',');
-                        }
-                    }
-                    filter = splitRD.join('.');
-                }
-                // If orthogonal data is in place we need to get it's values for searching
-                if (this.c.orthogonal.search !== 'filter') {
-                    var settings = this.s.dt.settings()[0];
-                    filter = settings.oApi._fnGetCellData(settings, rowIdx, this.s.dataIdx, typeof this.c.orthogonal === 'string' ?
-                        this.c.orthogonal :
-                        this.c.orthogonal.search);
-                }
-                if (this.s.type === 'array') {
-                    // Make sure we are working with an array
-                    if (!Array.isArray(filter)) {
-                        filter = [filter];
-                    }
-                    filter.sort();
-                    for (var _i = 0, filter_1 = filter; _i < filter_1.length; _i++) {
-                        var filt = filter_1[_i];
-                        if (filt && typeof filt === 'string') {
-                            filt = filt.replace(/[\r\n\u2028]/g, ' ');
-                        }
-                    }
-                }
-                else if (filter !== null && typeof filter === 'string') {
-                    filter = filter.replace(/[\r\n\u2028]/g, ' ');
-                }
-                if (this.s.type.includes('html') && typeof filter === 'string') {
-                    filter = filter.replace(/(<([^>]+)>)/ig, '');
-                }
-                // Not ideal, but jqueries .val() returns an empty string even
-                // when the value set is null, so we shall assume the two are equal
-                if (filter === null) {
-                    filter = '';
-                }
-                return condition.search(filter, this.s.value, this);
-            }
-        };
-        /**
-         * Gets the details required to rebuild the criteria
-         */
-        Criteria.prototype.getDetails = function (deFormatDates) {
-            if (deFormatDates === void 0) { deFormatDates = false; }
-            // This check is in place for if a custom decimal character is in place
-            if (this.s.type !== null &&
-                this.s.type.includes('num') &&
-                (this.s.dt.settings()[0].oLanguage.sDecimal !== '' || this.s.dt.settings()[0].oLanguage.sThousands !== '')) {
-                for (var i = 0; i < this.s.value.length; i++) {
-                    var splitRD = [this.s.value[i].toString()];
-                    if (this.s.dt.settings()[0].oLanguage.sDecimal !== '') {
-                        splitRD = this.s.value[i].split(this.s.dt.settings()[0].oLanguage.sDecimal);
-                    }
-                    if (this.s.dt.settings()[0].oLanguage.sThousands !== '') {
-                        for (var j = 0; j < splitRD.length; j++) {
-                            splitRD[j] = splitRD[j].replace(this.s.dt.settings()[0].oLanguage.sThousands, ',');
-                        }
-                    }
-                    this.s.value[i] = splitRD.join('.');
-                }
-            }
-            else if (this.s.type !== null && deFormatDates) {
-                if (this.s.type.includes('date') ||
-                    this.s.type.includes('time')) {
-                    for (var i = 0; i < this.s.value.length; i++) {
-                        if (this.s.value[i].match(/^\d{4}-([0]\d|1[0-2])-([0-2]\d|3[01])$/g) === null) {
-                            this.s.value[i] = '';
-                        }
-                    }
-                }
-                else if (this.s.type.includes('moment')) {
-                    for (var i = 0; i < this.s.value.length; i++) {
-                        if (this.s.value[i] &&
-                            this.s.value[i].length > 0 &&
-                            moment()(this.s.value[i], this.s.dateFormat, true).isValid()) {
-                            this.s.value[i] = moment()(this.s.value[i], this.s.dateFormat).format('YYYY-MM-DD HH:mm:ss');
-                        }
-                    }
-                }
-                else if (this.s.type.includes('luxon')) {
-                    for (var i = 0; i < this.s.value.length; i++) {
-                        if (this.s.value[i] &&
-                            this.s.value[i].length > 0 &&
-                            luxon().DateTime.fromFormat(this.s.value[i], this.s.dateFormat).invalid === null) {
-                            this.s.value[i] = luxon().DateTime.fromFormat(this.s.value[i], this.s.dateFormat).toFormat('yyyy-MM-dd HH:mm:ss');
-                        }
-                    }
-                }
-            }
-            if (this.s.type.includes('num') && this.s.dt.page.info().serverSide) {
-                for (var i = 0; i < this.s.value.length; i++) {
-                    this.s.value[i] = this.s.value[i].replace(/[^0-9.]/g, '');
-                }
-            }
-            return {
-                condition: this.s.condition,
-                data: this.s.data,
-                origData: this.s.origData,
-                type: this.s.type,
-                value: this.s.value.map(function (a) { return a !== null && a !== undefined ? a.toString() : a; })
-            };
-        };
-        /**
-         * Getter for the node for the container of the criteria
-         *
-         * @returns JQuery<HTMLElement> the node for the container
-         */
-        Criteria.prototype.getNode = function () {
-            return this.dom.container;
-        };
-        /**
-         * Populates the criteria data, condition and value(s) as far as has been selected
-         */
-        Criteria.prototype.populate = function () {
-            this._populateData();
-            // If the column index has been found attempt to select a condition
-            if (this.s.dataIdx !== -1) {
-                this._populateCondition();
-                // If the condittion has been found attempt to select the values
-                if (this.s.condition !== undefined) {
-                    this._populateValue();
-                }
-            }
-        };
-        /**
-         * Rebuilds the criteria based upon the details passed in
-         *
-         * @param loadedCriteria the details required to rebuild the criteria
-         */
-        Criteria.prototype.rebuild = function (loadedCriteria) {
-            // Check to see if the previously selected data exists, if so select it
-            var foundData = false;
-            var dataIdx;
-            this._populateData();
-            // If a data selection has previously been made attempt to find and select it
-            if (loadedCriteria.data !== undefined) {
-                var italic_1 = this.classes.italic;
-                var data_1 = this.dom.data;
-                this.dom.data.children('option').each(function () {
-                    if (!foundData &&
-                        ($$3(this).text() === loadedCriteria.data ||
-                            loadedCriteria.origData && $$3(this).prop('origData') === loadedCriteria.origData)) {
-                        $$3(this).prop('selected', true);
-                        data_1.removeClass(italic_1);
-                        foundData = true;
-                        dataIdx = $$3(this).val();
-                    }
-                    else {
-                        $$3(this).removeProp('selected');
-                    }
-                });
-            }
-            // If the data has been found and selected then the condition can be populated and searched
-            if (foundData) {
-                this.s.data = loadedCriteria.data;
-                this.s.origData = loadedCriteria.origData;
-                this.s.dataIdx = dataIdx;
-                this.c.orthogonal = this._getOptions().orthogonal;
-                this.dom.dataTitle.remove();
-                this._populateCondition();
-                this.dom.conditionTitle.remove();
-                var condition = void 0;
-                // Check to see if the previously selected condition exists, if so select it
-                var options = this.dom.condition.children('option');
-                // eslint-disable-next-line @typescript-eslint/prefer-for-of
-                for (var i = 0; i < options.length; i++) {
-                    var option = $$3(options[i]);
-                    if (loadedCriteria.condition !== undefined &&
-                        option.val() === loadedCriteria.condition &&
-                        typeof loadedCriteria.condition === 'string') {
-                        option.prop('selected', true);
-                        condition = option.val();
-                    }
-                    else {
-                        option.removeProp('selected');
-                    }
-                }
-                this.s.condition = condition;
-                // If the condition has been found and selected then the value can be populated and searched
-                if (this.s.condition !== undefined) {
-                    this.dom.conditionTitle.removeProp('selected');
-                    this.dom.conditionTitle.remove();
-                    this.dom.condition.removeClass(this.classes.italic);
-                    // eslint-disable-next-line @typescript-eslint/prefer-for-of
-                    for (var i = 0; i < options.length; i++) {
-                        var option = $$3(options[i]);
-                        if (option.val() !== this.s.condition) {
-                            option.removeProp('selected');
-                        }
-                    }
-                    this._populateValue(loadedCriteria);
-                }
-                else {
-                    this.dom.conditionTitle.prependTo(this.dom.condition).prop('selected', true);
-                }
-            }
-        };
-        /**
-         * Sets the listeners for the criteria
-         */
-        Criteria.prototype.setListeners = function () {
-            var _this = this;
-            this.dom.data
-                .unbind('change')
-                .on('change.dtsb', function () {
-                _this.dom.dataTitle.removeProp('selected');
-                // Need to go over every option to identify the correct selection
-                var options = _this.dom.data.children('option.' + _this.classes.option);
-                // eslint-disable-next-line @typescript-eslint/prefer-for-of
-                for (var i = 0; i < options.length; i++) {
-                    var option = $$3(options[i]);
-                    if (option.val() === _this.dom.data.val()) {
-                        _this.dom.data.removeClass(_this.classes.italic);
-                        option.prop('selected', true);
-                        _this.s.dataIdx = +option.val();
-                        _this.s.data = option.text();
-                        _this.s.origData = option.prop('origData');
-                        _this.c.orthogonal = _this._getOptions().orthogonal;
-                        // When the data is changed, the values in condition and
-                        // value may also change so need to renew them
-                        _this._clearCondition();
-                        _this._clearValue();
-                        _this._populateCondition();
-                        // If this criteria was previously active in the search then
-                        // remove it from the search and trigger a new search
-                        if (_this.s.filled) {
-                            _this.s.filled = false;
-                            _this.s.dt.draw();
-                            _this.setListeners();
-                        }
-                        _this.s.dt.state.save();
-                    }
-                    else {
-                        option.removeProp('selected');
-                    }
-                }
-            });
-            this.dom.condition
-                .unbind('change')
-                .on('change.dtsb', function () {
-                _this.dom.conditionTitle.removeProp('selected');
-                // Need to go over every option to identify the correct selection
-                var options = _this.dom.condition.children('option.' + _this.classes.option);
-                // eslint-disable-next-line @typescript-eslint/prefer-for-of
-                for (var i = 0; i < options.length; i++) {
-                    var option = $$3(options[i]);
-                    if (option.val() === _this.dom.condition.val()) {
-                        _this.dom.condition.removeClass(_this.classes.italic);
-                        option.prop('selected', true);
-                        var condDisp = option.val();
-                        // Find the condition that has been selected and store it internally
-                        for (var _i = 0, _a = Object.keys(_this.s.conditions); _i < _a.length; _i++) {
-                            var cond = _a[_i];
-                            if (cond === condDisp) {
-                                _this.s.condition = condDisp;
-                                break;
-                            }
-                        }
-                        // When the condition is changed, the value selector may switch between
-                        // a select element and an input element
-                        _this._clearValue();
-                        _this._populateValue();
-                        for (var _b = 0, _c = _this.dom.value; _b < _c.length; _b++) {
-                            var val = _c[_b];
-                            // If this criteria was previously active in the search then remove
-                            // it from the search and trigger a new search
-                            if (_this.s.filled && val !== undefined && _this.dom.inputCont.has(val[0]).length !== 0) {
-                                _this.s.filled = false;
-                                _this.s.dt.draw();
-                                _this.setListeners();
-                            }
-                        }
-                        if (_this.dom.value.length === 0 ||
-                            _this.dom.value.length === 1 && _this.dom.value[0] === undefined) {
-                            _this.s.dt.draw();
-                        }
-                    }
-                    else {
-                        option.removeProp('selected');
-                    }
-                }
-            });
-        };
-        Criteria.prototype.setupButtons = function () {
-            if (window.innerWidth > 550) {
-                this.dom.container.removeClass(this.classes.vertical);
-                this.dom.buttons.css('left', null);
-                this.dom.buttons.css('top', null);
-                return;
-            }
-            this.dom.container.addClass(this.classes.vertical);
-            this.dom.buttons.css('left', this.dom.data.innerWidth());
-            this.dom.buttons.css('top', this.dom.data.position().top);
-        };
-        /**
-         * Builds the elements of the dom together
-         */
-        Criteria.prototype._buildCriteria = function () {
-            // Append Titles for select elements
-            this.dom.data.append(this.dom.dataTitle);
-            this.dom.condition.append(this.dom.conditionTitle);
-            // Add elements to container
-            this.dom.container
-                .append(this.dom.data)
-                .append(this.dom.condition);
-            this.dom.inputCont.empty();
-            for (var _i = 0, _a = this.dom.value; _i < _a.length; _i++) {
-                var val = _a[_i];
-                val.append(this.dom.valueTitle);
-                this.dom.inputCont.append(val);
-            }
-            // Add buttons to container
-            this.dom.buttons
-                .append(this.dom["delete"])
-                .append(this.dom.right);
-            this.dom.container.append(this.dom.inputCont).append(this.dom.buttons);
-            this.setListeners();
-        };
-        /**
-         * Clears the condition select element
-         */
-        Criteria.prototype._clearCondition = function () {
-            this.dom.condition.empty();
-            this.dom.conditionTitle.prop('selected', true).attr('disabled', 'true');
-            this.dom.condition.prepend(this.dom.conditionTitle).prop('selectedIndex', 0);
-            this.s.conditions = {};
-            this.s.condition = undefined;
-        };
-        /**
-         * Clears the value elements
-         */
-        Criteria.prototype._clearValue = function () {
-            if (this.s.condition !== undefined) {
-                if (this.dom.value.length > 0 && this.dom.value[0] !== undefined) {
-                    var _loop_1 = function (val) {
-                        if (val !== undefined) {
-                            // Timeout is annoying but because of IOS
-                            setTimeout(function () {
-                                val.remove();
-                            }, 50);
-                        }
-                    };
-                    // Remove all of the value elements
-                    for (var _i = 0, _a = this.dom.value; _i < _a.length; _i++) {
-                        var val = _a[_i];
-                        _loop_1(val);
-                    }
-                }
-                // Call the init function to get the value elements for this condition
-                this.dom.value = [].concat(this.s.conditions[this.s.condition].init(this, Criteria.updateListener));
-                if (this.dom.value.length > 0 && this.dom.value[0] !== undefined) {
-                    this.dom.inputCont
-                        .empty()
-                        .append(this.dom.value[0])
-                        .insertAfter(this.dom.condition);
-                    this.dom.value[0].trigger('dtsb-inserted');
-                    // Insert all of the value elements
-                    for (var i = 1; i < this.dom.value.length; i++) {
-                        this.dom.inputCont.append(this.dom.value[i]);
-                        this.dom.value[i].trigger('dtsb-inserted');
-                    }
-                }
-            }
-            else {
-                var _loop_2 = function (val) {
-                    if (val !== undefined) {
-                        // Timeout is annoying but because of IOS
-                        setTimeout(function () {
-                            val.remove();
-                        }, 50);
-                    }
-                };
-                // Remove all of the value elements
-                for (var _b = 0, _c = this.dom.value; _b < _c.length; _b++) {
-                    var val = _c[_b];
-                    _loop_2(val);
-                }
-                // Append the default valueTitle to the default select element
-                this.dom.valueTitle
-                    .prop('selected', true);
-                this.dom.defaultValue
-                    .append(this.dom.valueTitle)
-                    .insertAfter(this.dom.condition);
-            }
-            this.s.value = [];
-            this.dom.value = [
-                $$3('<select disabled/>')
-                    .addClass(this.classes.value)
-                    .addClass(this.classes.dropDown)
-                    .addClass(this.classes.italic)
-                    .addClass(this.classes.select)
-                    .append(this.dom.valueTitle.clone())
-            ];
-        };
-        /**
-         * Gets the options for the column
-         *
-         * @returns {object} The options for the column
-         */
-        Criteria.prototype._getOptions = function () {
-            var table = this.s.dt;
-            return $$3.extend(true, {}, Criteria.defaults, table.settings()[0].aoColumns[this.s.dataIdx].searchBuilder);
-        };
-        /**
-         * Populates the condition dropdown
-         */
-        Criteria.prototype._populateCondition = function () {
-            var conditionOpts = [];
-            var conditionsLength = Object.keys(this.s.conditions).length;
-            var colInits = this.s.dt.settings()[0].aoColumns;
-            var column = +this.dom.data.children('option:selected').val();
-            // If there are no conditions stored then we need to get them from the appropriate type
-            if (conditionsLength === 0) {
-                this.s.type = this.s.dt.columns().type().toArray()[column];
-                if (colInits !== undefined) {
-                    var colInit = colInits[column];
-                    if (colInit.searchBuilderType !== undefined && colInit.searchBuilderType !== null) {
-                        this.s.type = colInit.searchBuilderType;
-                    }
-                    else if (this.s.type === undefined || this.s.type === null) {
-                        this.s.type = colInit.sType;
-                    }
-                }
-                // If the column type is still unknown, call a draw to try reading it again
-                if (this.s.type === null || this.s.type === undefined) {
-                    $$3.fn.dataTable.ext.oApi._fnColumnTypes(this.s.dt.settings()[0]);
-                    this.s.type = this.s.dt.columns().type().toArray()[column];
-                }
-                // Enable the condition element
-                this.dom.condition
-                    .removeAttr('disabled')
-                    .empty()
-                    .append(this.dom.conditionTitle)
-                    .addClass(this.classes.italic);
-                this.dom.conditionTitle
-                    .prop('selected', true);
-                var decimal = this.s.dt.settings()[0].oLanguage.sDecimal;
-                // This check is in place for if a custom decimal character is in place
-                if (decimal !== '' && this.s.type.indexOf(decimal) === this.s.type.length - decimal.length) {
-                    if (this.s.type.includes('num-fmt')) {
-                        this.s.type = this.s.type.replace(decimal, '');
-                    }
-                    else if (this.s.type.includes('num')) {
-                        this.s.type = this.s.type.replace(decimal, '');
-                    }
-                }
-                // Select which conditions are going to be used based on the column type
-                var conditionObj = this.c.conditions[this.s.type] !== undefined ?
-                    this.c.conditions[this.s.type] :
-                    this.s.type.includes('moment') ?
-                        this.c.conditions.moment :
-                        this.s.type.includes('luxon') ?
-                            this.c.conditions.luxon :
-                            this.c.conditions.string;
-                // If it is a moment format then extract the date format
-                if (this.s.type.includes('moment')) {
-                    this.s.dateFormat = this.s.type.replace(/moment-/g, '');
-                }
-                else if (this.s.type.includes('luxon')) {
-                    this.s.dateFormat = this.s.type.replace(/luxon-/g, '');
-                }
-                // Add all of the conditions to the select element
-                for (var _i = 0, _a = Object.keys(conditionObj); _i < _a.length; _i++) {
-                    var condition = _a[_i];
-                    if (conditionObj[condition] !== null) {
-                        // Serverside processing does not supply the options for the select elements
-                        // Instead input elements need to be used for these instead
-                        if (this.s.dt.page.info().serverSide && conditionObj[condition].init === Criteria.initSelect) {
-                            var col = colInits[column];
-                            if (this.s.serverData && this.s.serverData[col.data]) {
-                                conditionObj[condition].init = Criteria.initSelectSSP;
-                                conditionObj[condition].inputValue = Criteria.inputValueSelect;
-                                conditionObj[condition].isInputValid = Criteria.isInputValidSelect;
-                            }
-                            else {
-                                conditionObj[condition].init = Criteria.initInput;
-                                conditionObj[condition].inputValue = Criteria.inputValueInput;
-                                conditionObj[condition].isInputValid = Criteria.isInputValidInput;
-                            }
-                        }
-                        this.s.conditions[condition] = conditionObj[condition];
-                        var condName = conditionObj[condition].conditionName;
-                        if (typeof condName === 'function') {
-                            condName = condName(this.s.dt, this.c.i18n);
-                        }
-                        conditionOpts.push($$3('<option>', {
-                            text: condName,
-                            value: condition
-                        })
-                            .addClass(this.classes.option)
-                            .addClass(this.classes.notItalic));
-                    }
-                }
-            }
-            // Otherwise we can just load them in
-            else if (conditionsLength > 0) {
-                this.dom.condition.empty().removeAttr('disabled').addClass(this.classes.italic);
-                for (var _b = 0, _c = Object.keys(this.s.conditions); _b < _c.length; _b++) {
-                    var condition = _c[_b];
-                    var condName = this.s.conditions[condition].conditionName;
-                    if (typeof condName === 'function') {
-                        condName = condName(this.s.dt, this.c.i18n);
-                    }
-                    var newOpt = $$3('<option>', {
-                        text: condName,
-                        value: condition
-                    })
-                        .addClass(this.classes.option)
-                        .addClass(this.classes.notItalic);
-                    if (this.s.condition !== undefined && this.s.condition === condName) {
-                        newOpt.prop('selected', true);
-                        this.dom.condition.removeClass(this.classes.italic);
-                    }
-                    conditionOpts.push(newOpt);
-                }
-            }
-            else {
-                this.dom.condition
-                    .attr('disabled', 'true')
-                    .addClass(this.classes.italic);
-                return;
-            }
-            for (var _d = 0, conditionOpts_1 = conditionOpts; _d < conditionOpts_1.length; _d++) {
-                var opt = conditionOpts_1[_d];
-                this.dom.condition.append(opt);
-            }
-            // Selecting a default condition if one is set
-            if (colInits[column].searchBuilder && colInits[column].searchBuilder.defaultCondition) {
-                var defaultCondition = colInits[column].searchBuilder.defaultCondition;
-                // If it is a number just use it as an index
-                if (typeof defaultCondition === 'number') {
-                    this.dom.condition.prop('selectedIndex', defaultCondition);
-                    this.dom.condition.trigger('change');
-                }
-                // If it is a string then things get slightly more tricly
-                else if (typeof defaultCondition === 'string') {
-                    // We need to check each condition option to see if any will match
-                    for (var i = 0; i < conditionOpts.length; i++) {
-                        // Need to check against the stored conditions so we can match the token "cond" to the option
-                        for (var _e = 0, _f = Object.keys(this.s.conditions); _e < _f.length; _e++) {
-                            var cond = _f[_e];
-                            var condName = this.s.conditions[cond].conditionName;
-                            if (
-                            // If the conditionName matches the text of the option
-                            (typeof condName === 'string' ? condName : condName(this.s.dt, this.c.i18n)) ===
-                                conditionOpts[i].text() &&
-                                // and the tokens match
-                                cond === defaultCondition) {
-                                // Select that option
-                                this.dom.condition
-                                    .prop('selectedIndex', this.dom.condition.children().toArray().indexOf(conditionOpts[i][0]))
-                                    .removeClass(this.classes.italic);
-                                this.dom.condition.trigger('change');
-                                i = conditionOpts.length;
-                                break;
-                            }
-                        }
-                    }
-                }
-            }
-            // If not default set then default to 0, the title
-            else {
-                this.dom.condition.prop('selectedIndex', 0);
-            }
-        };
-        /**
-         * Populates the data select element
-         */
-        Criteria.prototype._populateData = function () {
-            var _this = this;
-            this.dom.data.empty().append(this.dom.dataTitle);
-            // If there are no datas stored then we need to get them from the table
-            if (this.s.dataPoints.length === 0) {
-                this.s.dt.columns().every(function (index) {
-                    // Need to check that the column can be filtered on before adding it
-                    if (_this.c.columns === true ||
-                        _this.s.dt.columns(_this.c.columns).indexes().toArray().includes(index)) {
-                        var found = false;
-                        for (var _i = 0, _a = _this.s.dataPoints; _i < _a.length; _i++) {
-                            var val = _a[_i];
-                            if (val.index === index) {
-                                found = true;
-                                break;
-                            }
-                        }
-                        if (!found) {
-                            var col = _this.s.dt.settings()[0].aoColumns[index];
-                            var opt = {
-                                index: index,
-                                origData: col.data,
-                                text: (col.searchBuilderTitle === undefined ?
-                                    col.sTitle :
-                                    col.searchBuilderTitle).replace(/(<([^>]+)>)/ig, '')
-                            };
-                            _this.s.dataPoints.push(opt);
-                            _this.dom.data.append($$3('<option>', {
-                                text: opt.text,
-                                value: opt.index
-                            })
-                                .addClass(_this.classes.option)
-                                .addClass(_this.classes.notItalic)
-                                .prop('origData', col.data)
-                                .prop('selected', _this.s.dataIdx === opt.index ? true : false));
-                            if (_this.s.dataIdx === opt.index) {
-                                _this.dom.dataTitle.removeProp('selected');
-                            }
-                        }
-                    }
-                });
-            }
-            // Otherwise we can just load them in
-            else {
-                var _loop_3 = function (data) {
-                    this_1.s.dt.columns().every(function (index) {
-                        var col = _this.s.dt.settings()[0].aoColumns[index];
-                        if ((col.searchBuilderTitle === undefined ?
-                            col.sTitle :
-                            col.searchBuilderTitle).replace(/(<([^>]+)>)/ig, '') === data.text) {
-                            data.index = index;
-                            data.origData = col.data;
-                        }
-                    });
-                    var newOpt = $$3('<option>', {
-                        text: data.text.replace(/(<([^>]+)>)/ig, ''),
-                        value: data.index
-                    })
-                        .addClass(this_1.classes.option)
-                        .addClass(this_1.classes.notItalic)
-                        .prop('origData', data.origData);
-                    if (this_1.s.data === data.text) {
-                        this_1.s.dataIdx = data.index;
-                        this_1.dom.dataTitle.removeProp('selected');
-                        newOpt.prop('selected', true);
-                        this_1.dom.data.removeClass(this_1.classes.italic);
-                    }
-                    this_1.dom.data.append(newOpt);
-                };
-                var this_1 = this;
-                for (var _i = 0, _a = this.s.dataPoints; _i < _a.length; _i++) {
-                    var data = _a[_i];
-                    _loop_3(data);
-                }
-            }
-        };
-        /**
-         * Populates the Value select element
-         *
-         * @param loadedCriteria optional, used to reload criteria from predefined filters
-         */
-        Criteria.prototype._populateValue = function (loadedCriteria) {
-            var _this = this;
-            var prevFilled = this.s.filled;
-            this.s.filled = false;
-            // Remove any previous value elements
-            // Timeout is annoying but because of IOS
-            setTimeout(function () {
-                _this.dom.defaultValue.remove();
-            }, 50);
-            var _loop_4 = function (val) {
-                // Timeout is annoying but because of IOS
-                setTimeout(function () {
-                    if (val !== undefined) {
-                        val.remove();
-                    }
-                }, 50);
-            };
-            for (var _i = 0, _a = this.dom.value; _i < _a.length; _i++) {
-                var val = _a[_i];
-                _loop_4(val);
-            }
-            var children = this.dom.inputCont.children();
-            if (children.length > 1) {
-                // eslint-disable-next-line @typescript-eslint/prefer-for-of
-                for (var i = 0; i < children.length; i++) {
-                    $$3(children[i]).remove();
-                }
-            }
-            // Find the column with the title matching the data for the criteria and take note of the index
-            if (loadedCriteria !== undefined) {
-                this.s.dt.columns().every(function (index) {
-                    if (_this.s.dt.settings()[0].aoColumns[index].sTitle === loadedCriteria.data) {
-                        _this.s.dataIdx = index;
-                    }
-                });
-            }
-            // Initialise the value elements based on the condition
-            this.dom.value = [].concat(this.s.conditions[this.s.condition].init(this, Criteria.updateListener, loadedCriteria !== undefined ? loadedCriteria.value : undefined));
-            if (loadedCriteria !== undefined && loadedCriteria.value !== undefined) {
-                this.s.value = loadedCriteria.value;
-            }
-            this.dom.inputCont.empty();
-            // Insert value elements and trigger the inserted event
-            if (this.dom.value[0] !== undefined) {
-                this.dom.value[0]
-                    .appendTo(this.dom.inputCont)
-                    .trigger('dtsb-inserted');
-            }
-            for (var i = 1; i < this.dom.value.length; i++) {
-                this.dom.value[i]
-                    .insertAfter(this.dom.value[i - 1])
-                    .trigger('dtsb-inserted');
-            }
-            // Check if the criteria can be used in a search
-            this.s.filled = this.s.conditions[this.s.condition].isInputValid(this.dom.value, this);
-            this.setListeners();
-            // If it can and this is different to before then trigger a draw
-            if (!this.s.preventRedraw && prevFilled !== this.s.filled) {
-                // If using SSP we want to restrict the amount of server calls that take place
-                //  and this will already have taken place
-                if (!this.s.dt.page.info().serverSide) {
-                    this.s.dt.draw();
-                }
-                this.setListeners();
-            }
-        };
-        /**
-         * Provides throttling capabilities to SearchBuilder without having to use dt's _fnThrottle function
-         * This is because that function is not quite suitable for our needs as it runs initially rather than waiting
-         *
-         * @param args arguments supplied to the throttle function
-         * @returns Function that is to be run that implements the throttling
-         */
-        Criteria.prototype._throttle = function (fn, frequency) {
-            if (frequency === void 0) { frequency = 200; }
-            var last = null;
-            var timer = null;
-            var that = this;
-            if (frequency === null) {
-                frequency = 200;
-            }
-            return function () {
-                var args = [];
-                for (var _i = 0; _i < arguments.length; _i++) {
-                    args[_i] = arguments[_i];
-                }
-                var now = +new Date();
-                if (last !== null && now < last + frequency) {
-                    clearTimeout(timer);
-                }
-                else {
-                    last = now;
-                }
-                timer = setTimeout(function () {
-                    last = null;
-                    fn.apply(that, args);
-                }, frequency);
-            };
-        };
-        Criteria.version = '1.1.0';
-        Criteria.classes = {
-            button: 'dtsb-button',
-            buttonContainer: 'dtsb-buttonContainer',
-            condition: 'dtsb-condition',
-            container: 'dtsb-criteria',
-            data: 'dtsb-data',
-            "delete": 'dtsb-delete',
-            dropDown: 'dtsb-dropDown',
-            greyscale: 'dtsb-greyscale',
-            input: 'dtsb-input',
-            inputCont: 'dtsb-inputCont',
-            italic: 'dtsb-italic',
-            joiner: 'dtsp-joiner',
-            left: 'dtsb-left',
-            notItalic: 'dtsb-notItalic',
-            option: 'dtsb-option',
-            right: 'dtsb-right',
-            select: 'dtsb-select',
-            value: 'dtsb-value',
-            vertical: 'dtsb-vertical'
-        };
-        /**
-         * Default initialisation function for select conditions
-         */
-        Criteria.initSelect = function (that, fn, preDefined, array) {
-            if (preDefined === void 0) { preDefined = null; }
-            if (array === void 0) { array = false; }
-            var column = that.dom.data.children('option:selected').val();
-            var indexArray = that.s.dt.rows().indexes().toArray();
-            var settings = that.s.dt.settings()[0];
-            that.dom.valueTitle.prop('selected', true);
-            // Declare select element to be used with all of the default classes and listeners.
-            var el = $$3('<select/>')
-                .addClass(Criteria.classes.value)
-                .addClass(Criteria.classes.dropDown)
-                .addClass(Criteria.classes.italic)
-                .addClass(Criteria.classes.select)
-                .append(that.dom.valueTitle)
-                .on('change.dtsb', function () {
-                $$3(this).removeClass(Criteria.classes.italic);
-                fn(that, this);
-            });
-            if (that.c.greyscale) {
-                el.addClass(Criteria.classes.greyscale);
-            }
-            var added = [];
-            var options = [];
-            // Add all of the options from the table to the select element.
-            // Only add one option for each possible value
-            for (var _i = 0, indexArray_1 = indexArray; _i < indexArray_1.length; _i++) {
-                var index = indexArray_1[_i];
-                var filter = settings.oApi._fnGetCellData(settings, index, column, typeof that.c.orthogonal === 'string' ?
-                    that.c.orthogonal :
-                    that.c.orthogonal.search);
-                var value = {
-                    filter: typeof filter === 'string' ?
-                        filter.replace(/[\r\n\u2028]/g, ' ') : // Need to replace certain characters to match search values
-                        filter,
-                    index: index,
-                    text: settings.oApi._fnGetCellData(settings, index, column, typeof that.c.orthogonal === 'string' ?
-                        that.c.orthogonal :
-                        that.c.orthogonal.display)
-                };
-                // If we are dealing with an array type, either make sure we are working with arrays, or sort them
-                if (that.s.type === 'array') {
-                    value.filter = !Array.isArray(value.filter) ? [value.filter] : value.filter;
-                    value.text = !Array.isArray(value.text) ? [value.text] : value.text;
-                }
-                // Function to add an option to the select element
-                var addOption = function (filt, text) {
-                    if (that.s.type.includes('html') && filt !== null && typeof filt === 'string') {
-                        filt.replace(/(<([^>]+)>)/ig, '');
-                    }
-                    // Add text and value, stripping out any html if that is the column type
-                    var opt = $$3('<option>', {
-                        type: Array.isArray(filt) ? 'Array' : 'String',
-                        value: filt
-                    })
-                        .data('sbv', filt)
-                        .addClass(that.classes.option)
-                        .addClass(that.classes.notItalic)
-                        // Have to add the text this way so that special html characters are not escaped - &amp; etc.
-                        .html(typeof text === 'string' ?
-                        text.replace(/(<([^>]+)>)/ig, '') :
-                        text);
-                    var val = opt.val();
-                    // Check that this value has not already been added
-                    if (added.indexOf(val) === -1) {
-                        added.push(val);
-                        options.push(opt);
-                        if (preDefined !== null && Array.isArray(preDefined[0])) {
-                            preDefined[0] = preDefined[0].sort().join(',');
-                        }
-                        // If this value was previously selected as indicated by preDefined, then select it again
-                        if (preDefined !== null && opt.val() === preDefined[0]) {
-                            opt.prop('selected', true);
-                            el.removeClass(Criteria.classes.italic);
-                            that.dom.valueTitle.removeProp('selected');
-                        }
-                    }
-                };
-                // If this is to add the individual values within the array we need to loop over the array
-                if (array) {
-                    for (var i = 0; i < value.filter.length; i++) {
-                        addOption(value.filter[i], value.text[i]);
-                    }
-                }
-                // Otherwise the value that is in the cell is to be added
-                else {
-                    addOption(value.filter, Array.isArray(value.text) ? value.text.join(', ') : value.text);
-                }
-            }
-            options.sort(function (a, b) {
-                if (that.s.type === 'array' ||
-                    that.s.type === 'string' ||
-                    that.s.type === 'html') {
-                    if (a.val() < b.val()) {
-                        return -1;
-                    }
-                    else if (a.val() > b.val()) {
-                        return 1;
-                    }
-                    else {
-                        return 0;
-                    }
-                }
-                else if (that.s.type === 'num' ||
-                    that.s.type === 'html-num') {
-                    if (+a.val().replace(/(<([^>]+)>)/ig, '') < +b.val().replace(/(<([^>]+)>)/ig, '')) {
-                        return -1;
-                    }
-                    else if (+a.val().replace(/(<([^>]+)>)/ig, '') > +b.val().replace(/(<([^>]+)>)/ig, '')) {
-                        return 1;
-                    }
-                    else {
-                        return 0;
-                    }
-                }
-                else if (that.s.type === 'num-fmt' || that.s.type === 'html-num-fmt') {
-                    if (+a.val().replace(/[^0-9.]/g, '') < +b.val().replace(/[^0-9.]/g, '')) {
-                        return -1;
-                    }
-                    else if (+a.val().replace(/[^0-9.]/g, '') > +b.val().replace(/[^0-9.]/g, '')) {
-                        return 1;
-                    }
-                    else {
-                        return 0;
-                    }
-                }
-            });
-            for (var _a = 0, options_1 = options; _a < options_1.length; _a++) {
-                var opt = options_1[_a];
-                el.append(opt);
-            }
-            return el;
-        };
-        /**
-         * Default initialisation function for select conditions
-         */
-        Criteria.initSelectSSP = function (that, fn, preDefined) {
-            if (preDefined === void 0) { preDefined = null; }
-            that.dom.valueTitle.prop('selected', true);
-            // Declare select element to be used with all of the default classes and listeners.
-            var el = $$3('<select/>')
-                .addClass(Criteria.classes.value)
-                .addClass(Criteria.classes.dropDown)
-                .addClass(Criteria.classes.italic)
-                .addClass(Criteria.classes.select)
-                .append(that.dom.valueTitle)
-                .on('change.dtsb', function () {
-                $$3(this).removeClass(Criteria.classes.italic);
-                fn(that, this);
-            });
-            if (that.c.greyscale) {
-                el.addClass(Criteria.classes.greyscale);
-            }
-            var options = [];
-            for (var _i = 0, _a = that.s.serverData[that.s.origData]; _i < _a.length; _i++) {
-                var option = _a[_i];
-                var value = option.value;
-                var label = option.label;
-                // Function to add an option to the select element
-                var addOption = function (filt, text) {
-                    if (that.s.type.includes('html') && filt !== null && typeof filt === 'string') {
-                        filt.replace(/(<([^>]+)>)/ig, '');
-                    }
-                    // Add text and value, stripping out any html if that is the column type
-                    var opt = $$3('<option>', {
-                        type: Array.isArray(filt) ? 'Array' : 'String',
-                        value: filt
-                    })
-                        .data('sbv', filt)
-                        .addClass(that.classes.option)
-                        .addClass(that.classes.notItalic)
-                        // Have to add the text this way so that special html characters are not escaped - &amp; etc.
-                        .html(typeof text === 'string' ?
-                        text.replace(/(<([^>]+)>)/ig, '') :
-                        text);
-                    options.push(opt);
-                    // If this value was previously selected as indicated by preDefined, then select it again
-                    if (preDefined !== null && opt.val() === preDefined[0]) {
-                        opt.prop('selected', true);
-                        el.removeClass(Criteria.classes.italic);
-                        that.dom.valueTitle.removeProp('selected');
-                    }
-                };
-                addOption(value, label);
-            }
-            for (var _b = 0, options_2 = options; _b < options_2.length; _b++) {
-                var opt = options_2[_b];
-                el.append(opt);
-            }
-            return el;
-        };
-        /**
-         * Default initialisation function for select array conditions
-         *
-         * This exists because there needs to be different select functionality for contains/without and equals/not
-         */
-        Criteria.initSelectArray = function (that, fn, preDefined) {
-            if (preDefined === void 0) { preDefined = null; }
-            return Criteria.initSelect(that, fn, preDefined, true);
-        };
-        /**
-         * Default initialisation function for input conditions
-         */
-        Criteria.initInput = function (that, fn, preDefined) {
-            if (preDefined === void 0) { preDefined = null; }
-            // Declare the input element
-            var searchDelay = that.s.dt.settings()[0].searchDelay;
-            var el = $$3('<input/>')
-                .addClass(Criteria.classes.value)
-                .addClass(Criteria.classes.input)
-                .on('input.dtsb keypress.dtsb', that._throttle(function (e) {
-                var code = e.keyCode || e.which;
-                return fn(that, this, code);
-            }, searchDelay === null ? 100 : searchDelay));
-            if (that.c.greyscale) {
-                el.addClass(Criteria.classes.greyscale);
-            }
-            // If there is a preDefined value then add it
-            if (preDefined !== null) {
-                el.val(preDefined[0]);
-            }
-            // This is add responsive functionality to the logic button without redrawing everything else
-            that.s.dt.one('draw.dtsb', function () {
-                that.s.topGroup.trigger('dtsb-redrawLogic');
-            });
-            return el;
-        };
-        /**
-         * Default initialisation function for conditions requiring 2 inputs
-         */
-        Criteria.init2Input = function (that, fn, preDefined) {
-            if (preDefined === void 0) { preDefined = null; }
-            // Declare all of the necessary jQuery elements
-            var searchDelay = that.s.dt.settings()[0].searchDelay;
-            var els = [
-                $$3('<input/>')
-                    .addClass(Criteria.classes.value)
-                    .addClass(Criteria.classes.input)
-                    .on('input.dtsb keypress.dtsb', that._throttle(function (e) {
-                    var code = e.keyCode || e.which;
-                    return fn(that, this, code);
-                }, searchDelay === null ? 100 : searchDelay)),
-                $$3('<span>')
-                    .addClass(that.classes.joiner)
-                    .html(that.s.dt.i18n('searchBuilder.valueJoiner', that.c.i18n.valueJoiner)),
-                $$3('<input/>')
-                    .addClass(Criteria.classes.value)
-                    .addClass(Criteria.classes.input)
-                    .on('input.dtsb keypress.dtsb', that._throttle(function (e) {
-                    var code = e.keyCode || e.which;
-                    return fn(that, this, code);
-                }, searchDelay === null ? 100 : searchDelay))
-            ];
-            if (that.c.greyscale) {
-                els[0].addClass(Criteria.classes.greyscale);
-                els[2].addClass(Criteria.classes.greyscale);
-            }
-            // If there is a preDefined value then add it
-            if (preDefined !== null) {
-                els[0].val(preDefined[0]);
-                els[2].val(preDefined[1]);
-            }
-            // This is add responsive functionality to the logic button without redrawing everything else
-            that.s.dt.one('draw.dtsb', function () {
-                that.s.topGroup.trigger('dtsb-redrawLogic');
-            });
-            return els;
-        };
-        /**
-         * Default initialisation function for date conditions
-         */
-        Criteria.initDate = function (that, fn, preDefined) {
-            if (preDefined === void 0) { preDefined = null; }
-            var searchDelay = that.s.dt.settings()[0].searchDelay;
-            // Declare date element using DataTables dateTime plugin
-            var el = $$3('<input/>')
-                .addClass(Criteria.classes.value)
-                .addClass(Criteria.classes.input)
-                .dtDateTime({
-                attachTo: 'input',
-                format: that.s.dateFormat ? that.s.dateFormat : undefined
-            })
-                .on('change.dtsb', that._throttle(function () {
-                return fn(that, this);
-            }, searchDelay === null ? 100 : searchDelay))
-                .on('input.dtsb keypress.dtsb', function (e) {
-                that._throttle(function () {
-                    var code = e.keyCode || e.which;
-                    return fn(that, this, code);
-                }, searchDelay === null ? 100 : searchDelay);
-            });
-            if (that.c.greyscale) {
-                el.addClass(Criteria.classes.greyscale);
-            }
-            // If there is a preDefined value then add it
-            if (preDefined !== null) {
-                el.val(preDefined[0]);
-            }
-            // This is add responsive functionality to the logic button without redrawing everything else
-            that.s.dt.one('draw.dtsb', function () {
-                that.s.topGroup.trigger('dtsb-redrawLogic');
-            });
-            return el;
-        };
-        Criteria.initNoValue = function (that) {
-            // This is add responsive functionality to the logic button without redrawing everything else
-            that.s.dt.one('draw.dtsb', function () {
-                that.s.topGroup.trigger('dtsb-redrawLogic');
-            });
-        };
-        Criteria.init2Date = function (that, fn, preDefined) {
-            var _this = this;
-            if (preDefined === void 0) { preDefined = null; }
-            var searchDelay = that.s.dt.settings()[0].searchDelay;
-            // Declare all of the date elements that are required using DataTables dateTime plugin
-            var els = [
-                $$3('<input/>')
-                    .addClass(Criteria.classes.value)
-                    .addClass(Criteria.classes.input)
-                    .dtDateTime({
-                    attachTo: 'input',
-                    format: that.s.dateFormat ? that.s.dateFormat : undefined
-                })
-                    .on('change.dtsb', searchDelay !== null ?
-                    that.s.dt.settings()[0].oApi._fnThrottle(function () {
-                        return fn(that, this);
-                    }, searchDelay) :
-                    function () {
-                        fn(that, _this);
-                    })
-                    .on('input.dtsb keypress.dtsb', function (e) {
-                    that.s.dt.settings()[0].oApi._fnThrottle(function () {
-                        var code = e.keyCode || e.which;
-                        return fn(that, this, code);
-                    }, searchDelay === null ? 0 : searchDelay);
-                }),
-                $$3('<span>')
-                    .addClass(that.classes.joiner)
-                    .html(that.s.dt.i18n('searchBuilder.valueJoiner', that.c.i18n.valueJoiner)),
-                $$3('<input/>')
-                    .addClass(Criteria.classes.value)
-                    .addClass(Criteria.classes.input)
-                    .dtDateTime({
-                    attachTo: 'input',
-                    format: that.s.dateFormat ? that.s.dateFormat : undefined
-                })
-                    .on('change.dtsb', searchDelay !== null ?
-                    that.s.dt.settings()[0].oApi._fnThrottle(function () {
-                        return fn(that, this);
-                    }, searchDelay) :
-                    function () {
-                        fn(that, _this);
-                    })
-                    .on('input.dtsb keypress.dtsb', !that.c.enterSearch &&
-                    !(that.s.dt.settings()[0].oInit.search !== undefined &&
-                        that.s.dt.settings()[0].oInit.search["return"]) &&
-                    searchDelay !== null ?
-                    that.s.dt.settings()[0].oApi._fnThrottle(function () {
-                        return fn(that, this);
-                    }, searchDelay) :
-                    function (e) {
-                        var code = e.keyCode || e.which;
-                        fn(that, _this, code);
-                    })
-            ];
-            if (that.c.greyscale) {
-                els[0].addClass(Criteria.classes.greyscale);
-                els[2].addClass(Criteria.classes.greyscale);
-            }
-            // If there are and preDefined values then add them
-            if (preDefined !== null && preDefined.length > 0) {
-                els[0].val(preDefined[0]);
-                els[2].val(preDefined[1]);
-            }
-            // This is add responsive functionality to the logic button without redrawing everything else
-            that.s.dt.one('draw.dtsb', function () {
-                that.s.topGroup.trigger('dtsb-redrawLogic');
-            });
-            return els;
-        };
-        /**
-         * Default function for select elements to validate condition
-         */
-        Criteria.isInputValidSelect = function (el) {
-            var allFilled = true;
-            // Check each element to make sure that the selections are valid
-            for (var _i = 0, el_1 = el; _i < el_1.length; _i++) {
-                var element = el_1[_i];
-                if (element.children('option:selected').length ===
-                    element.children('option').length -
-                        element.children('option.' + Criteria.classes.notItalic).length &&
-                    element.children('option:selected').length === 1 &&
-                    element.children('option:selected')[0] === element.children('option')[0]) {
-                    allFilled = false;
-                }
-            }
-            return allFilled;
-        };
-        /**
-         * Default function for input and date elements to validate condition
-         */
-        Criteria.isInputValidInput = function (el) {
-            var allFilled = true;
-            // Check each element to make sure that the inputs are valid
-            for (var _i = 0, el_2 = el; _i < el_2.length; _i++) {
-                var element = el_2[_i];
-                if (element.is('input') && element.val().length === 0) {
-                    allFilled = false;
-                }
-            }
-            return allFilled;
-        };
-        /**
-         * Default function for getting select conditions
-         */
-        Criteria.inputValueSelect = function (el) {
-            var values = [];
-            // Go through the select elements and push each selected option to the return array
-            for (var _i = 0, el_3 = el; _i < el_3.length; _i++) {
-                var element = el_3[_i];
-                if (element.is('select')) {
-                    values.push(Criteria._escapeHTML(element.children('option:selected').data('sbv')));
-                }
-            }
-            return values;
-        };
-        /**
-         * Default function for getting input conditions
-         */
-        Criteria.inputValueInput = function (el) {
-            var values = [];
-            // Go through the input elements and push each value to the return array
-            for (var _i = 0, el_4 = el; _i < el_4.length; _i++) {
-                var element = el_4[_i];
-                if (element.is('input')) {
-                    values.push(Criteria._escapeHTML(element.val()));
-                }
-            }
-            return values;
-        };
-        /**
-         * Function that is run on each element as a call back when a search should be triggered
-         */
-        Criteria.updateListener = function (that, el, code) {
-            // When the value is changed the criteria is now complete so can be included in searches
-            // Get the condition from the map based on the key that has been selected for the condition
-            var condition = that.s.conditions[that.s.condition];
-            that.s.filled = condition.isInputValid(that.dom.value, that);
-            that.s.value = condition.inputValue(that.dom.value, that);
-            if (!that.s.filled) {
-                if (!that.c.enterSearch &&
-                    !(that.s.dt.settings()[0].oInit.search !== undefined &&
-                        that.s.dt.settings()[0].oInit.search["return"]) ||
-                    code === 13) {
-                    that.s.dt.draw();
-                }
-                return;
-            }
-            if (!Array.isArray(that.s.value)) {
-                that.s.value = [that.s.value];
-            }
-            for (var i = 0; i < that.s.value.length; i++) {
-                // If the value is an array we need to sort it
-                if (Array.isArray(that.s.value[i])) {
-                    that.s.value[i].sort();
-                }
-                // Otherwise replace the decimal place character for i18n
-                else if (that.s.type.includes('num') &&
-                    (that.s.dt.settings()[0].oLanguage.sDecimal !== '' ||
-                        that.s.dt.settings()[0].oLanguage.sThousands !== '')) {
-                    var splitRD = [that.s.value[i].toString()];
-                    if (that.s.dt.settings()[0].oLanguage.sDecimal !== '') {
-                        splitRD = that.s.value[i].split(that.s.dt.settings()[0].oLanguage.sDecimal);
-                    }
-                    if (that.s.dt.settings()[0].oLanguage.sThousands !== '') {
-                        for (var j = 0; j < splitRD.length; j++) {
-                            splitRD[j] = splitRD[j].replace(that.s.dt.settings()[0].oLanguage.sThousands, ',');
-                        }
-                    }
-                    that.s.value[i] = splitRD.join('.');
-                }
-            }
-            // Take note of the cursor position so that we can refocus there later
-            var idx = null;
-            var cursorPos = null;
-            for (var i = 0; i < that.dom.value.length; i++) {
-                if (el === that.dom.value[i][0]) {
-                    idx = i;
-                    if (el.selectionStart !== undefined) {
-                        cursorPos = el.selectionStart;
-                    }
-                }
-            }
-            if (!that.c.enterSearch &&
-                !(that.s.dt.settings()[0].oInit.search !== undefined &&
-                    that.s.dt.settings()[0].oInit.search["return"]) ||
-                code === 13) {
-                // Trigger a search
-                that.s.dt.draw();
-            }
-            // Refocus the element and set the correct cursor position
-            if (idx !== null) {
-                that.dom.value[idx].removeClass(that.classes.italic);
-                that.dom.value[idx].focus();
-                if (cursorPos !== null) {
-                    that.dom.value[idx][0].setSelectionRange(cursorPos, cursorPos);
-                }
-            }
-        };
-        // The order of the conditions will make eslint sad :(
-        // Has to be in this order so that they are displayed correctly in select elements
-        // Also have to disable member ordering for this as the private methods used are not yet declared otherwise
-        // eslint-disable-next-line @typescript-eslint/member-ordering
-        Criteria.dateConditions = {
-            '=': {
-                conditionName: function (dt, i18n) {
-                    return dt.i18n('searchBuilder.conditions.date.equals', i18n.conditions.date.equals);
-                },
-                init: Criteria.initDate,
-                inputValue: Criteria.inputValueInput,
-                isInputValid: Criteria.isInputValidInput,
-                search: function (value, comparison) {
-                    value = value.replace(/(\/|-|,)/g, '-');
-                    return value === comparison[0];
-                }
-            },
-            // eslint-disable-next-line sort-keys
-            '!=': {
-                conditionName: function (dt, i18n) {
-                    return dt.i18n('searchBuilder.conditions.date.not', i18n.conditions.date.not);
-                },
-                init: Criteria.initDate,
-                inputValue: Criteria.inputValueInput,
-                isInputValid: Criteria.isInputValidInput,
-                search: function (value, comparison) {
-                    value = value.replace(/(\/|-|,)/g, '-');
-                    return value !== comparison[0];
-                }
-            },
-            '<': {
-                conditionName: function (dt, i18n) {
-                    return dt.i18n('searchBuilder.conditions.date.before', i18n.conditions.date.before);
-                },
-                init: Criteria.initDate,
-                inputValue: Criteria.inputValueInput,
-                isInputValid: Criteria.isInputValidInput,
-                search: function (value, comparison) {
-                    value = value.replace(/(\/|-|,)/g, '-');
-                    return value < comparison[0];
-                }
-            },
-            '>': {
-                conditionName: function (dt, i18n) {
-                    return dt.i18n('searchBuilder.conditions.date.after', i18n.conditions.date.after);
-                },
-                init: Criteria.initDate,
-                inputValue: Criteria.inputValueInput,
-                isInputValid: Criteria.isInputValidInput,
-                search: function (value, comparison) {
-                    value = value.replace(/(\/|-|,)/g, '-');
-                    return value > comparison[0];
-                }
-            },
-            'between': {
-                conditionName: function (dt, i18n) {
-                    return dt.i18n('searchBuilder.conditions.date.between', i18n.conditions.date.between);
-                },
-                init: Criteria.init2Date,
-                inputValue: Criteria.inputValueInput,
-                isInputValid: Criteria.isInputValidInput,
-                search: function (value, comparison) {
-                    value = value.replace(/(\/|-|,)/g, '-');
-                    if (comparison[0] < comparison[1]) {
-                        return comparison[0] <= value && value <= comparison[1];
-                    }
-                    else {
-                        return comparison[1] <= value && value <= comparison[0];
-                    }
-                }
-            },
-            // eslint-disable-next-line sort-keys
-            '!between': {
-                conditionName: function (dt, i18n) {
-                    return dt.i18n('searchBuilder.conditions.date.notBetween', i18n.conditions.date.notBetween);
-                },
-                init: Criteria.init2Date,
-                inputValue: Criteria.inputValueInput,
-                isInputValid: Criteria.isInputValidInput,
-                search: function (value, comparison) {
-                    value = value.replace(/(\/|-|,)/g, '-');
-                    if (comparison[0] < comparison[1]) {
-                        return !(comparison[0] <= value && value <= comparison[1]);
-                    }
-                    else {
-                        return !(comparison[1] <= value && value <= comparison[0]);
-                    }
-                }
-            },
-            'null': {
-                conditionName: function (dt, i18n) {
-                    return dt.i18n('searchBuilder.conditions.date.empty', i18n.conditions.date.empty);
-                },
-                init: Criteria.initNoValue,
-                inputValue: function () {
-                    return;
-                },
-                isInputValid: function () {
-                    return true;
-                },
-                search: function (value) {
-                    return value === null || value === undefined || value.length === 0;
-                }
-            },
-            // eslint-disable-next-line sort-keys
-            '!null': {
-                conditionName: function (dt, i18n) {
-                    return dt.i18n('searchBuilder.conditions.date.notEmpty', i18n.conditions.date.notEmpty);
-                },
-                init: Criteria.initNoValue,
-                inputValue: function () {
-                    return;
-                },
-                isInputValid: function () {
-                    return true;
-                },
-                search: function (value) {
-                    return !(value === null || value === undefined || value.length === 0);
-                }
-            }
-        };
-        // The order of the conditions will make eslint sad :(
-        // Has to be in this order so that they are displayed correctly in select elements
-        // Also have to disable member ordering for this as the private methods used are not yet declared otherwise
-        // eslint-disable-next-line @typescript-eslint/member-ordering
-        Criteria.momentDateConditions = {
-            '=': {
-                conditionName: function (dt, i18n) {
-                    return dt.i18n('searchBuilder.conditions.date.equals', i18n.conditions.date.equals);
-                },
-                init: Criteria.initDate,
-                inputValue: Criteria.inputValueInput,
-                isInputValid: Criteria.isInputValidInput,
-                search: function (value, comparison, that) {
-                    return moment()(value, that.s.dateFormat).valueOf() ===
-                        moment()(comparison[0], that.s.dateFormat).valueOf();
-                }
-            },
-            // eslint-disable-next-line sort-keys
-            '!=': {
-                conditionName: function (dt, i18n) {
-                    return dt.i18n('searchBuilder.conditions.date.not', i18n.conditions.date.not);
-                },
-                init: Criteria.initDate,
-                inputValue: Criteria.inputValueInput,
-                isInputValid: Criteria.isInputValidInput,
-                search: function (value, comparison, that) {
-                    return moment()(value, that.s.dateFormat).valueOf() !==
-                        moment()(comparison[0], that.s.dateFormat).valueOf();
-                }
-            },
-            '<': {
-                conditionName: function (dt, i18n) {
-                    return dt.i18n('searchBuilder.conditions.date.before', i18n.conditions.date.before);
-                },
-                init: Criteria.initDate,
-                inputValue: Criteria.inputValueInput,
-                isInputValid: Criteria.isInputValidInput,
-                search: function (value, comparison, that) {
-                    return moment()(value, that.s.dateFormat).valueOf() < moment()(comparison[0], that.s.dateFormat).valueOf();
-                }
-            },
-            '>': {
-                conditionName: function (dt, i18n) {
-                    return dt.i18n('searchBuilder.conditions.date.after', i18n.conditions.date.after);
-                },
-                init: Criteria.initDate,
-                inputValue: Criteria.inputValueInput,
-                isInputValid: Criteria.isInputValidInput,
-                search: function (value, comparison, that) {
-                    return moment()(value, that.s.dateFormat).valueOf() > moment()(comparison[0], that.s.dateFormat).valueOf();
-                }
-            },
-            'between': {
-                conditionName: function (dt, i18n) {
-                    return dt.i18n('searchBuilder.conditions.date.between', i18n.conditions.date.between);
-                },
-                init: Criteria.init2Date,
-                inputValue: Criteria.inputValueInput,
-                isInputValid: Criteria.isInputValidInput,
-                search: function (value, comparison, that) {
-                    var val = moment()(value, that.s.dateFormat).valueOf();
-                    var comp0 = moment()(comparison[0], that.s.dateFormat).valueOf();
-                    var comp1 = moment()(comparison[1], that.s.dateFormat).valueOf();
-                    if (comp0 < comp1) {
-                        return comp0 <= val && val <= comp1;
-                    }
-                    else {
-                        return comp1 <= val && val <= comp0;
-                    }
-                }
-            },
-            // eslint-disable-next-line sort-keys
-            '!between': {
-                conditionName: function (dt, i18n) {
-                    return dt.i18n('searchBuilder.conditions.date.notBetween', i18n.conditions.date.notBetween);
-                },
-                init: Criteria.init2Date,
-                inputValue: Criteria.inputValueInput,
-                isInputValid: Criteria.isInputValidInput,
-                search: function (value, comparison, that) {
-                    var val = moment()(value, that.s.dateFormat).valueOf();
-                    var comp0 = moment()(comparison[0], that.s.dateFormat).valueOf();
-                    var comp1 = moment()(comparison[1], that.s.dateFormat).valueOf();
-                    if (comp0 < comp1) {
-                        return !(+comp0 <= +val && +val <= +comp1);
-                    }
-                    else {
-                        return !(+comp1 <= +val && +val <= +comp0);
-                    }
-                }
-            },
-            'null': {
-                conditionName: function (dt, i18n) {
-                    return dt.i18n('searchBuilder.conditions.date.empty', i18n.conditions.date.empty);
-                },
-                init: Criteria.initNoValue,
-                inputValue: function () {
-                    return;
-                },
-                isInputValid: function () {
-                    return true;
-                },
-                search: function (value) {
-                    return value === null || value === undefined || value.length === 0;
-                }
-            },
-            // eslint-disable-next-line sort-keys
-            '!null': {
-                conditionName: function (dt, i18n) {
-                    return dt.i18n('searchBuilder.conditions.date.notEmpty', i18n.conditions.date.notEmpty);
-                },
-                init: Criteria.initNoValue,
-                inputValue: function () {
-                    return;
-                },
-                isInputValid: function () {
-                    return true;
-                },
-                search: function (value) {
-                    return !(value === null || value === undefined || value.length === 0);
-                }
-            }
-        };
-        // The order of the conditions will make eslint sad :(
-        // Has to be in this order so that they are displayed correctly in select elements
-        // Also have to disable member ordering for this as the private methods used are not yet declared otherwise
-        // eslint-disable-next-line @typescript-eslint/member-ordering
-        Criteria.luxonDateConditions = {
-            '=': {
-                conditionName: function (dt, i18n) {
-                    return dt.i18n('searchBuilder.conditions.date.equals', i18n.conditions.date.equals);
-                },
-                init: Criteria.initDate,
-                inputValue: Criteria.inputValueInput,
-                isInputValid: Criteria.isInputValidInput,
-                search: function (value, comparison, that) {
-                    return luxon().DateTime.fromFormat(value, that.s.dateFormat).ts
-                        === luxon().DateTime.fromFormat(comparison[0], that.s.dateFormat).ts;
-                }
-            },
-            // eslint-disable-next-line sort-keys
-            '!=': {
-                conditionName: function (dt, i18n) {
-                    return dt.i18n('searchBuilder.conditions.date.not', i18n.conditions.date.not);
-                },
-                init: Criteria.initDate,
-                inputValue: Criteria.inputValueInput,
-                isInputValid: Criteria.isInputValidInput,
-                search: function (value, comparison, that) {
-                    return luxon().DateTime.fromFormat(value, that.s.dateFormat).ts
-                        !== luxon().DateTime.fromFormat(comparison[0], that.s.dateFormat).ts;
-                }
-            },
-            '<': {
-                conditionName: function (dt, i18n) {
-                    return dt.i18n('searchBuilder.conditions.date.before', i18n.conditions.date.before);
-                },
-                init: Criteria.initDate,
-                inputValue: Criteria.inputValueInput,
-                isInputValid: Criteria.isInputValidInput,
-                search: function (value, comparison, that) {
-                    return luxon().DateTime.fromFormat(value, that.s.dateFormat).ts
-                        < luxon().DateTime.fromFormat(comparison[0], that.s.dateFormat).ts;
-                }
-            },
-            '>': {
-                conditionName: function (dt, i18n) {
-                    return dt.i18n('searchBuilder.conditions.date.after', i18n.conditions.date.after);
-                },
-                init: Criteria.initDate,
-                inputValue: Criteria.inputValueInput,
-                isInputValid: Criteria.isInputValidInput,
-                search: function (value, comparison, that) {
-                    return luxon().DateTime.fromFormat(value, that.s.dateFormat).ts
-                        > luxon().DateTime.fromFormat(comparison[0], that.s.dateFormat).ts;
-                }
-            },
-            'between': {
-                conditionName: function (dt, i18n) {
-                    return dt.i18n('searchBuilder.conditions.date.between', i18n.conditions.date.between);
-                },
-                init: Criteria.init2Date,
-                inputValue: Criteria.inputValueInput,
-                isInputValid: Criteria.isInputValidInput,
-                search: function (value, comparison, that) {
-                    var val = luxon().DateTime.fromFormat(value, that.s.dateFormat).ts;
-                    var comp0 = luxon().DateTime.fromFormat(comparison[0], that.s.dateFormat).ts;
-                    var comp1 = luxon().DateTime.fromFormat(comparison[1], that.s.dateFormat).ts;
-                    if (comp0 < comp1) {
-                        return comp0 <= val && val <= comp1;
-                    }
-                    else {
-                        return comp1 <= val && val <= comp0;
-                    }
-                }
-            },
-            // eslint-disable-next-line sort-keys
-            '!between': {
-                conditionName: function (dt, i18n) {
-                    return dt.i18n('searchBuilder.conditions.date.notBetween', i18n.conditions.date.notBetween);
-                },
-                init: Criteria.init2Date,
-                inputValue: Criteria.inputValueInput,
-                isInputValid: Criteria.isInputValidInput,
-                search: function (value, comparison, that) {
-                    var val = luxon().DateTime.fromFormat(value, that.s.dateFormat).ts;
-                    var comp0 = luxon().DateTime.fromFormat(comparison[0], that.s.dateFormat).ts;
-                    var comp1 = luxon().DateTime.fromFormat(comparison[1], that.s.dateFormat).ts;
-                    if (comp0 < comp1) {
-                        return !(+comp0 <= +val && +val <= +comp1);
-                    }
-                    else {
-                        return !(+comp1 <= +val && +val <= +comp0);
-                    }
-                }
-            },
-            'null': {
-                conditionName: function (dt, i18n) {
-                    return dt.i18n('searchBuilder.conditions.date.empty', i18n.conditions.date.empty);
-                },
-                init: Criteria.initNoValue,
-                inputValue: function () {
-                    return;
-                },
-                isInputValid: function () {
-                    return true;
-                },
-                search: function (value) {
-                    return value === null || value === undefined || value.length === 0;
-                }
-            },
-            // eslint-disable-next-line sort-keys
-            '!null': {
-                conditionName: function (dt, i18n) {
-                    return dt.i18n('searchBuilder.conditions.date.notEmpty', i18n.conditions.date.notEmpty);
-                },
-                init: Criteria.initNoValue,
-                inputValue: function () {
-                    return;
-                },
-                isInputValid: function () {
-                    return true;
-                },
-                search: function (value) {
-                    return !(value === null || value === undefined || value.length === 0);
-                }
-            }
-        };
-        // The order of the conditions will make eslint sad :(
-        // Has to be in this order so that they are displayed correctly in select elements
-        // Also have to disable member ordering for this as the private methods used are not yet declared otherwise
-        // eslint-disable-next-line @typescript-eslint/member-ordering
-        Criteria.numConditions = {
-            '=': {
-                conditionName: function (dt, i18n) {
-                    return dt.i18n('searchBuilder.conditions.number.equals', i18n.conditions.number.equals);
-                },
-                init: Criteria.initSelect,
-                inputValue: Criteria.inputValueSelect,
-                isInputValid: Criteria.isInputValidSelect,
-                search: function (value, comparison) {
-                    return +value === +comparison[0];
-                }
-            },
-            // eslint-disable-next-line sort-keys
-            '!=': {
-                conditionName: function (dt, i18n) {
-                    return dt.i18n('searchBuilder.conditions.number.not', i18n.conditions.number.not);
-                },
-                init: Criteria.initSelect,
-                inputValue: Criteria.inputValueSelect,
-                isInputValid: Criteria.isInputValidSelect,
-                search: function (value, comparison) {
-                    return +value !== +comparison[0];
-                }
-            },
-            '<': {
-                conditionName: function (dt, i18n) {
-                    return dt.i18n('searchBuilder.conditions.number.lt', i18n.conditions.number.lt);
-                },
-                init: Criteria.initInput,
-                inputValue: Criteria.inputValueInput,
-                isInputValid: Criteria.isInputValidInput,
-                search: function (value, comparison) {
-                    return +value < +comparison[0];
-                }
-            },
-            '<=': {
-                conditionName: function (dt, i18n) {
-                    return dt.i18n('searchBuilder.conditions.number.lte', i18n.conditions.number.lte);
-                },
-                init: Criteria.initInput,
-                inputValue: Criteria.inputValueInput,
-                isInputValid: Criteria.isInputValidInput,
-                search: function (value, comparison) {
-                    return +value <= +comparison[0];
-                }
-            },
-            '>=': {
-                conditionName: function (dt, i18n) {
-                    return dt.i18n('searchBuilder.conditions.number.gte', i18n.conditions.number.gte);
-                },
-                init: Criteria.initInput,
-                inputValue: Criteria.inputValueInput,
-                isInputValid: Criteria.isInputValidInput,
-                search: function (value, comparison) {
-                    return +value >= +comparison[0];
-                }
-            },
-            // eslint-disable-next-line sort-keys
-            '>': {
-                conditionName: function (dt, i18n) {
-                    return dt.i18n('searchBuilder.conditions.number.gt', i18n.conditions.number.gt);
-                },
-                init: Criteria.initInput,
-                inputValue: Criteria.inputValueInput,
-                isInputValid: Criteria.isInputValidInput,
-                search: function (value, comparison) {
-                    return +value > +comparison[0];
-                }
-            },
-            'between': {
-                conditionName: function (dt, i18n) {
-                    return dt.i18n('searchBuilder.conditions.number.between', i18n.conditions.number.between);
-                },
-                init: Criteria.init2Input,
-                inputValue: Criteria.inputValueInput,
-                isInputValid: Criteria.isInputValidInput,
-                search: function (value, comparison) {
-                    if (+comparison[0] < +comparison[1]) {
-                        return +comparison[0] <= +value && +value <= +comparison[1];
-                    }
-                    else {
-                        return +comparison[1] <= +value && +value <= +comparison[0];
-                    }
-                }
-            },
-            // eslint-disable-next-line sort-keys
-            '!between': {
-                conditionName: function (dt, i18n) {
-                    return dt.i18n('searchBuilder.conditions.number.notBetween', i18n.conditions.number.notBetween);
-                },
-                init: Criteria.init2Input,
-                inputValue: Criteria.inputValueInput,
-                isInputValid: Criteria.isInputValidInput,
-                search: function (value, comparison) {
-                    if (+comparison[0] < +comparison[1]) {
-                        return !(+comparison[0] <= +value && +value <= +comparison[1]);
-                    }
-                    else {
-                        return !(+comparison[1] <= +value && +value <= +comparison[0]);
-                    }
-                }
-            },
-            'null': {
-                conditionName: function (dt, i18n) {
-                    return dt.i18n('searchBuilder.conditions.number.empty', i18n.conditions.number.empty);
-                },
-                init: Criteria.initNoValue,
-                inputValue: function () {
-                    return;
-                },
-                isInputValid: function () {
-                    return true;
-                },
-                search: function (value) {
-                    return value === null || value === undefined || value.length === 0;
-                }
-            },
-            // eslint-disable-next-line sort-keys
-            '!null': {
-                conditionName: function (dt, i18n) {
-                    return dt.i18n('searchBuilder.conditions.number.notEmpty', i18n.conditions.number.notEmpty);
-                },
-                init: Criteria.initNoValue,
-                inputValue: function () {
-                    return;
-                },
-                isInputValid: function () {
-                    return true;
-                },
-                search: function (value) {
-                    return !(value === null || value === undefined || value.length === 0);
-                }
-            }
-        };
-        // The order of the conditions will make eslint sad :(
-        // Has to be in this order so that they are displayed correctly in select elements
-        // Also have to disable member ordering for this as the private methods used are not yet declared otherwise
-        // eslint-disable-next-line @typescript-eslint/member-ordering
-        Criteria.numFmtConditions = {
-            '=': {
-                conditionName: function (dt, i18n) {
-                    return dt.i18n('searchBuilder.conditions.number.equals', i18n.conditions.number.equals);
-                },
-                init: Criteria.initSelect,
-                inputValue: Criteria.inputValueSelect,
-                isInputValid: Criteria.isInputValidSelect,
-                search: function (value, comparison) {
-                    return Criteria.parseNumFmt(value) === Criteria.parseNumFmt(comparison[0]);
-                }
-            },
-            // eslint-disable-next-line sort-keys
-            '!=': {
-                conditionName: function (dt, i18n) {
-                    return dt.i18n('searchBuilder.conditions.number.not', i18n.conditions.number.not);
-                },
-                init: Criteria.initSelect,
-                inputValue: Criteria.inputValueSelect,
-                isInputValid: Criteria.isInputValidSelect,
-                search: function (value, comparison) {
-                    return Criteria.parseNumFmt(value) !== Criteria.parseNumFmt(comparison[0]);
-                }
-            },
-            '<': {
-                conditionName: function (dt, i18n) {
-                    return dt.i18n('searchBuilder.conditions.number.lt', i18n.conditions.number.lt);
-                },
-                init: Criteria.initInput,
-                inputValue: Criteria.inputValueInput,
-                isInputValid: Criteria.isInputValidInput,
-                search: function (value, comparison) {
-                    return Criteria.parseNumFmt(value) < Criteria.parseNumFmt(comparison[0]);
-                }
-            },
-            '<=': {
-                conditionName: function (dt, i18n) {
-                    return dt.i18n('searchBuilder.conditions.number.lte', i18n.conditions.number.lte);
-                },
-                init: Criteria.initInput,
-                inputValue: Criteria.inputValueInput,
-                isInputValid: Criteria.isInputValidInput,
-                search: function (value, comparison) {
-                    return Criteria.parseNumFmt(value) <= Criteria.parseNumFmt(comparison[0]);
-                }
-            },
-            '>=': {
-                conditionName: function (dt, i18n) {
-                    return dt.i18n('searchBuilder.conditions.number.gte', i18n.conditions.number.gte);
-                },
-                init: Criteria.initInput,
-                inputValue: Criteria.inputValueInput,
-                isInputValid: Criteria.isInputValidInput,
-                search: function (value, comparison) {
-                    return Criteria.parseNumFmt(value) >= Criteria.parseNumFmt(comparison[0]);
-                }
-            },
-            // eslint-disable-next-line sort-keys
-            '>': {
-                conditionName: function (dt, i18n) {
-                    return dt.i18n('searchBuilder.conditions.number.gt', i18n.conditions.number.gt);
-                },
-                init: Criteria.initInput,
-                inputValue: Criteria.inputValueInput,
-                isInputValid: Criteria.isInputValidInput,
-                search: function (value, comparison) {
-                    return Criteria.parseNumFmt(value) > Criteria.parseNumFmt(comparison[0]);
-                }
-            },
-            'between': {
-                conditionName: function (dt, i18n) {
-                    return dt.i18n('searchBuilder.conditions.number.between', i18n.conditions.number.between);
-                },
-                init: Criteria.init2Input,
-                inputValue: Criteria.inputValueInput,
-                isInputValid: Criteria.isInputValidInput,
-                search: function (value, comparison) {
-                    var val = Criteria.parseNumFmt(value);
-                    var comp0 = Criteria.parseNumFmt(comparison[0]);
-                    var comp1 = Criteria.parseNumFmt(comparison[1]);
-                    if (+comp0 < +comp1) {
-                        return +comp0 <= +val && +val <= +comp1;
-                    }
-                    else {
-                        return +comp1 <= +val && +val <= +comp0;
-                    }
-                }
-            },
-            // eslint-disable-next-line sort-keys
-            '!between': {
-                conditionName: function (dt, i18n) {
-                    return dt.i18n('searchBuilder.conditions.number.notBetween', i18n.conditions.number.notBetween);
-                },
-                init: Criteria.init2Input,
-                inputValue: Criteria.inputValueInput,
-                isInputValid: Criteria.isInputValidInput,
-                search: function (value, comparison) {
-                    var val = Criteria.parseNumFmt(value);
-                    var comp0 = Criteria.parseNumFmt(comparison[0]);
-                    var comp1 = Criteria.parseNumFmt(comparison[1]);
-                    if (+comp0 < +comp1) {
-                        return !(+comp0 <= +val && +val <= +comp1);
-                    }
-                    else {
-                        return !(+comp1 <= +val && +val <= +comp0);
-                    }
-                }
-            },
-            'null': {
-                conditionName: function (dt, i18n) {
-                    return dt.i18n('searchBuilder.conditions.number.empty', i18n.conditions.number.empty);
-                },
-                init: Criteria.initNoValue,
-                inputValue: function () {
-                    return;
-                },
-                isInputValid: function () {
-                    return true;
-                },
-                search: function (value) {
-                    return value === null || value === undefined || value.length === 0;
-                }
-            },
-            // eslint-disable-next-line sort-keys
-            '!null': {
-                conditionName: function (dt, i18n) {
-                    return dt.i18n('searchBuilder.conditions.number.notEmpty', i18n.conditions.number.notEmpty);
-                },
-                init: Criteria.initNoValue,
-                inputValue: function () {
-                    return;
-                },
-                isInputValid: function () {
-                    return true;
-                },
-                search: function (value) {
-                    return !(value === null || value === undefined || value.length === 0);
-                }
-            }
-        };
-        // The order of the conditions will make eslint sad :(
-        // Has to be in this order so that they are displayed correctly in select elements
-        // Also have to disable member ordering for this as the private methods used are not yet declared otherwise
-        // eslint-disable-next-line @typescript-eslint/member-ordering
-        Criteria.stringConditions = {
-            '=': {
-                conditionName: function (dt, i18n) {
-                    return dt.i18n('searchBuilder.conditions.string.equals', i18n.conditions.string.equals);
-                },
-                init: Criteria.initSelect,
-                inputValue: Criteria.inputValueSelect,
-                isInputValid: Criteria.isInputValidSelect,
-                search: function (value, comparison) {
-                    return value === comparison[0];
-                }
-            },
-            // eslint-disable-next-line sort-keys
-            '!=': {
-                conditionName: function (dt, i18n) {
-                    return dt.i18n('searchBuilder.conditions.string.not', i18n.conditions.string.not);
-                },
-                init: Criteria.initSelect,
-                inputValue: Criteria.inputValueSelect,
-                isInputValid: Criteria.isInputValidInput,
-                search: function (value, comparison) {
-                    return value !== comparison[0];
-                }
-            },
-            'starts': {
-                conditionName: function (dt, i18n) {
-                    return dt.i18n('searchBuilder.conditions.string.startsWith', i18n.conditions.string.startsWith);
-                },
-                init: Criteria.initInput,
-                inputValue: Criteria.inputValueInput,
-                isInputValid: Criteria.isInputValidInput,
-                search: function (value, comparison) {
-                    return value.toLowerCase().indexOf(comparison[0].toLowerCase()) === 0;
-                }
-            },
-            // eslint-disable-next-line sort-keys
-            '!starts': {
-                conditionName: function (dt, i18n) {
-                    return dt.i18n('searchBuilder.conditions.string.notStartsWith', i18n.conditions.string.notStartsWith);
-                },
-                init: Criteria.initInput,
-                inputValue: Criteria.inputValueInput,
-                isInputValid: Criteria.isInputValidInput,
-                search: function (value, comparison) {
-                    return value.toLowerCase().indexOf(comparison[0].toLowerCase()) !== 0;
-                }
-            },
-            // eslint-disable-next-line sort-keys
-            'contains': {
-                conditionName: function (dt, i18n) {
-                    return dt.i18n('searchBuilder.conditions.string.contains', i18n.conditions.string.contains);
-                },
-                init: Criteria.initInput,
-                inputValue: Criteria.inputValueInput,
-                isInputValid: Criteria.isInputValidInput,
-                search: function (value, comparison) {
-                    return value.toLowerCase().includes(comparison[0].toLowerCase());
-                }
-            },
-            // eslint-disable-next-line sort-keys
-            '!contains': {
-                conditionName: function (dt, i18n) {
-                    return dt.i18n('searchBuilder.conditions.string.notContains', i18n.conditions.string.notContains);
-                },
-                init: Criteria.initInput,
-                inputValue: Criteria.inputValueInput,
-                isInputValid: Criteria.isInputValidInput,
-                search: function (value, comparison) {
-                    return !value.toLowerCase().includes(comparison[0].toLowerCase());
-                }
-            },
-            'ends': {
-                conditionName: function (dt, i18n) {
-                    return dt.i18n('searchBuilder.conditions.string.endsWith', i18n.conditions.string.endsWith);
-                },
-                init: Criteria.initInput,
-                inputValue: Criteria.inputValueInput,
-                isInputValid: Criteria.isInputValidInput,
-                search: function (value, comparison) {
-                    return value.toLowerCase().endsWith(comparison[0].toLowerCase());
-                }
-            },
-            // eslint-disable-next-line sort-keys
-            '!ends': {
-                conditionName: function (dt, i18n) {
-                    return dt.i18n('searchBuilder.conditions.string.notEndsWith', i18n.conditions.string.notEndsWith);
-                },
-                init: Criteria.initInput,
-                inputValue: Criteria.inputValueInput,
-                isInputValid: Criteria.isInputValidInput,
-                search: function (value, comparison) {
-                    return !value.toLowerCase().endsWith(comparison[0].toLowerCase());
-                }
-            },
-            'null': {
-                conditionName: function (dt, i18n) {
-                    return dt.i18n('searchBuilder.conditions.string.empty', i18n.conditions.string.empty);
-                },
-                init: Criteria.initNoValue,
-                inputValue: function () {
-                    return;
-                },
-                isInputValid: function () {
-                    return true;
-                },
-                search: function (value) {
-                    return value === null || value === undefined || value.length === 0;
-                }
-            },
-            // eslint-disable-next-line sort-keys
-            '!null': {
-                conditionName: function (dt, i18n) {
-                    return dt.i18n('searchBuilder.conditions.string.notEmpty', i18n.conditions.string.notEmpty);
-                },
-                init: Criteria.initNoValue,
-                inputValue: function () {
-                    return;
-                },
-                isInputValid: function () {
-                    return true;
-                },
-                search: function (value) {
-                    return !(value === null || value === undefined || value.length === 0);
-                }
-            }
-        };
-        // The order of the conditions will make eslint sad :(
-        // Also have to disable member ordering for this as the private methods used are not yet declared otherwise
-        // eslint-disable-next-line @typescript-eslint/member-ordering
-        Criteria.arrayConditions = {
-            'contains': {
-                conditionName: function (dt, i18n) {
-                    return dt.i18n('searchBuilder.conditions.array.contains', i18n.conditions.array.contains);
-                },
-                init: Criteria.initSelectArray,
-                inputValue: Criteria.inputValueSelect,
-                isInputValid: Criteria.isInputValidSelect,
-                search: function (value, comparison) {
-                    return value.includes(comparison[0]);
-                }
-            },
-            'without': {
-                conditionName: function (dt, i18n) {
-                    return dt.i18n('searchBuilder.conditions.array.without', i18n.conditions.array.without);
-                },
-                init: Criteria.initSelectArray,
-                inputValue: Criteria.inputValueSelect,
-                isInputValid: Criteria.isInputValidSelect,
-                search: function (value, comparison) {
-                    return value.indexOf(comparison[0]) === -1;
-                }
-            },
-            // eslint-disable-next-line sort-keys
-            '=': {
-                conditionName: function (dt, i18n) {
-                    return dt.i18n('searchBuilder.conditions.array.equals', i18n.conditions.array.equals);
-                },
-                init: Criteria.initSelect,
-                inputValue: Criteria.inputValueSelect,
-                isInputValid: Criteria.isInputValidSelect,
-                search: function (value, comparison) {
-                    if (value.length === comparison[0].length) {
-                        for (var i = 0; i < value.length; i++) {
-                            if (value[i] !== comparison[0][i]) {
-                                return false;
-                            }
-                        }
-                        return true;
-                    }
-                    return false;
-                }
-            },
-            // eslint-disable-next-line sort-keys
-            '!=': {
-                conditionName: function (dt, i18n) {
-                    return dt.i18n('searchBuilder.conditions.array.not', i18n.conditions.array.not);
-                },
-                init: Criteria.initSelect,
-                inputValue: Criteria.inputValueSelect,
-                isInputValid: Criteria.isInputValidSelect,
-                search: function (value, comparison) {
-                    if (value.length === comparison[0].length) {
-                        for (var i = 0; i < value.length; i++) {
-                            if (value[i] !== comparison[0][i]) {
-                                return true;
-                            }
-                        }
-                        return false;
-                    }
-                    return true;
-                }
-            },
-            'null': {
-                conditionName: function (dt, i18n) {
-                    return dt.i18n('searchBuilder.conditions.array.empty', i18n.conditions.array.empty);
-                },
-                init: Criteria.initNoValue,
-                inputValue: function () {
-                    return;
-                },
-                isInputValid: function () {
-                    return true;
-                },
-                search: function (value) {
-                    return value === null || value === undefined || value.length === 0;
-                }
-            },
-            // eslint-disable-next-line sort-keys
-            '!null': {
-                conditionName: function (dt, i18n) {
-                    return dt.i18n('searchBuilder.conditions.array.notEmpty', i18n.conditions.array.notEmpty);
-                },
-                init: Criteria.initNoValue,
-                inputValue: function () {
-                    return;
-                },
-                isInputValid: function () {
-                    return true;
-                },
-                search: function (value) {
-                    return value !== null && value !== undefined && value.length !== 0;
-                }
-            }
-        };
-        // eslint will be sad because we have to disable member ordering for this as the
-        // private static properties used are not yet declared otherwise
-        // eslint-disable-next-line @typescript-eslint/member-ordering
-        Criteria.defaults = {
-            columns: true,
-            conditions: {
-                'array': Criteria.arrayConditions,
-                'date': Criteria.dateConditions,
-                'html': Criteria.stringConditions,
-                'html-num': Criteria.numConditions,
-                'html-num-fmt': Criteria.numFmtConditions,
-                'luxon': Criteria.luxonDateConditions,
-                'moment': Criteria.momentDateConditions,
-                'num': Criteria.numConditions,
-                'num-fmt': Criteria.numFmtConditions,
-                'string': Criteria.stringConditions
-            },
-            depthLimit: false,
-            enterSearch: false,
-            filterChanged: undefined,
-            greyscale: false,
-            i18n: {
-                add: 'Add Condition',
-                button: {
-                    0: 'Search Builder',
-                    _: 'Search Builder (%d)'
-                },
-                clearAll: 'Clear All',
-                condition: 'Condition',
-                data: 'Data',
-                "delete": '&times',
-                deleteTitle: 'Delete filtering rule',
-                left: '<',
-                leftTitle: 'Outdent criteria',
-                logicAnd: 'And',
-                logicOr: 'Or',
-                right: '>',
-                rightTitle: 'Indent criteria',
-                title: {
-                    0: 'Custom Search Builder',
-                    _: 'Custom Search Builder (%d)'
-                },
-                value: 'Value',
-                valueJoiner: 'and'
-            },
-            logic: 'AND',
-            orthogonal: {
-                display: 'display',
-                search: 'filter'
-            },
-            preDefined: false
-        };
-        return Criteria;
-    }());
-
-    var $$2;
-    var dataTable$2;
-    /**
-     * Sets the value of jQuery for use in the file
-     *
-     * @param jq the instance of jQuery to be set
-     */
-    function setJQuery$1(jq) {
-        $$2 = jq;
-        dataTable$2 = jq.fn.dataTable;
-    }
-    /**
-     * The Group class is used within SearchBuilder to represent a group of criteria
-     */
-    var Group = /** @class */ (function () {
-        function Group(table, opts, topGroup, index, isChild, depth, serverData) {
-            if (index === void 0) { index = 0; }
-            if (isChild === void 0) { isChild = false; }
-            if (depth === void 0) { depth = 1; }
-            if (serverData === void 0) { serverData = undefined; }
-            // Check that the required version of DataTables is included
-            if (!dataTable$2 || !dataTable$2.versionCheck || !dataTable$2.versionCheck('1.10.0')) {
-                throw new Error('SearchBuilder requires DataTables 1.10 or newer');
-            }
-            this.classes = $$2.extend(true, {}, Group.classes);
-            // Get options from user
-            this.c = $$2.extend(true, {}, Group.defaults, opts);
-            this.s = {
-                criteria: [],
-                depth: depth,
-                dt: table,
-                index: index,
-                isChild: isChild,
-                logic: undefined,
-                opts: opts,
-                preventRedraw: false,
-                serverData: serverData,
-                toDrop: undefined,
-                topGroup: topGroup
-            };
-            this.dom = {
-                add: $$2('<button/>')
-                    .addClass(this.classes.add)
-                    .addClass(this.classes.button)
-                    .attr('type', 'button'),
-                clear: $$2('<button>&times</button>')
-                    .addClass(this.classes.button)
-                    .addClass(this.classes.clearGroup)
-                    .attr('type', 'button'),
-                container: $$2('<div/>')
-                    .addClass(this.classes.group),
-                logic: $$2('<button><div/></button>')
-                    .addClass(this.classes.logic)
-                    .addClass(this.classes.button)
-                    .attr('type', 'button'),
-                logicContainer: $$2('<div/>')
-                    .addClass(this.classes.logicContainer)
-            };
-            // A reference to the top level group is maintained throughout any subgroups and criteria that may be created
-            if (this.s.topGroup === undefined) {
-                this.s.topGroup = this.dom.container;
-            }
-            this._setup();
-            return this;
-        }
-        /**
-         * Destroys the groups buttons, clears the internal criteria and removes it from the dom
-         */
-        Group.prototype.destroy = function () {
-            // Turn off listeners
-            this.dom.add.off('.dtsb');
-            this.dom.logic.off('.dtsb');
-            // Trigger event for groups at a higher level to pick up on
-            this.dom.container
-                .trigger('dtsb-destroy')
-                .remove();
-            this.s.criteria = [];
-        };
-        /**
-         * Gets the details required to rebuild the group
-         */
-        // Eslint upset at empty object but needs to be done
-        // eslint-disable-next-line @typescript-eslint/ban-types
-        Group.prototype.getDetails = function (deFormatDates) {
-            if (deFormatDates === void 0) { deFormatDates = false; }
-            if (this.s.criteria.length === 0) {
-                return {};
-            }
-            var details = {
-                criteria: [],
-                logic: this.s.logic
-            };
-            // NOTE here crit could be either a subgroup or a criteria
-            for (var _i = 0, _a = this.s.criteria; _i < _a.length; _i++) {
-                var crit = _a[_i];
-                details.criteria.push(crit.criteria.getDetails(deFormatDates));
-            }
-            return details;
-        };
-        /**
-         * Getter for the node for the container of the group
-         *
-         * @returns Node for the container of the group
-         */
-        Group.prototype.getNode = function () {
-            return this.dom.container;
-        };
-        /**
-         * Rebuilds the group based upon the details passed in
-         *
-         * @param loadedDetails the details required to rebuild the group
-         */
-        Group.prototype.rebuild = function (loadedDetails) {
-            // If no criteria are stored then just return
-            if (loadedDetails.criteria === undefined ||
-                loadedDetails.criteria === null ||
-                Array.isArray(loadedDetails.criteria) && loadedDetails.criteria.length === 0) {
-                return;
-            }
-            this.s.logic = loadedDetails.logic;
-            this.dom.logic.children().first().html(this.s.logic === 'OR'
-                ? this.s.dt.i18n('searchBuilder.logicOr', this.c.i18n.logicOr)
-                : this.s.dt.i18n('searchBuilder.logicAnd', this.c.i18n.logicAnd));
-            // Add all of the criteria, be it a sub group or a criteria
-            if (Array.isArray(loadedDetails.criteria)) {
-                for (var _i = 0, _a = loadedDetails.criteria; _i < _a.length; _i++) {
-                    var crit = _a[_i];
-                    if (crit.logic !== undefined) {
-                        this._addPrevGroup(crit);
-                    }
-                    else if (crit.logic === undefined) {
-                        this._addPrevCriteria(crit);
-                    }
-                }
-            }
-            // For all of the criteria children, update the arrows incase they require changing and set the listeners
-            for (var _b = 0, _c = this.s.criteria; _b < _c.length; _b++) {
-                var crit = _c[_b];
-                if (crit.criteria instanceof Criteria) {
-                    crit.criteria.updateArrows(this.s.criteria.length > 1);
-                    this._setCriteriaListeners(crit.criteria);
-                }
-            }
-        };
-        /**
-         * Redraws the Contents of the searchBuilder Groups and Criteria
-         */
-        Group.prototype.redrawContents = function () {
-            if (this.s.preventRedraw) {
-                return;
-            }
-            // Clear the container out and add the basic elements
-            this.dom.container.children().detach();
-            this.dom.container
-                .append(this.dom.logicContainer)
-                .append(this.dom.add);
-            // Sort the criteria by index so that they appear in the correct order
-            this.s.criteria.sort(function (a, b) {
-                if (a.criteria.s.index < b.criteria.s.index) {
-                    return -1;
-                }
-                else if (a.criteria.s.index > b.criteria.s.index) {
-                    return 1;
-                }
-                return 0;
-            });
-            this.setListeners();
-            for (var i = 0; i < this.s.criteria.length; i++) {
-                var crit = this.s.criteria[i].criteria;
-                if (crit instanceof Criteria) {
-                    // Reset the index to the new value
-                    this.s.criteria[i].index = i;
-                    this.s.criteria[i].criteria.s.index = i;
-                    // Add to the group
-                    this.s.criteria[i].criteria.dom.container.insertBefore(this.dom.add);
-                    // Set listeners for various points
-                    this._setCriteriaListeners(crit);
-                    this.s.criteria[i].criteria.s.preventRedraw = this.s.preventRedraw;
-                    this.s.criteria[i].criteria.rebuild(this.s.criteria[i].criteria.getDetails());
-                    this.s.criteria[i].criteria.s.preventRedraw = false;
-                }
-                else if (crit instanceof Group && crit.s.criteria.length > 0) {
-                    // Reset the index to the new value
-                    this.s.criteria[i].index = i;
-                    this.s.criteria[i].criteria.s.index = i;
-                    // Add the sub group to the group
-                    this.s.criteria[i].criteria.dom.container.insertBefore(this.dom.add);
-                    // Redraw the contents of the group
-                    crit.s.preventRedraw = this.s.preventRedraw;
-                    crit.redrawContents();
-                    crit.s.preventRedraw = false;
-                    this._setGroupListeners(crit);
-                }
-                else {
-                    // The group is empty so remove it
-                    this.s.criteria.splice(i, 1);
-                    i--;
-                }
-            }
-            this.setupLogic();
-        };
-        /**
-         * Resizes the logic button only rather than the entire dom.
-         */
-        Group.prototype.redrawLogic = function () {
-            for (var _i = 0, _a = this.s.criteria; _i < _a.length; _i++) {
-                var crit = _a[_i];
-                if (crit.criteria instanceof Group) {
-                    crit.criteria.redrawLogic();
-                }
-            }
-            this.setupLogic();
-        };
-        /**
-         * Search method, checking the row data against the criteria in the group
-         *
-         * @param rowData The row data to be compared
-         * @returns boolean The result of the search
-         */
-        Group.prototype.search = function (rowData, rowIdx) {
-            if (this.s.logic === 'AND') {
-                return this._andSearch(rowData, rowIdx);
-            }
-            else if (this.s.logic === 'OR') {
-                return this._orSearch(rowData, rowIdx);
-            }
-            return true;
-        };
-        /**
-         * Locates the groups logic button to the correct location on the page
-         */
-        Group.prototype.setupLogic = function () {
-            // Remove logic button
-            this.dom.logicContainer.remove();
-            this.dom.clear.remove();
-            // If there are no criteria in the group then keep the logic removed and return
-            if (this.s.criteria.length < 1) {
-                if (!this.s.isChild) {
-                    this.dom.container.trigger('dtsb-destroy');
-                    // Set criteria left margin
-                    this.dom.container.css('margin-left', 0);
-                }
-                return;
-            }
-            this.dom.clear.height('0px');
-            this.dom.logicContainer.append(this.dom.clear);
-            // Prepend logic button
-            this.dom.container.prepend(this.dom.logicContainer);
-            for (var _i = 0, _a = this.s.criteria; _i < _a.length; _i++) {
-                var crit = _a[_i];
-                if (crit.criteria instanceof Criteria) {
-                    crit.criteria.setupButtons();
-                }
-            }
-            // Set width, take 2 for the border
-            var height = this.dom.container.outerHeight() - 1;
-            this.dom.logicContainer.width(height);
-            this._setLogicListener();
-            // Set criteria left margin
-            this.dom.container.css('margin-left', this.dom.logicContainer.outerHeight(true));
-            var logicOffset = this.dom.logicContainer.offset();
-            // Set horizontal alignment
-            var currentLeft = logicOffset.left;
-            var groupLeft = this.dom.container.offset().left;
-            var shuffleLeft = currentLeft - groupLeft;
-            var newPos = currentLeft - shuffleLeft - this.dom.logicContainer.outerHeight(true);
-            this.dom.logicContainer.offset({ left: newPos });
-            // Set vertical alignment
-            var firstCrit = this.dom.logicContainer.next();
-            var currentTop = logicOffset.top;
-            var firstTop = $$2(firstCrit).offset().top;
-            var shuffleTop = currentTop - firstTop;
-            var newTop = currentTop - shuffleTop;
-            this.dom.logicContainer.offset({ top: newTop });
-            this.dom.clear.outerHeight(this.dom.logicContainer.height());
-            this._setClearListener();
-        };
-        /**
-         * Sets listeners on the groups elements
-         */
-        Group.prototype.setListeners = function () {
-            var _this = this;
-            this.dom.add.unbind('click');
-            this.dom.add.on('click.dtsb', function () {
-                // If this is the parent group then the logic button has not been added yet
-                if (!_this.s.isChild) {
-                    _this.dom.container.prepend(_this.dom.logicContainer);
-                }
-                _this.addCriteria();
-                _this.dom.container.trigger('dtsb-add');
-                _this.s.dt.state.save();
-                return false;
-            });
-            for (var _i = 0, _a = this.s.criteria; _i < _a.length; _i++) {
-                var crit = _a[_i];
-                crit.criteria.setListeners();
-            }
-            this._setClearListener();
-            this._setLogicListener();
-        };
-        /**
-         * Adds a criteria to the group
-         *
-         * @param crit Instance of Criteria to be added to the group
-         */
-        Group.prototype.addCriteria = function (crit) {
-            if (crit === void 0) { crit = null; }
-            var index = crit === null ? this.s.criteria.length : crit.s.index;
-            var criteria = new Criteria(this.s.dt, this.s.opts, this.s.topGroup, index, this.s.depth, this.s.serverData);
-            // If a Criteria has been passed in then set the values to continue that
-            if (crit !== null) {
-                criteria.c = crit.c;
-                criteria.s = crit.s;
-                criteria.s.depth = this.s.depth;
-                criteria.classes = crit.classes;
-            }
-            criteria.populate();
-            var inserted = false;
-            for (var i = 0; i < this.s.criteria.length; i++) {
-                if (i === 0 && this.s.criteria[i].criteria.s.index > criteria.s.index) {
-                    // Add the node for the criteria at the start of the group
-                    criteria.getNode().insertBefore(this.s.criteria[i].criteria.dom.container);
-                    inserted = true;
-                }
-                else if (i < this.s.criteria.length - 1 &&
-                    this.s.criteria[i].criteria.s.index < criteria.s.index &&
-                    this.s.criteria[i + 1].criteria.s.index > criteria.s.index) {
-                    // Add the node for the criteria in the correct location
-                    criteria.getNode().insertAfter(this.s.criteria[i].criteria.dom.container);
-                    inserted = true;
-                }
-            }
-            if (!inserted) {
-                criteria.getNode().insertBefore(this.dom.add);
-            }
-            // Add the details for this criteria to the array
-            this.s.criteria.push({
-                criteria: criteria,
-                index: index
-            });
-            this.s.criteria = this.s.criteria.sort(function (a, b) { return a.criteria.s.index - b.criteria.s.index; });
-            for (var _i = 0, _a = this.s.criteria; _i < _a.length; _i++) {
-                var opt = _a[_i];
-                if (opt.criteria instanceof Criteria) {
-                    opt.criteria.updateArrows(this.s.criteria.length > 1);
-                }
-            }
-            this._setCriteriaListeners(criteria);
-            criteria.setListeners();
-            this.setupLogic();
-        };
-        /**
-         * Checks the group to see if it has any filled criteria
-         */
-        Group.prototype.checkFilled = function () {
-            for (var _i = 0, _a = this.s.criteria; _i < _a.length; _i++) {
-                var crit = _a[_i];
-                if (crit.criteria instanceof Criteria && crit.criteria.s.filled ||
-                    crit.criteria instanceof Group && crit.criteria.checkFilled()) {
-                    return true;
-                }
-            }
-            return false;
-        };
-        /**
-         * Gets the count for the number of criteria in this group and any sub groups
-         */
-        Group.prototype.count = function () {
-            var count = 0;
-            for (var _i = 0, _a = this.s.criteria; _i < _a.length; _i++) {
-                var crit = _a[_i];
-                if (crit.criteria instanceof Group) {
-                    count += crit.criteria.count();
-                }
-                else {
-                    count++;
-                }
-            }
-            return count;
-        };
-        /**
-         * Rebuilds a sub group that previously existed
-         *
-         * @param loadedGroup The details of a group within this group
-         */
-        Group.prototype._addPrevGroup = function (loadedGroup) {
-            var idx = this.s.criteria.length;
-            var group = new Group(this.s.dt, this.c, this.s.topGroup, idx, true, this.s.depth + 1, this.s.serverData);
-            // Add the new group to the criteria array
-            this.s.criteria.push({
-                criteria: group,
-                index: idx,
-                logic: group.s.logic
-            });
-            // Rebuild it with the previous conditions for that group
-            group.rebuild(loadedGroup);
-            this.s.criteria[idx].criteria = group;
-            this.s.topGroup.trigger('dtsb-redrawContents');
-            this._setGroupListeners(group);
-        };
-        /**
-         * Rebuilds a criteria of this group that previously existed
-         *
-         * @param loadedCriteria The details of a criteria within the group
-         */
-        Group.prototype._addPrevCriteria = function (loadedCriteria) {
-            var idx = this.s.criteria.length;
-            var criteria = new Criteria(this.s.dt, this.s.opts, this.s.topGroup, idx, this.s.depth, this.s.serverData);
-            criteria.populate();
-            // Add the new criteria to the criteria array
-            this.s.criteria.push({
-                criteria: criteria,
-                index: idx
-            });
-            // Rebuild it with the previous conditions for that criteria
-            criteria.s.preventRedraw = this.s.preventRedraw;
-            criteria.rebuild(loadedCriteria);
-            criteria.s.preventRedraw = false;
-            this.s.criteria[idx].criteria = criteria;
-            if (!this.s.preventRedraw) {
-                this.s.topGroup.trigger('dtsb-redrawContents');
-            }
-        };
-        /**
-         * Checks And the criteria using AND logic
-         *
-         * @param rowData The row data to be checked against the search criteria
-         * @returns boolean The result of the AND search
-         */
-        Group.prototype._andSearch = function (rowData, rowIdx) {
-            // If there are no criteria then return true for this group
-            if (this.s.criteria.length === 0) {
-                return true;
-            }
-            for (var _i = 0, _a = this.s.criteria; _i < _a.length; _i++) {
-                var crit = _a[_i];
-                // If the criteria is not complete then skip it
-                if (crit.criteria instanceof Criteria && !crit.criteria.s.filled) {
-                    continue;
-                }
-                // Otherwise if a single one fails return false
-                else if (!crit.criteria.search(rowData, rowIdx)) {
-                    return false;
-                }
-            }
-            // If we get to here then everything has passed, so return true for the group
-            return true;
-        };
-        /**
-         * Checks And the criteria using OR logic
-         *
-         * @param rowData The row data to be checked against the search criteria
-         * @returns boolean The result of the OR search
-         */
-        Group.prototype._orSearch = function (rowData, rowIdx) {
-            // If there are no criteria in the group then return true
-            if (this.s.criteria.length === 0) {
-                return true;
-            }
-            // This will check to make sure that at least one criteria in the group is complete
-            var filledfound = false;
-            for (var _i = 0, _a = this.s.criteria; _i < _a.length; _i++) {
-                var crit = _a[_i];
-                if (crit.criteria instanceof Criteria && crit.criteria.s.filled) {
-                    // A completed criteria has been found so set the flag
-                    filledfound = true;
-                    // If the search passes then return true
-                    if (crit.criteria.search(rowData, rowIdx)) {
-                        return true;
-                    }
-                }
-                else if (crit.criteria instanceof Group && crit.criteria.checkFilled()) {
-                    filledfound = true;
-                    if (crit.criteria.search(rowData, rowIdx)) {
-                        return true;
-                    }
-                }
-            }
-            // If we get here we need to return the inverse of filledfound,
-            //  as if any have been found and we are here then none have passed
-            return !filledfound;
-        };
-        /**
-         * Removes a criteria from the group
-         *
-         * @param criteria The criteria instance to be removed
-         */
-        Group.prototype._removeCriteria = function (criteria, group) {
-            if (group === void 0) { group = false; }
-            // If removing a criteria and there is only then then just destroy the group
-            if (this.s.criteria.length <= 1 && this.s.isChild) {
-                this.destroy();
-            }
-            else {
-                // Otherwise splice the given criteria out and redo the indexes
-                var last = void 0;
-                for (var i = 0; i < this.s.criteria.length; i++) {
-                    if (this.s.criteria[i].index === criteria.s.index &&
-                        (!group || this.s.criteria[i].criteria instanceof Group)) {
-                        last = i;
-                    }
-                }
-                // We want to remove the last element with the desired index, as its replacement will be inserted before it
-                if (last !== undefined) {
-                    this.s.criteria.splice(last, 1);
-                }
-                for (var i = 0; i < this.s.criteria.length; i++) {
-                    this.s.criteria[i].index = i;
-                    this.s.criteria[i].criteria.s.index = i;
-                }
-            }
-        };
-        /**
-         * Sets the listeners in group for a criteria
-         *
-         * @param criteria The criteria for the listeners to be set on
-         */
-        Group.prototype._setCriteriaListeners = function (criteria) {
-            var _this = this;
-            criteria.dom["delete"]
-                .unbind('click')
-                .on('click.dtsb', function () {
-                _this._removeCriteria(criteria);
-                criteria.dom.container.remove();
-                for (var _i = 0, _a = _this.s.criteria; _i < _a.length; _i++) {
-                    var crit = _a[_i];
-                    if (crit.criteria instanceof Criteria) {
-                        crit.criteria.updateArrows(_this.s.criteria.length > 1);
-                    }
-                }
-                criteria.destroy();
-                _this.s.dt.draw();
-                _this.s.topGroup.trigger('dtsb-redrawContents');
-                return false;
-            });
-            criteria.dom.right
-                .unbind('click')
-                .on('click.dtsb', function () {
-                var idx = criteria.s.index;
-                var group = new Group(_this.s.dt, _this.s.opts, _this.s.topGroup, criteria.s.index, true, _this.s.depth + 1, _this.s.serverData);
-                // Add the criteria that is to be moved to the new group
-                group.addCriteria(criteria);
-                // Update the details in the current groups criteria array
-                _this.s.criteria[idx].criteria = group;
-                _this.s.criteria[idx].logic = 'AND';
-                _this.s.topGroup.trigger('dtsb-redrawContents');
-                _this._setGroupListeners(group);
-                return false;
-            });
-            criteria.dom.left
-                .unbind('click')
-                .on('click.dtsb', function () {
-                _this.s.toDrop = new Criteria(_this.s.dt, _this.s.opts, _this.s.topGroup, criteria.s.index, undefined, _this.s.serverData);
-                _this.s.toDrop.s = criteria.s;
-                _this.s.toDrop.c = criteria.c;
-                _this.s.toDrop.classes = criteria.classes;
-                _this.s.toDrop.populate();
-                // The dropCriteria event mutates the reference to the index so need to store it
-                var index = _this.s.toDrop.s.index;
-                _this.dom.container.trigger('dtsb-dropCriteria');
-                criteria.s.index = index;
-                _this._removeCriteria(criteria);
-                // By tracking the top level group we can directly trigger a redraw on it,
-                //  bubbling is also possible, but that is slow with deep levelled groups
-                _this.s.topGroup.trigger('dtsb-redrawContents');
-                _this.s.dt.draw();
-                return false;
-            });
-        };
-        /**
-         * Set's the listeners for the group clear button
-         */
-        Group.prototype._setClearListener = function () {
-            var _this = this;
-            this.dom.clear
-                .unbind('click')
-                .on('click.dtsb', function () {
-                if (!_this.s.isChild) {
-                    _this.dom.container.trigger('dtsb-clearContents');
-                    return false;
-                }
-                _this.destroy();
-                _this.s.topGroup.trigger('dtsb-redrawContents');
-                return false;
-            });
-        };
-        /**
-         * Sets listeners for sub groups of this group
-         *
-         * @param group The sub group that the listeners are to be set on
-         */
-        Group.prototype._setGroupListeners = function (group) {
-            var _this = this;
-            // Set listeners for the new group
-            group.dom.add
-                .unbind('click')
-                .on('click.dtsb', function () {
-                _this.setupLogic();
-                _this.dom.container.trigger('dtsb-add');
-                return false;
-            });
-            group.dom.container
-                .unbind('dtsb-add')
-                .on('dtsb-add.dtsb', function () {
-                _this.setupLogic();
-                _this.dom.container.trigger('dtsb-add');
-                return false;
-            });
-            group.dom.container
-                .unbind('dtsb-destroy')
-                .on('dtsb-destroy.dtsb', function () {
-                _this._removeCriteria(group, true);
-                group.dom.container.remove();
-                _this.setupLogic();
-                return false;
-            });
-            group.dom.container
-                .unbind('dtsb-dropCriteria')
-                .on('dtsb-dropCriteria.dtsb', function () {
-                var toDrop = group.s.toDrop;
-                toDrop.s.index = group.s.index;
-                toDrop.updateArrows(_this.s.criteria.length > 1);
-                _this.addCriteria(toDrop);
-                return false;
-            });
-            group.setListeners();
-        };
-        /**
-         * Sets up the Group instance, setting listeners and appending elements
-         */
-        Group.prototype._setup = function () {
-            this.setListeners();
-            this.dom.add.html(this.s.dt.i18n('searchBuilder.add', this.c.i18n.add));
-            this.dom.logic.children().first().html(this.c.logic === 'OR'
-                ? this.s.dt.i18n('searchBuilder.logicOr', this.c.i18n.logicOr)
-                : this.s.dt.i18n('searchBuilder.logicAnd', this.c.i18n.logicAnd));
-            this.s.logic = this.c.logic === 'OR' ? 'OR' : 'AND';
-            if (this.c.greyscale) {
-                this.dom.logic.addClass(this.classes.greyscale);
-            }
-            this.dom.logicContainer.append(this.dom.logic).append(this.dom.clear);
-            // Only append the logic button immediately if this is a sub group,
-            //  otherwise it will be prepended later when adding a criteria
-            if (this.s.isChild) {
-                this.dom.container.append(this.dom.logicContainer);
-            }
-            this.dom.container.append(this.dom.add);
-        };
-        /**
-         * Sets the listener for the logic button
-         */
-        Group.prototype._setLogicListener = function () {
-            var _this = this;
-            this.dom.logic
-                .unbind('click')
-                .on('click.dtsb', function () {
-                _this._toggleLogic();
-                _this.s.dt.draw();
-                for (var _i = 0, _a = _this.s.criteria; _i < _a.length; _i++) {
-                    var crit = _a[_i];
-                    crit.criteria.setListeners();
-                }
-            });
-        };
-        /**
-         * Toggles the logic for the group
-         */
-        Group.prototype._toggleLogic = function () {
-            if (this.s.logic === 'OR') {
-                this.s.logic = 'AND';
-                this.dom.logic.children().first().html(this.s.dt.i18n('searchBuilder.logicAnd', this.c.i18n.logicAnd));
-            }
-            else if (this.s.logic === 'AND') {
-                this.s.logic = 'OR';
-                this.dom.logic.children().first().html(this.s.dt.i18n('searchBuilder.logicOr', this.c.i18n.logicOr));
-            }
-        };
-        Group.version = '1.1.0';
-        Group.classes = {
-            add: 'dtsb-add',
-            button: 'dtsb-button',
-            clearGroup: 'dtsb-clearGroup',
-            greyscale: 'dtsb-greyscale',
-            group: 'dtsb-group',
-            inputButton: 'dtsb-iptbtn',
-            logic: 'dtsb-logic',
-            logicContainer: 'dtsb-logicContainer'
-        };
-        Group.defaults = {
-            columns: true,
-            conditions: {
-                'date': Criteria.dateConditions,
-                'html': Criteria.stringConditions,
-                'html-num': Criteria.numConditions,
-                'html-num-fmt': Criteria.numFmtConditions,
-                'luxon': Criteria.luxonDateConditions,
-                'moment': Criteria.momentDateConditions,
-                'num': Criteria.numConditions,
-                'num-fmt': Criteria.numFmtConditions,
-                'string': Criteria.stringConditions
-            },
-            depthLimit: false,
-            enterSearch: false,
-            filterChanged: undefined,
-            greyscale: false,
-            i18n: {
-                add: 'Add Condition',
-                button: {
-                    0: 'Search Builder',
-                    _: 'Search Builder (%d)'
-                },
-                clearAll: 'Clear All',
-                condition: 'Condition',
-                data: 'Data',
-                "delete": '&times',
-                deleteTitle: 'Delete filtering rule',
-                left: '<',
-                leftTitle: 'Outdent criteria',
-                logicAnd: 'And',
-                logicOr: 'Or',
-                right: '>',
-                rightTitle: 'Indent criteria',
-                title: {
-                    0: 'Custom Search Builder',
-                    _: 'Custom Search Builder (%d)'
-                },
-                value: 'Value',
-                valueJoiner: 'and'
-            },
-            logic: 'AND',
-            orthogonal: {
-                display: 'display',
-                search: 'filter'
-            },
-            preDefined: false
-        };
-        return Group;
-    }());
-
-    var $$1;
-    var dataTable$1;
-    /**
-     * Sets the value of jQuery for use in the file
-     *
-     * @param jq the instance of jQuery to be set
-     */
-    function setJQuery(jq) {
-        $$1 = jq;
-        dataTable$1 = jq.fn.DataTable;
-    }
-    /**
-     * SearchBuilder class for DataTables.
-     * Allows for complex search queries to be constructed and implemented on a DataTable
-     */
-    var SearchBuilder = /** @class */ (function () {
-        function SearchBuilder(builderSettings, opts) {
-            var _this = this;
-            // Check that the required version of DataTables is included
-            if (!dataTable$1 || !dataTable$1.versionCheck || !dataTable$1.versionCheck('1.10.0')) {
-                throw new Error('SearchBuilder requires DataTables 1.10 or newer');
-            }
-            var table = new dataTable$1.Api(builderSettings);
-            this.classes = $$1.extend(true, {}, SearchBuilder.classes);
-            // Get options from user
-            this.c = $$1.extend(true, {}, SearchBuilder.defaults, opts);
-            this.dom = {
-                clearAll: $$1('<button type="button">' + table.i18n('searchBuilder.clearAll', this.c.i18n.clearAll) + '</button>')
-                    .addClass(this.classes.clearAll)
-                    .addClass(this.classes.button)
-                    .attr('type', 'button'),
-                container: $$1('<div/>')
-                    .addClass(this.classes.container),
-                title: $$1('<div/>')
-                    .addClass(this.classes.title),
-                titleRow: $$1('<div/>')
-                    .addClass(this.classes.titleRow),
-                topGroup: undefined
-            };
-            this.s = {
-                dt: table,
-                opts: opts,
-                search: undefined,
-                serverData: undefined,
-                topGroup: undefined
-            };
-            // If searchbuilder is already defined for this table then return
-            if (table.settings()[0]._searchBuilder !== undefined) {
-                return;
-            }
-            table.settings()[0]._searchBuilder = this;
-            // If using SSP we want to include the previous state in the very first server call
-            if (this.s.dt.page.info().serverSide) {
-                this.s.dt.on('preXhr.dtsb', function (e, settings, data) {
-                    var loadedState = _this.s.dt.state.loaded();
-                    if (loadedState && loadedState.searchBuilder) {
-                        data.searchBuilder = _this._collapseArray(loadedState.searchBuilder);
-                    }
-                });
-                this.s.dt.on('xhr.dtsb', function (e, settings, json) {
-                    if (json && json.searchBuilder && json.searchBuilder.options) {
-                        _this.s.serverData = json.searchBuilder.options;
-                    }
-                });
-            }
-            // Run the remaining setup when the table is initialised
-            if (this.s.dt.settings()[0]._bInitComplete) {
-                this._setUp();
-            }
-            else {
-                table.one('init.dt', function () {
-                    _this._setUp();
-                });
-            }
-            return this;
-        }
-        /**
-         * Gets the details required to rebuild the SearchBuilder as it currently is
-         */
-        // eslint upset at empty object but that is what it is
-        // eslint-disable-next-line @typescript-eslint/ban-types
-        SearchBuilder.prototype.getDetails = function (deFormatDates) {
-            if (deFormatDates === void 0) { deFormatDates = false; }
-            return this.s.topGroup.getDetails(deFormatDates);
-        };
-        /**
-         * Getter for the node of the container for the searchBuilder
-         *
-         * @returns JQuery<HTMLElement> the node of the container
-         */
-        SearchBuilder.prototype.getNode = function () {
-            return this.dom.container;
-        };
-        /**
-         * Rebuilds the SearchBuilder to a state that is provided
-         *
-         * @param details The details required to perform a rebuild
-         */
-        SearchBuilder.prototype.rebuild = function (details) {
-            this.dom.clearAll.click();
-            // If there are no details to rebuild then return
-            if (details === undefined || details === null) {
-                return this;
-            }
-            this.s.topGroup.s.preventRedraw = true;
-            this.s.topGroup.rebuild(details);
-            this.s.topGroup.s.preventRedraw = false;
-            this._checkClear();
-            this._updateTitle(this.s.topGroup.count());
-            this.s.topGroup.redrawContents();
-            this.s.dt.draw(false);
-            this.s.topGroup.setListeners();
-            return this;
-        };
-        /**
-         * Applies the defaults to preDefined criteria
-         *
-         * @param preDef the array of criteria to be processed.
-         */
-        SearchBuilder.prototype._applyPreDefDefaults = function (preDef) {
-            var _this = this;
-            if (preDef.criteria !== undefined && preDef.logic === undefined) {
-                preDef.logic = 'AND';
-            }
-            var _loop_1 = function (crit) {
-                // Apply the defaults to any further criteria
-                if (crit.criteria !== undefined) {
-                    crit = this_1._applyPreDefDefaults(crit);
-                }
-                else {
-                    this_1.s.dt.columns().every(function (index) {
-                        if (_this.s.dt.settings()[0].aoColumns[index].sTitle === crit.data) {
-                            crit.dataIdx = index;
-                        }
-                    });
-                }
-            };
-            var this_1 = this;
-            for (var _i = 0, _a = preDef.criteria; _i < _a.length; _i++) {
-                var crit = _a[_i];
-                _loop_1(crit);
-            }
-            return preDef;
-        };
-        /**
-         * Set's up the SearchBuilder
-         */
-        SearchBuilder.prototype._setUp = function (loadState) {
-            var _this = this;
-            if (loadState === void 0) { loadState = true; }
-            // Register an Api method for getting the column type
-            $$1.fn.DataTable.Api.registerPlural('columns().type()', 'column().type()', function () {
-                return this.iterator('column', function (settings, column) {
-                    return settings.aoColumns[column].sType;
-                }, 1);
-            });
-            // Check that DateTime is included, If not need to check if it could be used
-            // eslint-disable-next-line no-extra-parens
-            if (!dataTable$1.DateTime) {
-                var types = this.s.dt.columns().type().toArray();
-                if (types === undefined || types.includes(undefined) || types.includes(null)) {
-                    types = [];
-                    for (var _i = 0, _a = this.s.dt.settings()[0].aoColumns; _i < _a.length; _i++) {
-                        var colInit = _a[_i];
-                        types.push(colInit.searchBuilderType !== undefined ? colInit.searchBuilderType : colInit.sType);
-                    }
-                }
-                var columnIdxs = this.s.dt.columns().toArray();
-                // If the types are not yet set then draw to see if they can be retrieved then
-                if (types === undefined || types.includes(undefined) || types.includes(null)) {
-                    $$1.fn.dataTable.ext.oApi._fnColumnTypes(this.s.dt.settings()[0]);
-                    types = this.s.dt.columns().type().toArray();
-                }
-                for (var i = 0; i < columnIdxs[0].length; i++) {
-                    var column = columnIdxs[0][i];
-                    var type = types[column];
-                    if (
-                    // Check if this column can be filtered
-                    (this.c.columns === true ||
-                        Array.isArray(this.c.columns) &&
-                            this.c.columns.includes(i)) &&
-                        // Check if the type is one of the restricted types
-                        (type.includes('date') ||
-                            type.includes('moment') ||
-                            type.includes('luxon'))) {
-                        alert('SearchBuilder Requires DateTime when used with dates.');
-                        throw new Error('SearchBuilder requires DateTime');
-                    }
-                }
-            }
-            this.s.topGroup = new Group(this.s.dt, this.c, undefined, undefined, undefined, undefined, this.s.serverData);
-            this._setClearListener();
-            this.s.dt.on('stateSaveParams.dtsb', function (e, settings, data) {
-                data.searchBuilder = _this.getDetails();
-                if (!data.scroller) {
-                    data.page = _this.s.dt.page();
-                }
-                else {
-                    data.start = _this.s.dt.state().start;
-                }
-            });
-            this.s.dt.on('stateLoadParams.dtsb', function (e, settings, data) {
-                _this.rebuild(data.searchBuilder);
-            });
-            this._build();
-            this.s.dt.on('preXhr.dtsb', function (e, settings, data) {
-                if (_this.s.dt.page.info().serverSide) {
-                    data.searchBuilder = _this._collapseArray(_this.getDetails(true));
-                }
-            });
-            this.s.dt.on('column-reorder', function () {
-                _this.rebuild(_this.getDetails());
-            });
-            if (loadState) {
-                var loadedState = this.s.dt.state.loaded();
-                // If the loaded State is not null rebuild based on it for statesave
-                if (loadedState !== null && loadedState.searchBuilder !== undefined) {
-                    this.s.topGroup.rebuild(loadedState.searchBuilder);
-                    this.s.topGroup.dom.container.trigger('dtsb-redrawContents');
-                    // If using SSP we want to restrict the amount of server calls that take place
-                    //  and this information will already have been processed
-                    if (!this.s.dt.page.info().serverSide) {
-                        if (loadedState.page) {
-                            this.s.dt.page(loadedState.page).draw('page');
-                        }
-                        else if (this.s.dt.scroller && loadedState.scroller) {
-                            this.s.dt.scroller().scrollToRow(loadedState.scroller.topRow);
-                        }
-                    }
-                    this.s.topGroup.setListeners();
-                }
-                // Otherwise load any predefined options
-                else if (this.c.preDefined !== false) {
-                    this.c.preDefined = this._applyPreDefDefaults(this.c.preDefined);
-                    this.rebuild(this.c.preDefined);
-                }
-            }
-            this._setEmptyListener();
-            this.s.dt.state.save();
-        };
-        SearchBuilder.prototype._collapseArray = function (criteria) {
-            if (criteria.logic === undefined) {
-                if (criteria.value !== undefined) {
-                    criteria.value.sort(function (a, b) {
-                        if (!isNaN(+a)) {
-                            a = +a;
-                            b = +b;
-                        }
-                        if (a < b) {
-                            return -1;
-                        }
-                        else if (b < a) {
-                            return 1;
-                        }
-                        else {
-                            return 0;
-                        }
-                    });
-                    criteria.value1 = criteria.value[0];
-                    criteria.value2 = criteria.value[1];
-                }
-            }
-            else {
-                for (var i = 0; i < criteria.criteria.length; i++) {
-                    criteria.criteria[i] = this._collapseArray(criteria.criteria[i]);
-                }
-            }
-            return criteria;
-        };
-        /**
-         * Updates the title of the SearchBuilder
-         *
-         * @param count the number of filters in the SearchBuilder
-         */
-        SearchBuilder.prototype._updateTitle = function (count) {
-            this.dom.title.html(this.s.dt.i18n('searchBuilder.title', this.c.i18n.title, count));
-        };
-        /**
-         * Builds all of the dom elements together
-         */
-        SearchBuilder.prototype._build = function () {
-            var _this = this;
-            // Empty and setup the container
-            this.dom.clearAll.remove();
-            this.dom.container.empty();
-            var count = this.s.topGroup.count();
-            this._updateTitle(count);
-            this.dom.titleRow.append(this.dom.title);
-            this.dom.container.append(this.dom.titleRow);
-            this.dom.topGroup = this.s.topGroup.getNode();
-            this.dom.container.append(this.dom.topGroup);
-            this._setRedrawListener();
-            var tableNode = this.s.dt.table(0).node();
-            if (!$$1.fn.dataTable.ext.search.includes(this.s.search)) {
-                // Custom search function for SearchBuilder
-                this.s.search = function (settings, searchData, dataIndex) {
-                    if (settings.nTable !== tableNode) {
-                        return true;
-                    }
-                    return _this.s.topGroup.search(searchData, dataIndex);
-                };
-                // Add SearchBuilder search function to the dataTables search array
-                $$1.fn.dataTable.ext.search.push(this.s.search);
-            }
-            this.s.dt.on('destroy.dtsb', function () {
-                _this.dom.container.remove();
-                _this.dom.clearAll.remove();
-                var searchIdx = $$1.fn.dataTable.ext.search.indexOf(_this.s.search);
-                while (searchIdx !== -1) {
-                    $$1.fn.dataTable.ext.search.splice(searchIdx, 1);
-                    searchIdx = $$1.fn.dataTable.ext.search.indexOf(_this.s.search);
-                }
-                _this.s.dt.off('.dtsb');
-                $$1(_this.s.dt.table().node()).off('.dtsb');
-            });
-        };
-        /**
-         * Checks if the clearAll button should be added or not
-         */
-        SearchBuilder.prototype._checkClear = function () {
-            if (this.s.topGroup.s.criteria.length > 0) {
-                this.dom.clearAll.insertAfter(this.dom.title);
-                this._setClearListener();
-            }
-            else {
-                this.dom.clearAll.remove();
-            }
-        };
-        /**
-         * Update the count in the title/button
-         *
-         * @param count Number of filters applied
-         */
-        SearchBuilder.prototype._filterChanged = function (count) {
-            var fn = this.c.filterChanged;
-            if (typeof fn === 'function') {
-                fn(count, this.s.dt.i18n('searchBuilder.button', this.c.i18n.button, count));
-            }
-        };
-        /**
-         * Set the listener for the clear button
-         */
-        SearchBuilder.prototype._setClearListener = function () {
-            var _this = this;
-            this.dom.clearAll.unbind('click');
-            this.dom.clearAll.on('click.dtsb', function () {
-                _this.s.topGroup = new Group(_this.s.dt, _this.c, undefined, undefined, undefined, undefined, _this.s.serverData);
-                _this._build();
-                _this.s.dt.draw();
-                _this.s.topGroup.setListeners();
-                _this.dom.clearAll.remove();
-                _this._setEmptyListener();
-                _this._filterChanged(0);
-                return false;
-            });
-        };
-        /**
-         * Set the listener for the Redraw event
-         */
-        SearchBuilder.prototype._setRedrawListener = function () {
-            var _this = this;
-            this.s.topGroup.dom.container.unbind('dtsb-redrawContents');
-            this.s.topGroup.dom.container.on('dtsb-redrawContents.dtsb', function () {
-                _this._checkClear();
-                _this.s.topGroup.redrawContents();
-                _this.s.topGroup.setupLogic();
-                _this._setEmptyListener();
-                var count = _this.s.topGroup.count();
-                _this._updateTitle(count);
-                _this._filterChanged(count);
-                // If using SSP we want to restrict the amount of server calls that take place
-                //  and this information will already have been processed
-                if (!_this.s.dt.page.info().serverSide) {
-                    _this.s.dt.draw();
-                }
-                _this.s.dt.state.save();
-            });
-            this.s.topGroup.dom.container.unbind('dtsb-redrawContents-noDraw');
-            this.s.topGroup.dom.container.on('dtsb-redrawContents-noDraw.dtsb', function () {
-                _this._checkClear();
-                _this.s.topGroup.s.preventRedraw = true;
-                _this.s.topGroup.redrawContents();
-                _this.s.topGroup.s.preventRedraw = false;
-                _this.s.topGroup.setupLogic();
-                _this._setEmptyListener();
-                var count = _this.s.topGroup.count();
-                _this._updateTitle(count);
-                _this._filterChanged(count);
-            });
-            this.s.topGroup.dom.container.unbind('dtsb-redrawLogic');
-            this.s.topGroup.dom.container.on('dtsb-redrawLogic.dtsb', function () {
-                _this.s.topGroup.redrawLogic();
-                var count = _this.s.topGroup.count();
-                _this._updateTitle(count);
-                _this._filterChanged(count);
-            });
-            this.s.topGroup.dom.container.unbind('dtsb-add');
-            this.s.topGroup.dom.container.on('dtsb-add.dtsb', function () {
-                var count = _this.s.topGroup.count();
-                _this._updateTitle(count);
-                _this._filterChanged(count);
-            });
-            this.s.dt.on('postEdit.dtsb postCreate.dtsb postRemove.dtsb', function () {
-                _this.s.topGroup.redrawContents();
-            });
-            this.s.topGroup.dom.container.unbind('dtsb-clearContents');
-            this.s.topGroup.dom.container.on('dtsb-clearContents.dtsb', function () {
-                _this._setUp(false);
-                _this._filterChanged(0);
-                _this.s.dt.draw();
-            });
-        };
-        /**
-         * Sets listeners to check whether clearAll should be added or removed
-         */
-        SearchBuilder.prototype._setEmptyListener = function () {
-            var _this = this;
-            this.s.topGroup.dom.add.on('click.dtsb', function () {
-                _this._checkClear();
-            });
-            this.s.topGroup.dom.container.on('dtsb-destroy.dtsb', function () {
-                _this.dom.clearAll.remove();
-            });
-        };
-        SearchBuilder.version = '1.4.0';
-        SearchBuilder.classes = {
-            button: 'dtsb-button',
-            clearAll: 'dtsb-clearAll',
-            container: 'dtsb-searchBuilder',
-            inputButton: 'dtsb-iptbtn',
-            title: 'dtsb-title',
-            titleRow: 'dtsb-titleRow'
-        };
-        SearchBuilder.defaults = {
-            columns: true,
-            conditions: {
-                'date': Criteria.dateConditions,
-                'html': Criteria.stringConditions,
-                'html-num': Criteria.numConditions,
-                'html-num-fmt': Criteria.numFmtConditions,
-                'luxon': Criteria.luxonDateConditions,
-                'moment': Criteria.momentDateConditions,
-                'num': Criteria.numConditions,
-                'num-fmt': Criteria.numFmtConditions,
-                'string': Criteria.stringConditions
-            },
-            depthLimit: false,
-            enterSearch: false,
-            filterChanged: undefined,
-            greyscale: false,
-            i18n: {
-                add: 'Add Condition',
-                button: {
-                    0: 'Search Builder',
-                    _: 'Search Builder (%d)'
-                },
-                clearAll: 'Clear All',
-                condition: 'Condition',
-                conditions: {
-                    array: {
-                        contains: 'Contains',
-                        empty: 'Empty',
-                        equals: 'Equals',
-                        not: 'Not',
-                        notEmpty: 'Not Empty',
-                        without: 'Without'
-                    },
-                    date: {
-                        after: 'After',
-                        before: 'Before',
-                        between: 'Between',
-                        empty: 'Empty',
-                        equals: 'Equals',
-                        not: 'Not',
-                        notBetween: 'Not Between',
-                        notEmpty: 'Not Empty'
-                    },
-                    // eslint-disable-next-line id-blacklist
-                    number: {
-                        between: 'Between',
-                        empty: 'Empty',
-                        equals: 'Equals',
-                        gt: 'Greater Than',
-                        gte: 'Greater Than Equal To',
-                        lt: 'Less Than',
-                        lte: 'Less Than Equal To',
-                        not: 'Not',
-                        notBetween: 'Not Between',
-                        notEmpty: 'Not Empty'
-                    },
-                    // eslint-disable-next-line id-blacklist
-                    string: {
-                        contains: 'Contains',
-                        empty: 'Empty',
-                        endsWith: 'Ends With',
-                        equals: 'Equals',
-                        not: 'Not',
-                        notContains: 'Does Not Contain',
-                        notEmpty: 'Not Empty',
-                        notEndsWith: 'Does Not End With',
-                        notStartsWith: 'Does Not Start With',
-                        startsWith: 'Starts With'
-                    }
-                },
-                data: 'Data',
-                "delete": '&times',
-                deleteTitle: 'Delete filtering rule',
-                left: '<',
-                leftTitle: 'Outdent criteria',
-                logicAnd: 'And',
-                logicOr: 'Or',
-                right: '>',
-                rightTitle: 'Indent criteria',
-                title: {
-                    0: 'Custom Search Builder',
-                    _: 'Custom Search Builder (%d)'
-                },
-                value: 'Value',
-                valueJoiner: 'and'
-            },
-            logic: 'AND',
-            orthogonal: {
-                display: 'display',
-                search: 'filter'
-            },
-            preDefined: false
-        };
-        return SearchBuilder;
-    }());
-
-    /*! SearchBuilder 1.4.0
-     * ©SpryMedia Ltd - datatables.net/license/mit
-     */
-    setJQuery($);
-    setJQuery$1($);
-    setJQuery$2($);
-    var dataTable = $.fn.dataTable;
-    // eslint-disable-next-line no-extra-parens
-    DataTable.SearchBuilder = SearchBuilder;
-    // eslint-disable-next-line no-extra-parens
-    dataTable.SearchBuilder = SearchBuilder;
-    // eslint-disable-next-line no-extra-parens
-    DataTable.Group = Group;
-    // eslint-disable-next-line no-extra-parens
-    dataTable.Group = Group;
-    // eslint-disable-next-line no-extra-parens
-    DataTable.Criteria = Criteria;
-    // eslint-disable-next-line no-extra-parens
-    dataTable.Criteria = Criteria;
-    // eslint-disable-next-line no-extra-parens
-    var apiRegister = DataTable.Api.register;
-    // Set up object for plugins
-    DataTable.ext.searchBuilder = {
-        conditions: {}
-    };
-    DataTable.ext.buttons.searchBuilder = {
-        action: function (e, dt, node, config) {
-            this.popover(config._searchBuilder.getNode(), {
-                align: 'container',
-                span: 'container'
-            });
-            var topGroup = config._searchBuilder.s.topGroup;
-            // Need to redraw the contents to calculate the correct positions for the elements
-            if (topGroup !== undefined) {
-                topGroup.dom.container.trigger('dtsb-redrawContents-noDraw');
-            }
-            if (topGroup.s.criteria.length === 0) {
-                $('.' + $.fn.dataTable.Group.classes.add.replace(/ /g, '.')).click();
-            }
-        },
-        config: {},
-        init: function (dt, node, config) {
-            var sb = new DataTable.SearchBuilder(dt, $.extend({
-                filterChanged: function (count, text) {
-                    dt.button(node).text(text);
-                }
-            }, config.config));
-            dt.button(node).text(config.text || dt.i18n('searchBuilder.button', sb.c.i18n.button, 0));
-            config._searchBuilder = sb;
-        },
-        text: null
-    };
-    apiRegister('searchBuilder.getDetails()', function (deFormatDates) {
-        if (deFormatDates === void 0) { deFormatDates = false; }
-        var ctx = this.context[0];
-        // If SearchBuilder has not been initialised on this instance then return
-        return ctx._searchBuilder ?
-            ctx._searchBuilder.getDetails(deFormatDates) :
-            null;
-    });
-    apiRegister('searchBuilder.rebuild()', function (details) {
-        var ctx = this.context[0];
-        // If SearchBuilder has not been initialised on this instance then return
-        if (ctx._searchBuilder === undefined) {
-            return null;
-        }
-        ctx._searchBuilder.rebuild(details);
-        return this;
-    });
-    apiRegister('searchBuilder.container()', function () {
-        var ctx = this.context[0];
-        // If SearchBuilder has not been initialised on this instance then return
-        return ctx._searchBuilder ?
-            ctx._searchBuilder.getNode() :
-            null;
-    });
-    /**
-     * Init function for SearchBuilder
-     *
-     * @param settings the settings to be applied
-     * @param options the options for SearchBuilder
-     * @returns JQUERY<HTMLElement> Returns the node of the SearchBuilder
-     */
-    function _init(settings, options) {
-        var api = new DataTable.Api(settings);
-        var opts = options
-            ? options
-            : api.init().searchBuilder || DataTable.defaults.searchBuilder;
-        var searchBuilder = new SearchBuilder(api, opts);
-        var node = searchBuilder.getNode();
-        return node;
-    }
-    // Attach a listener to the document which listens for DataTables initialisation
-    // events so we can automatically initialise
-    $(document).on('preInit.dt.dtsp', function (e, settings) {
-        if (e.namespace !== 'dt') {
-            return;
-        }
-        if (settings.oInit.searchBuilder ||
-            DataTable.defaults.searchBuilder) {
-            if (!settings._searchBuilder) {
-                _init(settings);
-            }
-        }
-    });
-    // DataTables `dom` feature option
-    DataTable.ext.feature.push({
-        cFeature: 'Q',
-        fnInit: _init
-    });
-    // DataTables 2 layout feature
-    if (DataTable.ext.features) {
-        DataTable.ext.features.register('searchBuilder', _init);
-    }
-
-})();
-
-
-return DataTable;
-}));
-
-
-/*! JQuery ui ui integration for DataTables' SearchBuilder
+/*! SearchPanes 2.2.0
  * © SpryMedia Ltd - datatables.net/license
  */
 
 (function( factory ){
 	if ( typeof define === 'function' && define.amd ) {
 		// AMD
-		define( ['jquery', 'datatables.net-ju', 'datatables.net-searchbuilder'], function ( $ ) {
-			return factory( $, window, document );
-		} );
-	}
-	else if ( typeof exports === 'object' ) {
-		// CommonJS
-		module.exports = function (root, $) {
-			if ( ! root ) {
-				// CommonJS environments without a window global must pass a
-				// root. This will give an error otherwise
-				root = window;
-			}
-
-			if ( ! $ ) {
-				$ = typeof window !== 'undefined' ? // jQuery's factory checks for a global window
-					require('jquery') :
-					require('jquery')( root );
-			}
-
-			if ( ! $.fn.dataTable ) {
-				require('datatables.net-ju')(root, $);
-			}
-
-			if ( ! $.fn.dataTable ) {
-				require('datatables.net-searchbuilder')(root, $);
-			}
-
-
-			return factory( $, root, root.document );
-		};
-	}
-	else {
-		// Browser
-		factory( jQuery, window, document );
-	}
-}(function( $, window, document, undefined ) {
-'use strict';
-var DataTable = $.fn.dataTable;
-
-
-$.extend(true, DataTable.SearchBuilder.classes, {
-    clearAll: 'ui-button ui-corner-all ui-widget dtsb-clearAll'
-});
-$.extend(true, DataTable.Group.classes, {
-    add: 'ui-button ui-corner-all ui-widget dtsb-add',
-    clearGroup: 'ui-button ui-corner-all ui-widget dtsb-clearGroup',
-    logic: 'ui-button ui-corner-all ui-widget dtsb-logic'
-});
-$.extend(true, DataTable.Criteria.classes, {
-    condition: 'ui-selectmenu-button ui-button ui-widget ui-selectmenu-button-closed ui-corner-all dtsb-condition',
-    data: 'ui-selectmenu-button ui-button ui-widget ui-selectmenu-button-closed ui-corner-all dtsb-data',
-    "delete": 'ui-button ui-corner-all ui-widget dtsb-delete',
-    left: 'ui-button ui-corner-all ui-widget dtsb-left',
-    right: 'ui-button ui-corner-all ui-widget dtsb-right',
-    value: 'ui-selectmenu-button ui-button ui-widget ui-selectmenu-button-closed ui-corner-all dtsb-value'
-});
-
-
-return DataTable;
-}));
-
-
-/*! SearchPanes 2.1.1
- * 2019-2023 SpryMedia Ltd - datatables.net/license
- */
-
-(function( factory ){
-	if ( typeof define === 'function' && define.amd ) {
-		// AMD
 		define( ['jquery', 'datatables.net'], function ( $ ) {
 			return factory( $, window, document );
 		} );
 	}
 	else if ( typeof exports === 'object' ) {
 		// CommonJS
-		module.exports = function (root, $) {
-			if ( ! root ) {
-				// CommonJS environments without a window global must pass a
-				// root. This will give an error otherwise
-				root = window;
-			}
-
-			if ( ! $ ) {
-				$ = typeof window !== 'undefined' ? // jQuery's factory checks for a global window
-					require('jquery') :
-					require('jquery')( root );
-			}
-
+		var jq = require('jquery');
+		var cjsRequires = function (root, $) {
 			if ( ! $.fn.dataTable ) {
 				require('datatables.net')(root, $);
 			}
-
-			return factory( $, root, root.document );
 		};
+
+		if (typeof window === 'undefined') {
+			module.exports = function (root, $) {
+				if ( ! root ) {
+					// CommonJS environments without a window global must pass a
+					// root. This will give an error otherwise
+					root = window;
+				}
+
+				if ( ! $ ) {
+					$ = jq( root );
+				}
+
+				cjsRequires( root, $ );
+				return factory( $, root, root.document );
+			};
+		}
+		else {
+			cjsRequires( window, jq );
+			module.exports = factory( jq, window, window.document );
+		}
 	}
 	else {
 		// Browser
@@ -29654,7 +23588,7 @@ var DataTable = $.fn.dataTable;
                     .addClass(this.s.customPaneSettings && this.s.customPaneSettings.className
                     ? this.s.customPaneSettings.className
                     : ''),
-                countButton: $$5('<button type="button"></button>')
+                countButton: $$5('<button type="button"><span></span></button>')
                     .addClass(this.classes.paneButton)
                     .addClass(this.classes.countButton),
                 dtP: $$5('<table><thead><tr><th>' +
@@ -29662,12 +23596,12 @@ var DataTable = $.fn.dataTable;
                         ? $$5(this.s.dt.column(this.s.index).header()).text()
                         : this.s.customPaneSettings.header || 'Custom Pane') + '</th><th/></tr></thead></table>'),
                 lower: $$5('<div/>').addClass(this.classes.subRow2).addClass(this.classes.narrowButton),
-                nameButton: $$5('<button type="button"></button>')
+                nameButton: $$5('<button type="button"><span></span></button>')
                     .addClass(this.classes.paneButton)
                     .addClass(this.classes.nameButton),
-                panesContainer: panesContainer,
+                panesContainer: $$5(panesContainer),
                 searchBox: $$5('<input/>').addClass(this.classes.paneInputButton).addClass(this.classes.search),
-                searchButton: $$5('<button type = "button"/>')
+                searchButton: $$5('<button type="button"><span></span></button>')
                     .addClass(this.classes.searchIcon)
                     .addClass(this.classes.paneButton),
                 searchCont: $$5('<div/>').addClass(this.classes.searchCont),
@@ -29845,6 +23779,7 @@ var DataTable = $.fn.dataTable;
             this.dom.searchButton.addClass(this.classes.disabledButton);
             this.dom.collapseButton.addClass(this.classes.rotated);
             this.dom.topRow.one('click.dtsp', function () { return _this.show(); });
+            this.dom.topRow.trigger('collapse.dtsps');
         };
         /**
          * Strips all of the SearchPanes elements from the document and turns all of the listeners for the buttons off
@@ -30073,6 +24008,7 @@ var DataTable = $.fn.dataTable;
                     _this.dom.topRow.off('click.dtsp');
                 }
                 _this.s.dt.state.save();
+                _this.dom.topRow.trigger('collapse.dtsps');
             });
             // When the clear button is clicked reset the pane
             this.dom.clear.off('click.dtsp').on('click.dtsp', function () {
@@ -30168,6 +24104,7 @@ var DataTable = $.fn.dataTable;
             this.dom.searchButton.removeClass(this.classes.disabledButton);
             this.dom.collapseButton.removeClass(this.classes.rotated);
             $$5(this.s.dtPane.table().container()).removeClass(this.classes.hidden);
+            this.dom.topRow.trigger('collapse.dtsps');
         };
         /**
          * Finds the ratio of the number of different options in the table to the number of rows
@@ -30425,15 +24362,30 @@ var DataTable = $.fn.dataTable;
          * @param notUpdating Whether the panes are updating themselves or not
          */
         SearchPane.prototype._updateSelection = function (notUpdating) {
-            this.s.scrollTop = $$5(this.s.dtPane.table().node()).parent()[0].scrollTop;
-            if (this.s.dt.page.info().serverSide && !this.s.updating) {
-                if (!this.s.serverSelecting) {
-                    this.s.serverSelect = this.s.dtPane.rows({ selected: true }).data().toArray();
-                    this.s.dt.draw(false);
+            var _this = this;
+            var settings = this.s.dt.settings()[0];
+            var oApi = settings.oApi;
+            var run = function () {
+                _this.s.scrollTop = $$5(_this.s.dtPane.table().node()).parent()[0].scrollTop;
+                if (_this.s.dt.page.info().serverSide && !_this.s.updating) {
+                    if (!_this.s.serverSelecting) {
+                        _this.s.serverSelect = _this.s.dtPane.rows({ selected: true }).data().toArray();
+                        _this.s.dt.draw(false);
+                    }
                 }
+                else if (notUpdating) {
+                    _this._makeSelection();
+                }
+                oApi._fnProcessingDisplay(settings, false);
+            };
+            // If the processing display is enabled, we need to allow the browser
+            // to draw it before performing our calculations
+            if (settings.oFeatures.bProcessing) {
+                oApi._fnProcessingDisplay(settings, true);
+                setTimeout(run, 1);
             }
-            else if (notUpdating) {
-                this._makeSelection();
+            else {
+                run();
             }
         };
         /**
@@ -30960,7 +24912,7 @@ var DataTable = $.fn.dataTable;
             }
             this.s.updating = updating;
         };
-        SearchPane.version = '2.0.0-dev';
+        SearchPane.version = '2.1.2';
         SearchPane.classes = {
             bordered: 'dtsp-bordered',
             buttonGroup: 'dtsp-buttonGroup',
@@ -32172,7 +26124,7 @@ var DataTable = $.fn.dataTable;
             for (var _i = 0, _a = this.s.panes; _i < _a.length; _i++) {
                 var pane = _a[_i];
                 // We want to make the same check whenever there is a collapse/expand
-                pane.dom.collapseButton.on('click.dtsps', function () { return _this._checkCollapse(); });
+                pane.dom.topRow.on('collapse.dtsps', function () { return _this._checkCollapse(); });
             }
             this._checkCollapse();
         };
@@ -32410,7 +26362,7 @@ var DataTable = $.fn.dataTable;
                 this.dom.clearAll.removeClass(this.classes.disabledButton).removeAttr('disabled');
             }
         };
-        SearchPanes.version = '2.1.1';
+        SearchPanes.version = '2.2.0';
         SearchPanes.classes = {
             clear: 'dtsp-clear',
             clearAll: 'dtsp-clearAll',
@@ -32786,8 +26738,8 @@ var DataTable = $.fn.dataTable;
         return SearchPanesST;
     }(SearchPanes));
 
-    /*! SearchPanes 2.1.1
-     * 2019-2023 SpryMedia Ltd - datatables.net/license
+    /*! SearchPanes 2.2.0
+     * © SpryMedia Ltd - datatables.net/license
      */
     setJQuery$4($);
     setJQuery($);
@@ -32950,42 +26902,50 @@ return DataTable;
 }));
 
 
-/*! Bootstrap integration for DataTables' SearchPanes
+/*! Bootstrap 5 integration for DataTables' SearchPanes
  * © SpryMedia Ltd - datatables.net/license
  */
 
 (function( factory ){
 	if ( typeof define === 'function' && define.amd ) {
 		// AMD
-		define( ['jquery', 'datatables.net-jqui', 'datatables.net-searchpanes'], function ( $ ) {
+		define( ['jquery', 'datatables.net-bs5', 'datatables.net-searchpanes'], function ( $ ) {
 			return factory( $, window, document );
 		} );
 	}
 	else if ( typeof exports === 'object' ) {
 		// CommonJS
-		module.exports = function (root, $) {
-			if ( ! root ) {
-				// CommonJS environments without a window global must pass a
-				// root. This will give an error otherwise
-				root = window;
-			}
-
-			if ( ! $ ) {
-				$ = typeof window !== 'undefined' ? // jQuery's factory checks for a global window
-					require('jquery') :
-					require('jquery')( root );
-			}
-
+		var jq = require('jquery');
+		var cjsRequires = function (root, $) {
 			if ( ! $.fn.dataTable ) {
-				require('datatables.net-jqui')(root, $);
+				require('datatables.net-bs5')(root, $);
 			}
 
 			if ( ! $.fn.dataTable.SearchPanes ) {
 				require('datatables.net-searchpanes')(root, $);
 			}
-
-			return factory( $, root, root.document );
 		};
+
+		if (typeof window === 'undefined') {
+			module.exports = function (root, $) {
+				if ( ! root ) {
+					// CommonJS environments without a window global must pass a
+					// root. This will give an error otherwise
+					root = window;
+				}
+
+				if ( ! $ ) {
+					$ = jq( root );
+				}
+
+				cjsRequires( root, $ );
+				return factory( $, root, root.document );
+			};
+		}
+		else {
+			cjsRequires( window, jq );
+			module.exports = factory( jq, window, window.document );
+		}
 	}
 	else {
 		// Browser
@@ -32997,16 +26957,28 @@ var DataTable = $.fn.dataTable;
 
 
 $.extend(true, DataTable.SearchPane.classes, {
-    disabledButton: 'dtsp-paneInputButton dtsp-disabledButton',
-    paneButton: 'dtsp-paneButton ui-button',
-    topRow: 'dtsp-topRow ui-state-default'
+    buttonGroup: 'btn-group',
+    disabledButton: 'disabled',
+    narrow: 'col',
+    pane: {
+        container: 'table'
+    },
+    paneButton: 'btn btn-subtle',
+    pill: 'badge rounded-pill bg-secondary',
+    search: 'form-control search',
+    table: 'table table-sm table-borderless',
+    topRow: 'dtsp-topRow'
 });
 $.extend(true, DataTable.SearchPanes.classes, {
-    clearAll: 'dtsp-clearAll ui-button',
-    collapseAll: 'dtsp-collapseAll ui-button',
+    clearAll: 'dtsp-clearAll btn btn-subtle',
+    collapseAll: 'dtsp-collapseAll btn btn-subtle',
     container: 'dtsp-searchPanes',
-    panes: 'dtsp-panesContainer fg-toolbar ui-toolbar ui-widget-header',
-    showAll: 'dtsp-showAll ui-button'
+    disabledButton: 'disabled',
+    panes: 'dtsp-panes dtsp-panesContainer',
+    search: DataTable.SearchPane.classes.search,
+    showAll: 'dtsp-showAll btn btn-subtle',
+    title: 'dtsp-title',
+    titleRow: 'dtsp-titleRow'
 });
 
 
@@ -33014,8 +26986,8 @@ return DataTable;
 }));
 
 
-/*! Select for DataTables 1.6.0
- * 2015-2023 SpryMedia Ltd - datatables.net/license/mit
+/*! Select for DataTables 1.7.0
+ * © SpryMedia Ltd - datatables.net/license/mit
  */
 
 (function( factory ){
@@ -33027,25 +26999,33 @@ return DataTable;
 	}
 	else if ( typeof exports === 'object' ) {
 		// CommonJS
-		module.exports = function (root, $) {
-			if ( ! root ) {
-				// CommonJS environments without a window global must pass a
-				// root. This will give an error otherwise
-				root = window;
-			}
-
-			if ( ! $ ) {
-				$ = typeof window !== 'undefined' ? // jQuery's factory checks for a global window
-					require('jquery') :
-					require('jquery')( root );
-			}
-
+		var jq = require('jquery');
+		var cjsRequires = function (root, $) {
 			if ( ! $.fn.dataTable ) {
 				require('datatables.net')(root, $);
 			}
-
-			return factory( $, root, root.document );
 		};
+
+		if (typeof window === 'undefined') {
+			module.exports = function (root, $) {
+				if ( ! root ) {
+					// CommonJS environments without a window global must pass a
+					// root. This will give an error otherwise
+					root = window;
+				}
+
+				if ( ! $ ) {
+					$ = jq( root );
+				}
+
+				cjsRequires( root, $ );
+				return factory( $, root, root.document );
+			};
+		}
+		else {
+			cjsRequires( window, jq );
+			module.exports = factory( jq, window, window.document );
+		}
 	}
 	else {
 		// Browser
@@ -33060,9 +27040,9 @@ var DataTable = $.fn.dataTable;
 // Version information for debugger
 DataTable.select = {};
 
-DataTable.select.version = '1.6.0';
+DataTable.select.version = '1.7.0';
 
-DataTable.select.init = function ( dt ) {
+DataTable.select.init = function (dt) {
 	var ctx = dt.settings()[0];
 
 	if (ctx._select) {
@@ -33071,58 +27051,55 @@ DataTable.select.init = function ( dt ) {
 
 	var savedSelected = dt.state.loaded();
 
-	var selectAndSave = function(e, settings, data) {
-		if(data === null || data.select === undefined) {
+	var selectAndSave = function (e, settings, data) {
+		if (data === null || data.select === undefined) {
 			return;
 		}
 
 		// Clear any currently selected rows, before restoring state
 		// None will be selected on first initialisation
-		if (dt.rows({selected: true}).any()) {
+		if (dt.rows({ selected: true }).any()) {
 			dt.rows().deselect();
 		}
 		if (data.select.rows !== undefined) {
 			dt.rows(data.select.rows).select();
 		}
 
-		if (dt.columns({selected: true}).any()) {
+		if (dt.columns({ selected: true }).any()) {
 			dt.columns().deselect();
 		}
 		if (data.select.columns !== undefined) {
 			dt.columns(data.select.columns).select();
 		}
 
-		if (dt.cells({selected: true}).any()) {
+		if (dt.cells({ selected: true }).any()) {
 			dt.cells().deselect();
 		}
 		if (data.select.cells !== undefined) {
-			for(var i = 0; i < data.select.cells.length; i++) {
+			for (var i = 0; i < data.select.cells.length; i++) {
 				dt.cell(data.select.cells[i].row, data.select.cells[i].column).select();
 			}
 		}
 
 		dt.state.save();
-	}
-	
-	dt
-		.on('stateSaveParams', function(e, settings, data) {
-			data.select = {};
-			data.select.rows = dt.rows({selected:true}).ids(true).toArray();
-			data.select.columns = dt.columns({selected:true})[0];
-			data.select.cells = dt.cells({selected:true})[0].map(function(coords) {
-				return {row: dt.row(coords.row).id(true), column: coords.column}
-			});
-		})
+	};
+
+	dt.on('stateSaveParams', function (e, settings, data) {
+		data.select = {};
+		data.select.rows = dt.rows({ selected: true }).ids(true).toArray();
+		data.select.columns = dt.columns({ selected: true })[0];
+		data.select.cells = dt.cells({ selected: true })[0].map(function (coords) {
+			return { row: dt.row(coords.row).id(true), column: coords.column };
+		});
+	})
 		.on('stateLoadParams', selectAndSave)
-		.one('init', function() {
+		.one('init', function () {
 			selectAndSave(undefined, undefined, savedSelected);
 		});
 
 	var init = ctx.oInit.select;
 	var defaults = DataTable.defaults.select;
-	var opts = init === undefined ?
-		defaults :
-		init;
+	var opts = init === undefined ? defaults : init;
 
 	// Set defaults
 	var items = 'row';
@@ -33137,32 +27114,32 @@ DataTable.select.init = function ( dt ) {
 	ctx._select = {};
 
 	// Initialisation customisations
-	if ( opts === true ) {
+	if (opts === true) {
 		style = 'os';
 		setStyle = true;
 	}
-	else if ( typeof opts === 'string' ) {
+	else if (typeof opts === 'string') {
 		style = opts;
 		setStyle = true;
 	}
-	else if ( $.isPlainObject( opts ) ) {
-		if ( opts.blurable !== undefined ) {
+	else if ($.isPlainObject(opts)) {
+		if (opts.blurable !== undefined) {
 			blurable = opts.blurable;
 		}
-		
-		if ( opts.toggleable !== undefined ) {
+
+		if (opts.toggleable !== undefined) {
 			toggleable = opts.toggleable;
 		}
 
-		if ( opts.info !== undefined ) {
+		if (opts.info !== undefined) {
 			info = opts.info;
 		}
 
-		if ( opts.items !== undefined ) {
+		if (opts.items !== undefined) {
 			items = opts.items;
 		}
 
-		if ( opts.style !== undefined ) {
+		if (opts.style !== undefined) {
 			style = opts.style;
 			setStyle = true;
 		}
@@ -33171,40 +27148,43 @@ DataTable.select.init = function ( dt ) {
 			setStyle = true;
 		}
 
-		if ( opts.selector !== undefined ) {
+		if (opts.selector !== undefined) {
 			selector = opts.selector;
 		}
 
-		if ( opts.className !== undefined ) {
+		if (opts.className !== undefined) {
 			className = opts.className;
 		}
 	}
 
-	dt.select.selector( selector );
-	dt.select.items( items );
-	dt.select.style( style );
-	dt.select.blurable( blurable );
-	dt.select.toggleable( toggleable );
-	dt.select.info( info );
+	dt.select.selector(selector);
+	dt.select.items(items);
+	dt.select.style(style);
+	dt.select.blurable(blurable);
+	dt.select.toggleable(toggleable);
+	dt.select.info(info);
 	ctx._select.className = className;
 
-
 	// Sort table based on selected rows. Requires Select Datatables extension
-	$.fn.dataTable.ext.order['select-checkbox'] = function ( settings, col ) {
-		return this.api().column( col, {order: 'index'} ).nodes().map( function ( td ) {
-			if ( settings._select.items === 'row' ) {
-				return $( td ).parent().hasClass( settings._select.className );
-			} else if ( settings._select.items === 'cell' ) {
-				return $( td ).hasClass( settings._select.className );
-			}
-			return false;
-		});
+	$.fn.dataTable.ext.order['select-checkbox'] = function (settings, col) {
+		return this.api()
+			.column(col, { order: 'index' })
+			.nodes()
+			.map(function (td) {
+				if (settings._select.items === 'row') {
+					return $(td).parent().hasClass(settings._select.className);
+				}
+				else if (settings._select.items === 'cell') {
+					return $(td).hasClass(settings._select.className);
+				}
+				return false;
+			});
 	};
 
 	// If the init options haven't enabled select, but there is a selectable
 	// class name, then enable
-	if ( ! setStyle && $( dt.table().node() ).hasClass( 'selectable' ) ) {
-		dt.select.style( 'os' );
+	if (!setStyle && $(dt.table().node()).hasClass('selectable')) {
+		dt.select.style('os');
 	}
 };
 
@@ -33272,7 +27252,6 @@ handler that will select the items using the API methods.
 
  */
 
-
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  * Local functions
  */
@@ -33285,84 +27264,87 @@ handler that will select the items using the API methods.
  * in the visible grid rather than by index in sequence. For example, if you
  * click first in cell 1-1 and then shift click in 2-2 - cells 1-2 and 2-1
  * should also be selected (and not 1-3, 1-4. etc)
- * 
+ *
  * @param  {DataTable.Api} dt   DataTable
  * @param  {object}        idx  Cell index to select to
  * @param  {object}        last Cell index to select from
  * @private
  */
-function cellRange( dt, idx, last )
-{
+function cellRange(dt, idx, last) {
 	var indexes;
 	var columnIndexes;
 	var rowIndexes;
-	var selectColumns = function ( start, end ) {
-		if ( start > end ) {
+	var selectColumns = function (start, end) {
+		if (start > end) {
 			var tmp = end;
 			end = start;
 			start = tmp;
 		}
-		
-		var record = false;
-		return dt.columns( ':visible' ).indexes().filter( function (i) {
-			if ( i === start ) {
-				record = true;
-			}
-			
-			if ( i === end ) { // not else if, as start might === end
-				record = false;
-				return true;
-			}
 
-			return record;
-		} );
+		var record = false;
+		return dt
+			.columns(':visible')
+			.indexes()
+			.filter(function (i) {
+				if (i === start) {
+					record = true;
+				}
+
+				if (i === end) {
+					// not else if, as start might === end
+					record = false;
+					return true;
+				}
+
+				return record;
+			});
 	};
 
-	var selectRows = function ( start, end ) {
-		var indexes = dt.rows( { search: 'applied' } ).indexes();
+	var selectRows = function (start, end) {
+		var indexes = dt.rows({ search: 'applied' }).indexes();
 
 		// Which comes first - might need to swap
-		if ( indexes.indexOf( start ) > indexes.indexOf( end ) ) {
+		if (indexes.indexOf(start) > indexes.indexOf(end)) {
 			var tmp = end;
 			end = start;
 			start = tmp;
 		}
 
 		var record = false;
-		return indexes.filter( function (i) {
-			if ( i === start ) {
+		return indexes.filter(function (i) {
+			if (i === start) {
 				record = true;
 			}
-			
-			if ( i === end ) {
+
+			if (i === end) {
 				record = false;
 				return true;
 			}
 
 			return record;
-		} );
+		});
 	};
 
-	if ( ! dt.cells( { selected: true } ).any() && ! last ) {
+	if (!dt.cells({ selected: true }).any() && !last) {
 		// select from the top left cell to this one
-		columnIndexes = selectColumns( 0, idx.column );
-		rowIndexes = selectRows( 0 , idx.row );
+		columnIndexes = selectColumns(0, idx.column);
+		rowIndexes = selectRows(0, idx.row);
 	}
 	else {
 		// Get column indexes between old and new
-		columnIndexes = selectColumns( last.column, idx.column );
-		rowIndexes = selectRows( last.row , idx.row );
+		columnIndexes = selectColumns(last.column, idx.column);
+		rowIndexes = selectRows(last.row, idx.row);
 	}
 
-	indexes = dt.cells( rowIndexes, columnIndexes ).flatten();
+	indexes = dt.cells(rowIndexes, columnIndexes).flatten();
 
-	if ( ! dt.cells( idx, { selected: true } ).any() ) {
+	if (!dt.cells(idx, { selected: true }).any()) {
 		// Select range
-		dt.cells( indexes ).select();
+		dt.cells(indexes).select();
 	}
 	else {
 		// Deselect range
-		dt.cells( indexes ).deselect();
+		dt.cells(indexes).deselect();
 	}
 }
 
@@ -33372,17 +27354,16 @@ function cellRange( dt, idx, last )
  * @param {DataTable.Api} dt DataTable to remove events from
  * @private
  */
-function disableMouseSelection( dt )
-{
+function disableMouseSelection(dt) {
 	var ctx = dt.settings()[0];
 	var selector = ctx._select.selector;
 
-	$( dt.table().container() )
-		.off( 'mousedown.dtSelect', selector )
-		.off( 'mouseup.dtSelect', selector )
-		.off( 'click.dtSelect', selector );
+	$(dt.table().container())
+		.off('mousedown.dtSelect', selector)
+		.off('mouseup.dtSelect', selector)
+		.off('click.dtSelect', selector);
 
-	$('body').off( 'click.dtSelect' + _safeId(dt.table().node()) );
+	$('body').off('click.dtSelect' + _safeId(dt.table().node()));
 }
 
 /**
@@ -33391,47 +27372,49 @@ function disableMouseSelection( dt )
  * @param {DataTable.Api} dt DataTable to remove events from
  * @private
  */
-function enableMouseSelection ( dt )
-{
-	var container = $( dt.table().container() );
+function enableMouseSelection(dt) {
+	var container = $(dt.table().container());
 	var ctx = dt.settings()[0];
 	var selector = ctx._select.selector;
 	var matchSelection;
 
 	container
-		.on( 'mousedown.dtSelect', selector, function(e) {
+		.on('mousedown.dtSelect', selector, function (e) {
 			// Disallow text selection for shift clicking on the table so multi
 			// element selection doesn't look terrible!
-			if ( e.shiftKey || e.metaKey || e.ctrlKey ) {
+			if (e.shiftKey || e.metaKey || e.ctrlKey) {
 				container
-					.css( '-moz-user-select', 'none' )
+					.css('-moz-user-select', 'none')
 					.one('selectstart.dtSelect', selector, function () {
 						return false;
-					} );
+					});
 			}
 
-			if ( window.getSelection ) {
+			if (window.getSelection) {
 				matchSelection = window.getSelection();
 			}
-		} )
-		.on( 'mouseup.dtSelect', selector, function() {
+		})
+		.on('mouseup.dtSelect', selector, function () {
 			// Allow text selection to occur again, Mozilla style (tested in FF
 			// 35.0.1 - still required)
-			container.css( '-moz-user-select', '' );
-		} )
-		.on( 'click.dtSelect', selector, function ( e ) {
+			container.css('-moz-user-select', '');
+		})
+		.on('click.dtSelect', selector, function (e) {
 			var items = dt.select.items();
 			var idx;
 
 			// If text was selected (click and drag), then we shouldn't change
 			// the row's selected state
-			if ( matchSelection ) {
+			if (matchSelection) {
 				var selection = window.getSelection();
 
 				// If the element that contains the selection is not in the table, we can ignore it
 				// This can happen if the developer selects text from the click event
-				if ( ! selection.anchorNode || $(selection.anchorNode).closest('table')[0] === dt.table().node() ) {
-					if ( selection !== matchSelection ) {
+				if (
+					!selection.anchorNode ||
+					$(selection.anchorNode).closest('table')[0] === dt.table().node()
+				) {
+					if (selection !== matchSelection) {
 						return;
 					}
 				}
@@ -33441,71 +27424,71 @@ function enableMouseSelection ( dt )
 			var wrapperClass = dt.settings()[0].oClasses.sWrapper.trim().replace(/ +/g, '.');
 
 			// Ignore clicks inside a sub-table
-			if ( $(e.target).closest('div.'+wrapperClass)[0] != dt.table().container() ) {
+			if ($(e.target).closest('div.' + wrapperClass)[0] != dt.table().container()) {
 				return;
 			}
 
-			var cell = dt.cell( $(e.target).closest('td, th') );
+			var cell = dt.cell($(e.target).closest('td, th'));
 
 			// Check the cell actually belongs to the host DataTable (so child
 			// rows, etc, are ignored)
-			if ( ! cell.any() ) {
+			if (!cell.any()) {
 				return;
 			}
 
 			var event = $.Event('user-select.dt');
-			eventTrigger( dt, event, [ items, cell, e ] );
+			eventTrigger(dt, event, [items, cell, e]);
 
-			if ( event.isDefaultPrevented() ) {
+			if (event.isDefaultPrevented()) {
 				return;
 			}
 
 			var cellIndex = cell.index();
-			if ( items === 'row' ) {
+			if (items === 'row') {
 				idx = cellIndex.row;
-				typeSelect( e, dt, ctx, 'row', idx );
+				typeSelect(e, dt, ctx, 'row', idx);
 			}
-			else if ( items === 'column' ) {
+			else if (items === 'column') {
 				idx = cell.index().column;
-				typeSelect( e, dt, ctx, 'column', idx );
+				typeSelect(e, dt, ctx, 'column', idx);
 			}
-			else if ( items === 'cell' ) {
+			else if (items === 'cell') {
 				idx = cell.index();
-				typeSelect( e, dt, ctx, 'cell', idx );
+				typeSelect(e, dt, ctx, 'cell', idx);
 			}
 
 			ctx._select_lastCell = cellIndex;
-		} );
+		});
 
 	// Blurable
-	$('body').on( 'click.dtSelect' + _safeId(dt.table().node()), function ( e ) {
-		if ( ctx._select.blurable ) {
+	$('body').on('click.dtSelect' + _safeId(dt.table().node()), function (e) {
+		if (ctx._select.blurable) {
 			// If the click was inside the DataTables container, don't blur
-			if ( $(e.target).parents().filter( dt.table().container() ).length ) {
+			if ($(e.target).parents().filter(dt.table().container()).length) {
 				return;
 			}
 
 			// Ignore elements which have been removed from the DOM (i.e. paging
 			// buttons)
-			if ( $(e.target).parents('html').length === 0 ) {
-			 	return;
+			if ($(e.target).parents('html').length === 0) {
+				return;
 			}
 
 			// Don't blur in Editor form
-			if ( $(e.target).parents('div.DTE').length ) {
+			if ($(e.target).parents('div.DTE').length) {
 				return;
 			}
 
 			var event = $.Event('select-blur.dt');
-			eventTrigger( dt, event, [ e.target, e ] );
+			eventTrigger(dt, event, [e.target, e]);
 
-			if ( event.isDefaultPrevented() ) {
+			if (event.isDefaultPrevented()) {
 				return;
 			}
 
-			clear( ctx, true );
+			clear(ctx, true);
 		}
-	} );
+	});
 }
 
 /**
@@ -33518,70 +27501,72 @@ function enableMouseSelection ( dt )
  *     triggering
  * @private
  */
-function eventTrigger ( api, type, args, any )
-{
-	if ( any && ! api.flatten().length ) {
+function eventTrigger(api, type, args, any) {
+	if (any && !api.flatten().length) {
 		return;
 	}
 
-	if ( typeof type === 'string' ) {
-		type = type +'.dt';
+	if (typeof type === 'string') {
+		type = type + '.dt';
 	}
 
-	args.unshift( api );
+	args.unshift(api);
 
-	$(api.table().node()).trigger( type, args );
+	$(api.table().node()).trigger(type, args);
 }
 
 /**
  * Update the information element of the DataTable showing information about the
  * items selected. This is done by adding tags to the existing text
- * 
+ *
  * @param {DataTable.Api} api DataTable to update
  * @private
  */
-function info ( api )
-{
+function info(api) {
 	var ctx = api.settings()[0];
 
-	if ( ! ctx._select.info || ! ctx.aanFeatures.i ) {
+	if (!ctx._select.info || !ctx.aanFeatures.i) {
 		return;
 	}
 
-	if ( api.select.style() === 'api' ) {
+	if (api.select.style() === 'api') {
 		return;
 	}
 
-	var rows    = api.rows( { selected: true } ).flatten().length;
-	var columns = api.columns( { selected: true } ).flatten().length;
-	var cells   = api.cells( { selected: true } ).flatten().length;
+	var rows = api.rows({ selected: true }).flatten().length;
+	var columns = api.columns({ selected: true }).flatten().length;
+	var cells = api.cells({ selected: true }).flatten().length;
 
-	var add = function ( el, name, num ) {
-		el.append( $('<span class="select-item"/>').append( api.i18n(
-			'select.'+name+'s',
-			{ _: '%d '+name+'s selected', 0: '', 1: '1 '+name+' selected' },
-			num
-		) ) );
+	var add = function (el, name, num) {
+		el.append(
+			$('<span class="select-item"/>').append(
+				api.i18n(
+					'select.' + name + 's',
+					{ _: '%d ' + name + 's selected', 0: '', 1: '1 ' + name + ' selected' },
+					num
+				)
+			)
+		);
 	};
 
 	// Internal knowledge of DataTables to loop over all information elements
-	$.each( ctx.aanFeatures.i, function ( i, el ) {
+	$.each(ctx.aanFeatures.i, function (i, el) {
 		el = $(el);
 
-		var output  = $('<span class="select-info"/>');
-		add( output, 'row', rows );
-		add( output, 'column', columns );
-		add( output, 'cell', cells  );
+		var output = $('<span class="select-info"/>');
+		add(output, 'row', rows);
+		add(output, 'column', columns);
+		add(output, 'cell', cells);
 
 		var exisiting = el.children('span.select-info');
-		if ( exisiting.length ) {
+		if (exisiting.length) {
 			exisiting.remove();
 		}
 
-		if ( output.text() !== '' ) {
-			el.append( output );
+		if (output.text() !== '') {
+			el.append(output);
 		}
-	} );
+	});
 }
 
 /**
@@ -33594,41 +27579,44 @@ function info ( api )
  * @param  {DataTable.settings} ctx Settings object to operate on
  * @private
  */
-function init ( ctx ) {
-	var api = new DataTable.Api( ctx );
+function init(ctx) {
+	var api = new DataTable.Api(ctx);
 	ctx._select_init = true;
 
 	// Row callback so that classes can be added to rows and cells if the item
 	// was selected before the element was created. This will happen with the
 	// `deferRender` option enabled.
-	// 
+	//
 	// This method of attaching to `aoRowCreatedCallback` is a hack until
 	// DataTables has proper events for row manipulation If you are reviewing
 	// this code to create your own plug-ins, please do not do this!
-	ctx.aoRowCreatedCallback.push( {
-		fn: function ( row, data, index ) {
+	ctx.aoRowCreatedCallback.push({
+		fn: function (row, data, index) {
 			var i, ien;
-			var d = ctx.aoData[ index ];
+			var d = ctx.aoData[index];
 
 			// Row
-			if ( d._select_selected ) {
-				$( row ).addClass( ctx._select.className );
+			if (d._select_selected) {
+				$(row).addClass(ctx._select.className);
 			}
 
 			// Cells and columns - if separated out, we would need to do two
 			// loops, so it makes sense to combine them into a single one
-			for ( i=0, ien=ctx.aoColumns.length ; i<ien ; i++ ) {
-				if ( ctx.aoColumns[i]._select_selected || (d._selected_cells && d._selected_cells[i]) ) {
-					$(d.anCells[i]).addClass( ctx._select.className );
+			for (i = 0, ien = ctx.aoColumns.length; i < ien; i++) {
+				if (
+					ctx.aoColumns[i]._select_selected ||
+					(d._selected_cells && d._selected_cells[i])
+				) {
+					$(d.anCells[i]).addClass(ctx._select.className);
 				}
 			}
 		},
 		sName: 'select-deferRender'
-	} );
+	});
 
 	// On Ajax reload we want to reselect all rows which are currently selected,
 	// if there is an rowId (i.e. a unique value to identify each row with)
-	api.on( 'preXhr.dt.dtSelect', function (e, settings) {
+	api.on('preXhr.dt.dtSelect', function (e, settings) {
 		if (settings !== api.settings()[0]) {
 			// Not triggered by our DataTable!
 			return;
@@ -33636,47 +27624,52 @@ function init ( ctx ) {
 
 		// note that column selection doesn't need to be cached and then
 		// reselected, as they are already selected
-		var rows = api.rows( { selected: true } ).ids( true ).filter( function ( d ) {
-			return d !== undefined;
-		} );
+		var rows = api
+			.rows({ selected: true })
+			.ids(true)
+			.filter(function (d) {
+				return d !== undefined;
+			});
 
-		var cells = api.cells( { selected: true } ).eq(0).map( function ( cellIdx ) {
-			var id = api.row( cellIdx.row ).id( true );
-			return id ?
-				{ row: id, column: cellIdx.column } :
-				undefined;
-		} ).filter( function ( d ) {
-			return d !== undefined;
-		} );
+		var cells = api
+			.cells({ selected: true })
+			.eq(0)
+			.map(function (cellIdx) {
+				var id = api.row(cellIdx.row).id(true);
+				return id ? { row: id, column: cellIdx.column } : undefined;
+			})
+			.filter(function (d) {
+				return d !== undefined;
+			});
 
 		// On the next draw, reselect the currently selected items
-		api.one( 'draw.dt.dtSelect', function () {
-			api.rows( rows ).select();
+		api.one('draw.dt.dtSelect', function () {
+			api.rows(rows).select();
 
 			// `cells` is not a cell index selector, so it needs a loop
-			if ( cells.any() ) {
-				cells.each( function ( id ) {
-					api.cells( id.row, id.column ).select();
-				} );
+			if (cells.any()) {
+				cells.each(function (id) {
+					api.cells(id.row, id.column).select();
+				});
 			}
-		} );
-	} );
+		});
+	});
 
 	// Update the table information element with selected item summary
-	api.on( 'draw.dtSelect.dt select.dtSelect.dt deselect.dtSelect.dt info.dt', function () {
-		info( api );
+	api.on('draw.dtSelect.dt select.dtSelect.dt deselect.dtSelect.dt info.dt', function () {
+		info(api);
 		api.state.save();
-	} );
+	});
 
 	// Clean up and release
-	api.on( 'destroy.dtSelect', function () {
+	api.on('destroy.dtSelect', function () {
 		// Remove class directly rather than calling deselect - which would trigger events
-		$(api.rows({selected: true}).nodes()).removeClass(api.settings()[0]._select.className);
+		$(api.rows({ selected: true }).nodes()).removeClass(api.settings()[0]._select.className);
 
-		disableMouseSelection( api );
-		api.off( '.dtSelect' );
+		disableMouseSelection(api);
+		api.off('.dtSelect');
 		$('body').off('.dtSelect' + _safeId(api.table().node()));
-	} );
+	});
 }
 
 /**
@@ -33689,38 +27682,37 @@ function init ( ctx ) {
  * @param  {object}        last Item index to select from
  * @private
  */
-function rowColumnRange( dt, type, idx, last )
-{
+function rowColumnRange(dt, type, idx, last) {
 	// Add a range of rows from the last selected row to this one
-	var indexes = dt[type+'s']( { search: 'applied' } ).indexes();
-	var idx1 = $.inArray( last, indexes );
-	var idx2 = $.inArray( idx, indexes );
+	var indexes = dt[type + 's']({ search: 'applied' }).indexes();
+	var idx1 = $.inArray(last, indexes);
+	var idx2 = $.inArray(idx, indexes);
 
-	if ( ! dt[type+'s']( { selected: true } ).any() && idx1 === -1 ) {
+	if (!dt[type + 's']({ selected: true }).any() && idx1 === -1) {
 		// select from top to here - slightly odd, but both Windows and Mac OS
 		// do this
-		indexes.splice( $.inArray( idx, indexes )+1, indexes.length );
+		indexes.splice($.inArray(idx, indexes) + 1, indexes.length);
 	}
 	else {
 		// reverse so we can shift click 'up' as well as down
-		if ( idx1 > idx2 ) {
+		if (idx1 > idx2) {
 			var tmp = idx2;
 			idx2 = idx1;
 			idx1 = tmp;
 		}
 
-		indexes.splice( idx2+1, indexes.length );
-		indexes.splice( 0, idx1 );
+		indexes.splice(idx2 + 1, indexes.length);
+		indexes.splice(0, idx1);
 	}
 
-	if ( ! dt[type]( idx, { selected: true } ).any() ) {
+	if (!dt[type](idx, { selected: true }).any()) {
 		// Select range
-		dt[type+'s']( indexes ).select();
+		dt[type + 's'](indexes).select();
 	}
 	else {
 		// Deselect range - need to keep the clicked on row selected
-		indexes.splice( $.inArray( idx, indexes ), 1 );
-		dt[type+'s']( indexes ).deselect();
+		indexes.splice($.inArray(idx, indexes), 1);
+		dt[type + 's'](indexes).deselect();
 	}
 }
 
@@ -33732,14 +27724,13 @@ function rowColumnRange( dt, type, idx, last )
  *     of selection style
  * @private
  */
-function clear( ctx, force )
-{
-	if ( force || ctx._select.style === 'single' ) {
-		var api = new DataTable.Api( ctx );
-		
-		api.rows( { selected: true } ).deselect();
-		api.columns( { selected: true } ).deselect();
-		api.cells( { selected: true } ).deselect();
+function clear(ctx, force) {
+	if (force || ctx._select.style === 'single') {
+		var api = new DataTable.Api(ctx);
+
+		api.rows({ selected: true }).deselect();
+		api.columns({ selected: true }).deselect();
+		api.cells({ selected: true }).deselect();
 	}
 }
 
@@ -33753,71 +27744,73 @@ function clear( ctx, force )
  * @param  {int|object}         idx  Index of the item to select
  * @private
  */
-function typeSelect ( e, dt, ctx, type, idx )
-{
+function typeSelect(e, dt, ctx, type, idx) {
 	var style = dt.select.style();
 	var toggleable = dt.select.toggleable();
-	var isSelected = dt[type]( idx, { selected: true } ).any();
-	
-	if ( isSelected && ! toggleable ) {
+	var isSelected = dt[type](idx, { selected: true }).any();
+
+	if (isSelected && !toggleable) {
 		return;
 	}
 
-	if ( style === 'os' ) {
-		if ( e.ctrlKey || e.metaKey ) {
+	if (style === 'os') {
+		if (e.ctrlKey || e.metaKey) {
 			// Add or remove from the selection
-			dt[type]( idx ).select( ! isSelected );
+			dt[type](idx).select(!isSelected);
 		}
-		else if ( e.shiftKey ) {
-			if ( type === 'cell' ) {
-				cellRange( dt, idx, ctx._select_lastCell || null );
+		else if (e.shiftKey) {
+			if (type === 'cell') {
+				cellRange(dt, idx, ctx._select_lastCell || null);
 			}
 			else {
-				rowColumnRange( dt, type, idx, ctx._select_lastCell ?
-					ctx._select_lastCell[type] :
-					null
+				rowColumnRange(
+					dt,
+					type,
+					idx,
+					ctx._select_lastCell ? ctx._select_lastCell[type] : null
 				);
 			}
 		}
 		else {
 			// No cmd or shift click - deselect if selected, or select
 			// this row only
-			var selected = dt[type+'s']( { selected: true } );
+			var selected = dt[type + 's']({ selected: true });
 
-			if ( isSelected && selected.flatten().length === 1 ) {
-				dt[type]( idx ).deselect();
+			if (isSelected && selected.flatten().length === 1) {
+				dt[type](idx).deselect();
 			}
 			else {
 				selected.deselect();
-				dt[type]( idx ).select();
+				dt[type](idx).select();
 			}
 		}
-	} else if ( style == 'multi+shift' ) {
-		if ( e.shiftKey ) {
-			if ( type === 'cell' ) {
-				cellRange( dt, idx, ctx._select_lastCell || null );
+	}
+	else if (style == 'multi+shift') {
+		if (e.shiftKey) {
+			if (type === 'cell') {
+				cellRange(dt, idx, ctx._select_lastCell || null);
 			}
 			else {
-				rowColumnRange( dt, type, idx, ctx._select_lastCell ?
-					ctx._select_lastCell[type] :
-					null
+				rowColumnRange(
+					dt,
+					type,
+					idx,
+					ctx._select_lastCell ? ctx._select_lastCell[type] : null
 				);
 			}
 		}
 		else {
-			dt[ type ]( idx ).select( ! isSelected );
+			dt[type](idx).select(!isSelected);
 		}
 	}
 	else {
-		dt[ type ]( idx ).select( ! isSelected );
+		dt[type](idx).select(!isSelected);
 	}
 }
 
-function _safeId( node ) {
+function _safeId(node) {
 	return node.id.replace(/[^a-zA-Z0-9\-\_]/g, '-');
 }
-
-
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  * DataTables selectors
@@ -33826,56 +27819,62 @@ function _safeId( node ) {
 // row and column are basically identical just assigned to different properties
 // and checking a different array, so we can dynamically create the functions to
 // reduce the code size
-$.each( [
-	{ type: 'row', prop: 'aoData' },
-	{ type: 'column', prop: 'aoColumns' }
-], function ( i, o ) {
-	DataTable.ext.selector[ o.type ].push( function ( settings, opts, indexes ) {
-		var selected = opts.selected;
-		var data;
-		var out = [];
+$.each(
+	[
+		{ type: 'row', prop: 'aoData' },
+		{ type: 'column', prop: 'aoColumns' }
+	],
+	function (i, o) {
+		DataTable.ext.selector[o.type].push(function (settings, opts, indexes) {
+			var selected = opts.selected;
+			var data;
+			var out = [];
 
-		if ( selected !== true && selected !== false ) {
-			return indexes;
-		}
-
-		for ( var i=0, ien=indexes.length ; i<ien ; i++ ) {
-			data = settings[ o.prop ][ indexes[i] ];
-
-			if ( (selected === true && data._select_selected === true) ||
-			     (selected === false && ! data._select_selected )
-			) {
-				out.push( indexes[i] );
+			if (selected !== true && selected !== false) {
+				return indexes;
 			}
-		}
 
-		return out;
-	} );
-} );
+			for (var i = 0, ien = indexes.length; i < ien; i++) {
+				data = settings[o.prop][indexes[i]];
 
-DataTable.ext.selector.cell.push( function ( settings, opts, cells ) {
+				if (
+					(selected === true && data._select_selected === true) ||
+					(selected === false && !data._select_selected)
+				) {
+					out.push(indexes[i]);
+				}
+			}
+
+			return out;
+		});
+	}
+);
+
+DataTable.ext.selector.cell.push(function (settings, opts, cells) {
 	var selected = opts.selected;
 	var rowData;
 	var out = [];
 
-	if ( selected === undefined ) {
+	if (selected === undefined) {
 		return cells;
 	}
 
-	for ( var i=0, ien=cells.length ; i<ien ; i++ ) {
-		rowData = settings.aoData[ cells[i].row ];
+	for (var i = 0, ien = cells.length; i < ien; i++) {
+		rowData = settings.aoData[cells[i].row];
 
-		if ( (selected === true && rowData._selected_cells && rowData._selected_cells[ cells[i].column ] === true) ||
-		     (selected === false && ( ! rowData._selected_cells || ! rowData._selected_cells[ cells[i].column ] ) )
+		if (
+			(selected === true &&
+				rowData._selected_cells &&
+				rowData._selected_cells[cells[i].column] === true) ||
+			(selected === false &&
+				(!rowData._selected_cells || !rowData._selected_cells[cells[i].column]))
 		) {
-			out.push( cells[i] );
+			out.push(cells[i]);
 		}
 	}
 
 	return out;
-} );
-
-
+});
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  * DataTables API
@@ -33888,67 +27887,67 @@ DataTable.ext.selector.cell.push( function ( settings, opts, cells ) {
 var apiRegister = DataTable.Api.register;
 var apiRegisterPlural = DataTable.Api.registerPlural;
 
-apiRegister( 'select()', function () {
-	return this.iterator( 'table', function ( ctx ) {
-		DataTable.select.init( new DataTable.Api( ctx ) );
-	} );
-} );
+apiRegister('select()', function () {
+	return this.iterator('table', function (ctx) {
+		DataTable.select.init(new DataTable.Api(ctx));
+	});
+});
 
-apiRegister( 'select.blurable()', function ( flag ) {
-	if ( flag === undefined ) {
+apiRegister('select.blurable()', function (flag) {
+	if (flag === undefined) {
 		return this.context[0]._select.blurable;
 	}
 
-	return this.iterator( 'table', function ( ctx ) {
+	return this.iterator('table', function (ctx) {
 		ctx._select.blurable = flag;
-	} );
-} );
+	});
+});
 
-apiRegister( 'select.toggleable()', function ( flag ) {
-	if ( flag === undefined ) {
+apiRegister('select.toggleable()', function (flag) {
+	if (flag === undefined) {
 		return this.context[0]._select.toggleable;
 	}
 
-	return this.iterator( 'table', function ( ctx ) {
+	return this.iterator('table', function (ctx) {
 		ctx._select.toggleable = flag;
-	} );
-} );
+	});
+});
 
-apiRegister( 'select.info()', function ( flag ) {
-	if ( flag === undefined ) {
+apiRegister('select.info()', function (flag) {
+	if (flag === undefined) {
 		return this.context[0]._select.info;
 	}
 
-	return this.iterator( 'table', function ( ctx ) {
+	return this.iterator('table', function (ctx) {
 		ctx._select.info = flag;
-	} );
-} );
+	});
+});
 
-apiRegister( 'select.items()', function ( items ) {
-	if ( items === undefined ) {
+apiRegister('select.items()', function (items) {
+	if (items === undefined) {
 		return this.context[0]._select.items;
 	}
 
-	return this.iterator( 'table', function ( ctx ) {
+	return this.iterator('table', function (ctx) {
 		ctx._select.items = items;
 
-		eventTrigger( new DataTable.Api( ctx ), 'selectItems', [ items ] );
-	} );
-} );
+		eventTrigger(new DataTable.Api(ctx), 'selectItems', [items]);
+	});
+});
 
 // Takes effect from the _next_ selection. None disables future selection, but
 // does not clear the current selection. Use the `deselect` methods for that
-apiRegister( 'select.style()', function ( style ) {
-	if ( style === undefined ) {
+apiRegister('select.style()', function (style) {
+	if (style === undefined) {
 		return this.context[0]._select.style;
 	}
 
-	return this.iterator( 'table', function ( ctx ) {
-		if ( ! ctx._select ) {
-			DataTable.select.init( new DataTable.Api(ctx) );
+	return this.iterator('table', function (ctx) {
+		if (!ctx._select) {
+			DataTable.select.init(new DataTable.Api(ctx));
 		}
 
-		if ( ! ctx._select_init ) {
+		if (!ctx._select_init) {
 			init(ctx);
 		}
 
@@ -33956,144 +27955,132 @@ apiRegister( 'select.style()', function ( style ) {
 
 		// Add / remove mouse event handlers. They aren't required when only
 		// API selection is available
-		var dt = new DataTable.Api( ctx );
-		disableMouseSelection( dt );
-		
-		if ( style !== 'api' ) {
-			enableMouseSelection( dt );
+		var dt = new DataTable.Api(ctx);
+		disableMouseSelection(dt);
+
+		if (style !== 'api') {
+			enableMouseSelection(dt);
 		}
 
-		eventTrigger( new DataTable.Api( ctx ), 'selectStyle', [ style ] );
-	} );
-} );
+		eventTrigger(new DataTable.Api(ctx), 'selectStyle', [style]);
+	});
+});
 
-apiRegister( 'select.selector()', function ( selector ) {
-	if ( selector === undefined ) {
+apiRegister('select.selector()', function (selector) {
+	if (selector === undefined) {
 		return this.context[0]._select.selector;
 	}
 
-	return this.iterator( 'table', function ( ctx ) {
-		disableMouseSelection( new DataTable.Api( ctx ) );
+	return this.iterator('table', function (ctx) {
+		disableMouseSelection(new DataTable.Api(ctx));
 
 		ctx._select.selector = selector;
 
-		if ( ctx._select.style !== 'api' ) {
-			enableMouseSelection( new DataTable.Api( ctx ) );
+		if (ctx._select.style !== 'api') {
+			enableMouseSelection(new DataTable.Api(ctx));
 		}
-	} );
-} );
+	});
+});
 
-
-
-apiRegisterPlural( 'rows().select()', 'row().select()', function ( select ) {
+apiRegisterPlural('rows().select()', 'row().select()', function (select) {
 	var api = this;
 
-	if ( select === false ) {
+	if (select === false) {
 		return this.deselect();
 	}
 
-	this.iterator( 'row', function ( ctx, idx ) {
-		clear( ctx );
+	this.iterator('row', function (ctx, idx) {
+		clear(ctx);
 
-		ctx.aoData[ idx ]._select_selected = true;
-		$( ctx.aoData[ idx ].nTr ).addClass( ctx._select.className );
-	} );
+		ctx.aoData[idx]._select_selected = true;
+		$(ctx.aoData[idx].nTr).addClass(ctx._select.className);
+	});
 
-	this.iterator( 'table', function ( ctx, i ) {
-		eventTrigger( api, 'select', [ 'row', api[i] ], true );
-	} );
+	this.iterator('table', function (ctx, i) {
+		eventTrigger(api, 'select', ['row', api[i]], true);
+	});
 
 	return this;
-} );
+});
 
-apiRegister( 'row().selected()', function () {
+apiRegister('row().selected()', function () {
 	var ctx = this.context[0];
 
-	if (
-		ctx &&
-		this.length &&
-		ctx.aoData[this[0]] &&
-		ctx.aoData[this[0]]._select_selected
-	) {
+	if (ctx && this.length && ctx.aoData[this[0]] && ctx.aoData[this[0]]._select_selected) {
 		return true;
 	}
 
 	return false;
-} );
+});
 
-apiRegisterPlural( 'columns().select()', 'column().select()', function ( select ) {
+apiRegisterPlural('columns().select()', 'column().select()', function (select) {
 	var api = this;
 
-	if ( select === false ) {
+	if (select === false) {
 		return this.deselect();
 	}
 
-	this.iterator( 'column', function ( ctx, idx ) {
-		clear( ctx );
+	this.iterator('column', function (ctx, idx) {
+		clear(ctx);
 
-		ctx.aoColumns[ idx ]._select_selected = true;
+		ctx.aoColumns[idx]._select_selected = true;
 
-		var column = new DataTable.Api( ctx ).column( idx );
+		var column = new DataTable.Api(ctx).column(idx);
 
-		$( column.header() ).addClass( ctx._select.className );
-		$( column.footer() ).addClass( ctx._select.className );
+		$(column.header()).addClass(ctx._select.className);
+		$(column.footer()).addClass(ctx._select.className);
 
-		column.nodes().to$().addClass( ctx._select.className );
-	} );
+		column.nodes().to$().addClass(ctx._select.className);
+	});
 
-	this.iterator( 'table', function ( ctx, i ) {
-		eventTrigger( api, 'select', [ 'column', api[i] ], true );
-	} );
+	this.iterator('table', function (ctx, i) {
+		eventTrigger(api, 'select', ['column', api[i]], true);
+	});
 
 	return this;
-} );
+});
 
-apiRegister( 'column().selected()', function () {
+apiRegister('column().selected()', function () {
 	var ctx = this.context[0];
 
-	if (
-		ctx &&
-		this.length &&
-		ctx.aoColumns[this[0]] &&
-		ctx.aoColumns[this[0]]._select_selected
-	) {
+	if (ctx && this.length && ctx.aoColumns[this[0]] && ctx.aoColumns[this[0]]._select_selected) {
 		return true;
 	}
 
 	return false;
-} );
+});
 
-apiRegisterPlural( 'cells().select()', 'cell().select()', function ( select ) {
+apiRegisterPlural('cells().select()', 'cell().select()', function (select) {
 	var api = this;
 
-	if ( select === false ) {
+	if (select === false) {
 		return this.deselect();
 	}
 
-	this.iterator( 'cell', function ( ctx, rowIdx, colIdx ) {
-		clear( ctx );
+	this.iterator('cell', function (ctx, rowIdx, colIdx) {
+		clear(ctx);
 
-		var data = ctx.aoData[ rowIdx ];
+		var data = ctx.aoData[rowIdx];
 
-		if ( data._selected_cells === undefined ) {
+		if (data._selected_cells === undefined) {
 			data._selected_cells = [];
 		}
 
-		data._selected_cells[ colIdx ] = true;
+		data._selected_cells[colIdx] = true;
 
-		if ( data.anCells ) {
-			$( data.anCells[ colIdx ] ).addClass( ctx._select.className );
+		if (data.anCells) {
+			$(data.anCells[colIdx]).addClass(ctx._select.className);
 		}
-	} );
+	});
 
-	this.iterator( 'table', function ( ctx, i ) {
-		eventTrigger( api, 'select', [ 'cell', api.cells(api[i]).indexes().toArray() ], true );
-	} );
+	this.iterator('table', function (ctx, i) {
+		eventTrigger(api, 'select', ['cell', api.cells(api[i]).indexes().toArray()], true);
+	});
 
 	return this;
-} );
+});
 
-apiRegister( 'cell().selected()', function () {
+apiRegister('cell().selected()', function () {
 	var ctx = this.context[0];
 
 	if (ctx && this.length) {
@@ -34105,110 +28092,109 @@ apiRegister( 'cell().selected()', function () {
 	}
 
 	return false;
-} );
+});
 
-
-apiRegisterPlural( 'rows().deselect()', 'row().deselect()', function () {
+apiRegisterPlural('rows().deselect()', 'row().deselect()', function () {
 	var api = this;
 
-	this.iterator( 'row', function ( ctx, idx ) {
-		ctx.aoData[ idx ]._select_selected = false;
+	this.iterator('row', function (ctx, idx) {
+		ctx.aoData[idx]._select_selected = false;
 		ctx._select_lastCell = null;
-		$( ctx.aoData[ idx ].nTr ).removeClass( ctx._select.className );
-	} );
+		$(ctx.aoData[idx].nTr).removeClass(ctx._select.className);
+	});
 
-	this.iterator( 'table', function ( ctx, i ) {
-		eventTrigger( api, 'deselect', [ 'row', api[i] ], true );
-	} );
+	this.iterator('table', function (ctx, i) {
+		eventTrigger(api, 'deselect', ['row', api[i]], true);
+	});
 
 	return this;
-} );
+});
 
-apiRegisterPlural( 'columns().deselect()', 'column().deselect()', function () {
+apiRegisterPlural('columns().deselect()', 'column().deselect()', function () {
 	var api = this;
 
-	this.iterator( 'column', function ( ctx, idx ) {
-		ctx.aoColumns[ idx ]._select_selected = false;
+	this.iterator('column', function (ctx, idx) {
+		ctx.aoColumns[idx]._select_selected = false;
 
-		var api = new DataTable.Api( ctx );
-		var column = api.column( idx );
+		var api = new DataTable.Api(ctx);
+		var column = api.column(idx);
 
-		$( column.header() ).removeClass( ctx._select.className );
-		$( column.footer() ).removeClass( ctx._select.className );
+		$(column.header()).removeClass(ctx._select.className);
+		$(column.footer()).removeClass(ctx._select.className);
 
 		// Need to loop over each cell, rather than just using
 		// `column().nodes()` as cells which are individually selected should
 		// not have the `selected` class removed from them
-		api.cells( null, idx ).indexes().each( function (cellIdx) {
-			var data = ctx.aoData[ cellIdx.row ];
-			var cellSelected = data._selected_cells;
+		api.cells(null, idx)
+			.indexes()
+			.each(function (cellIdx) {
+				var data = ctx.aoData[cellIdx.row];
+				var cellSelected = data._selected_cells;
 
-			if ( data.anCells && (! cellSelected || ! cellSelected[ cellIdx.column ]) ) {
-				$( data.anCells[ cellIdx.column  ] ).removeClass( ctx._select.className );
-			}
-		} );
-	} );
+				if (data.anCells && (!cellSelected || !cellSelected[cellIdx.column])) {
+					$(data.anCells[cellIdx.column]).removeClass(ctx._select.className);
+				}
+			});
+	});
 
-	this.iterator( 'table', function ( ctx, i ) {
-		eventTrigger( api, 'deselect', [ 'column', api[i] ], true );
-	} );
+	this.iterator('table', function (ctx, i) {
+		eventTrigger(api, 'deselect', ['column', api[i]], true);
+	});
 
 	return this;
-} );
+});
 
-apiRegisterPlural( 'cells().deselect()', 'cell().deselect()', function () {
+apiRegisterPlural('cells().deselect()', 'cell().deselect()', function () {
 	var api = this;
 
-	this.iterator( 'cell', function ( ctx, rowIdx, colIdx ) {
-		var data = ctx.aoData[ rowIdx ];
+	this.iterator('cell', function (ctx, rowIdx, colIdx) {
+		var data = ctx.aoData[rowIdx];
 
-		if(data._selected_cells !== undefined) {
-			data._selected_cells[ colIdx ] = false;
+		if (data._selected_cells !== undefined) {
+			data._selected_cells[colIdx] = false;
 		}
 
 		// Remove class only if the cells exist, and the cell is not column
 		// selected, in which case the class should remain (since it is selected
 		// in the column)
-		if ( data.anCells && ! ctx.aoColumns[ colIdx ]._select_selected ) {
-			$( data.anCells[ colIdx ] ).removeClass( ctx._select.className );
+		if (data.anCells && !ctx.aoColumns[colIdx]._select_selected) {
+			$(data.anCells[colIdx]).removeClass(ctx._select.className);
 		}
-	} );
+	});
 
-	this.iterator( 'table', function ( ctx, i ) {
-		eventTrigger( api, 'deselect', [ 'cell', api[i] ], true );
-	} );
+	this.iterator('table', function (ctx, i) {
+		eventTrigger(api, 'deselect', ['cell', api[i]], true);
+	});
 
 	return this;
-} );
-
-
+});
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  * Buttons
  */
-function i18n( label, def ) {
+function i18n(label, def) {
 	return function (dt) {
-		return dt.i18n( 'buttons.'+label, def );
+		return dt.i18n('buttons.' + label, def);
 	};
 }
 
 // Common events with suitable namespaces
-function namespacedEvents ( config ) {
+function namespacedEvents(config) {
 	var unique = config._eventNamespace;
 
-	return 'draw.dt.DT'+unique+' select.dt.DT'+unique+' deselect.dt.DT'+unique;
+	return 'draw.dt.DT' + unique + ' select.dt.DT' + unique + ' deselect.dt.DT' + unique;
 }
 
-function enabled ( dt, config ) {
-	if ( $.inArray( 'rows', config.limitTo ) !== -1 && dt.rows( { selected: true } ).any() ) {
+function enabled(dt, config) {
+	if ($.inArray('rows', config.limitTo) !== -1 && dt.rows({ selected: true }).any()) {
 		return true;
 	}
 
-	if ( $.inArray( 'columns', config.limitTo ) !== -1 && dt.columns( { selected: true } ).any() ) {
+	if ($.inArray('columns', config.limitTo) !== -1 && dt.columns({ selected: true }).any()) {
 		return true;
 	}
 
-	if ( $.inArray( 'cells', config.limitTo ) !== -1 && dt.cells( { selected: true } ).any() ) {
+	if ($.inArray('cells', config.limitTo) !== -1 && dt.cells({ selected: true }).any()) {
 		return true;
 	}
 
@@ -34217,82 +28203,96 @@ function enabled ( dt, config ) {
 
 var _buttonNamespace = 0;
 
-$.extend( DataTable.ext.buttons, {
+$.extend(DataTable.ext.buttons, {
 	selected: {
-		text: i18n( 'selected', 'Selected' ),
+		text: i18n('selected', 'Selected'),
 		className: 'buttons-selected',
-		limitTo: [ 'rows', 'columns', 'cells' ],
-		init: function ( dt, node, config ) {
+		limitTo: ['rows', 'columns', 'cells'],
+		init: function (dt, node, config) {
 			var that = this;
-			config._eventNamespace = '.select'+(_buttonNamespace++);
+			config._eventNamespace = '.select' + _buttonNamespace++;
 
 			// .DT namespace listeners are removed by DataTables automatically
 			// on table destroy
-			dt.on( namespacedEvents(config), function () {
-				that.enable( enabled(dt, config) );
-			} );
+			dt.on(namespacedEvents(config), function () {
+				that.enable(enabled(dt, config));
+			});
 
 			this.disable();
 		},
-		destroy: function ( dt, node, config ) {
-			dt.off( config._eventNamespace );
+		destroy: function (dt, node, config) {
+			dt.off(config._eventNamespace);
 		}
 	},
 	selectedSingle: {
-		text: i18n( 'selectedSingle', 'Selected single' ),
+		text: i18n('selectedSingle', 'Selected single'),
 		className: 'buttons-selected-single',
-		init: function ( dt, node, config ) {
+		init: function (dt, node, config) {
 			var that = this;
-			config._eventNamespace = '.select'+(_buttonNamespace++);
+			config._eventNamespace = '.select' + _buttonNamespace++;
 
-			dt.on( namespacedEvents(config), function () {
-				var count = dt.rows( { selected: true } ).flatten().length +
-				            dt.columns( { selected: true } ).flatten().length +
-				            dt.cells( { selected: true } ).flatten().length;
+			dt.on(namespacedEvents(config), function () {
+				var count =
+					dt.rows({ selected: true }).flatten().length +
+					dt.columns({ selected: true }).flatten().length +
+					dt.cells({ selected: true }).flatten().length;
 
-				that.enable( count === 1 );
-			} );
+				that.enable(count === 1);
+			});
 
 			this.disable();
 		},
-		destroy: function ( dt, node, config ) {
-			dt.off( config._eventNamespace );
+		destroy: function (dt, node, config) {
+			dt.off(config._eventNamespace);
 		}
 	},
 	selectAll: {
-		text: i18n( 'selectAll', 'Select all' ),
+		text: i18n('selectAll', 'Select all'),
 		className: 'buttons-select-all',
-		action: function () {
+		action: function (e, dt, node, config) {
 			var items = this.select.items();
-			this[ items+'s' ]().select();
+			var mod = config.selectorModifier;
+			
+			if (mod) {
+				if (typeof mod === 'function') {
+					mod = mod.call(dt, e, dt, node, config);
+				}
+
+				this[items + 's'](mod).select();
+			}
+			else {
+				this[items + 's']().select();
+			}
 		}
+		// selectorModifier can be specified
 	},
 	selectNone: {
-		text: i18n( 'selectNone', 'Deselect all' ),
+		text: i18n('selectNone', 'Deselect all'),
 		className: 'buttons-select-none',
 		action: function () {
-			clear( this.settings()[0], true );
+			clear(this.settings()[0], true);
 		},
-		init: function ( dt, node, config ) {
+		init: function (dt, node, config) {
 			var that = this;
-			config._eventNamespace = '.select'+(_buttonNamespace++);
+			config._eventNamespace = '.select' + _buttonNamespace++;
 
-			dt.on( namespacedEvents(config), function () {
-				var count = dt.rows( { selected: true } ).flatten().length +
-				            dt.columns( { selected: true } ).flatten().length +
-				            dt.cells( { selected: true } ).flatten().length;
+			dt.on(namespacedEvents(config), function () {
+				var count =
+					dt.rows({ selected: true }).flatten().length +
+					dt.columns({ selected: true }).flatten().length +
+					dt.cells({ selected: true }).flatten().length;
 
-				that.enable( count > 0 );
-			} );
+				that.enable(count > 0);
+			});
 
 			this.disable();
 		},
-		destroy: function ( dt, node, config ) {
-			dt.off( config._eventNamespace );
+		destroy: function (dt, node, config) {
+			dt.off(config._eventNamespace);
 		}
 	},
 	showSelected: {
-		text: i18n( 'showSelected', 'Show only selected' ),
+		text: i18n('showSelected', 'Show only selected'),
 		className: 'buttons-show-selected',
 		action: function (e, dt, node, conf) {
 			// Works by having a filtering function which will reduce to the selected
@@ -34318,7 +28318,7 @@ $.extend( DataTable.ext.buttons, {
 					let row = s.aoData[idx];
 
 					return row._select_selected;
-				}
+				};
 
 				conf._filter = fn;
 				DataTable.ext.search.push(fn);
@@ -34329,27 +28329,26 @@ $.extend( DataTable.ext.buttons, {
 			dt.draw();
 		}
 	}
-} );
+});
 
-$.each( [ 'Row', 'Column', 'Cell' ], function ( i, item ) {
+$.each(['Row', 'Column', 'Cell'], function (i, item) {
 	var lc = item.toLowerCase();
 
-	DataTable.ext.buttons[ 'select'+item+'s' ] = {
-		text: i18n( 'select'+item+'s', 'Select '+lc+'s' ),
-		className: 'buttons-select-'+lc+'s',
+	DataTable.ext.buttons['select' + item + 's'] = {
+		text: i18n('select' + item + 's', 'Select ' + lc + 's'),
+		className: 'buttons-select-' + lc + 's',
 		action: function () {
-			this.select.items( lc );
+			this.select.items(lc);
 		},
-		init: function ( dt ) {
+		init: function (dt) {
 			var that = this;
 
-			dt.on( 'selectItems.dt.DT', function ( e, ctx, items ) {
-				that.active( items === lc );
-			} );
+			dt.on('selectItems.dt.DT', function (e, ctx, items) {
+				that.active(items === lc);
+			});
 		}
 	};
-} );
-
+});
 
 $.fn.DataTable.select = DataTable.select;
 
@@ -34361,2439 +28360,12 @@ $.fn.DataTable.select = DataTable.select;
 // this required that the table be in the document! If it isn't then something
 // needs to trigger this method unfortunately. The next major release of
 // DataTables will rework the events and address this.
-$(document).on( 'preInit.dt.dtSelect', function (e, ctx) {
-	if ( e.namespace !== 'dt' ) {
+$(document).on('preInit.dt.dtSelect', function (e, ctx) {
+	if (e.namespace !== 'dt') {
 		return;
 	}
 
-	DataTable.select.init( new DataTable.Api( ctx ) );
-} );
-
-
-return DataTable;
-}));
-
-
-/*! StateRestore 1.2.1
- * 2019-2022 SpryMedia Ltd - datatables.net/license
- */
-
-(function( factory ){
-	if ( typeof define === 'function' && define.amd ) {
-		// AMD
-		define( ['jquery', 'datatables.net'], function ( $ ) {
-			return factory( $, window, document );
-		} );
-	}
-	else if ( typeof exports === 'object' ) {
-		// CommonJS
-		module.exports = function (root, $) {
-			if ( ! root ) {
-				// CommonJS environments without a window global must pass a
-				// root. This will give an error otherwise
-				root = window;
-			}
-
-			if ( ! $ ) {
-				$ = typeof window !== 'undefined' ? // jQuery's factory checks for a global window
-					require('jquery') :
-					require('jquery')( root );
-			}
-
-			if ( ! $.fn.dataTable ) {
-				require('datatables.net')(root, $);
-			}
-
-			return factory( $, root, root.document );
-		};
-	}
-	else {
-		// Browser
-		factory( jQuery, window, document );
-	}
-}(function( $, window, document, undefined ) {
-'use strict';
-var DataTable = $.fn.dataTable;
-
-
-(function () {
-    'use strict';
-
-    var $$2;
-    var dataTable$1;
-    function setJQuery$1(jq) {
-        $$2 = jq;
-        dataTable$1 = jq.fn.dataTable;
-    }
-    var StateRestore = /** @class */ (function () {
-        function StateRestore(settings, opts, identifier, state, isPreDefined, successCallback) {
-            if (state === void 0) { state = undefined; }
-            if (isPreDefined === void 0) { isPreDefined = false; }
-            if (successCallback === void 0) { successCallback = function () { return null; }; }
-            // Check that the required version of DataTables is included
-            if (!dataTable$1 || !dataTable$1.versionCheck || !dataTable$1.versionCheck('1.10.0')) {
-                throw new Error('StateRestore requires DataTables 1.10 or newer');
-            }
-            // Check that Select is included
-            // eslint-disable-next-line no-extra-parens
-            if (!dataTable$1.Buttons) {
-                throw new Error('StateRestore requires Buttons');
-            }
-            var table = new dataTable$1.Api(settings);
-            this.classes = $$2.extend(true, {}, StateRestore.classes);
-            // Get options from user
-            this.c = $$2.extend(true, {}, StateRestore.defaults, opts);
-            this.s = {
-                dt: table,
-                identifier: identifier,
-                isPreDefined: isPreDefined,
-                savedState: null,
-                tableId: state && state.stateRestore ? state.stateRestore.tableId : undefined
-            };
-            this.dom = {
-                background: $$2('<div class="' + this.classes.background + '"/>'),
-                closeButton: $$2('<div class="' + this.classes.closeButton + '">x</div>'),
-                confirmation: $$2('<div class="' + this.classes.confirmation + '"/>'),
-                confirmationButton: $$2('<button class="' + this.classes.confirmationButton + ' ' + this.classes.dtButton + '">'),
-                confirmationTitleRow: $$2('<div class="' + this.classes.confirmationTitleRow + '"></div>'),
-                dtContainer: $$2(this.s.dt.table().container()),
-                duplicateError: $$2('<span class="' + this.classes.modalError + '">' +
-                    this.s.dt.i18n('stateRestore.duplicateError', this.c.i18n.duplicateError) +
-                    '</span>'),
-                emptyError: $$2('<span class="' + this.classes.modalError + '">' +
-                    this.s.dt.i18n('stateRestore.emptyError', this.c.i18n.emptyError) +
-                    '</span>'),
-                removeContents: $$2('<div class="' + this.classes.confirmationText + '"><span>' +
-                    this.s.dt
-                        .i18n('stateRestore.removeConfirm', this.c.i18n.removeConfirm)
-                        .replace(/%s/g, this.s.identifier) +
-                    '</span></div>'),
-                removeError: $$2('<span class="' + this.classes.modalError + '">' +
-                    this.s.dt.i18n('stateRestore.removeError', this.c.i18n.removeError) +
-                    '</span>'),
-                removeTitle: $$2('<h2 class="' + this.classes.confirmationTitle + '">' +
-                    this.s.dt.i18n('stateRestore.removeTitle', this.c.i18n.removeTitle) +
-                    '</h2>'),
-                renameContents: $$2('<div class="' + this.classes.confirmationText + ' ' + this.classes.renameModal + '">' +
-                    '<label class="' + this.classes.confirmationMessage + '">' +
-                    this.s.dt
-                        .i18n('stateRestore.renameLabel', this.c.i18n.renameLabel)
-                        .replace(/%s/g, this.s.identifier) +
-                    '</label>' +
-                    '</div>'),
-                renameInput: $$2('<input class="' + this.classes.input + '" type="text"></input>'),
-                renameTitle: $$2('<h2 class="' + this.classes.confirmationTitle + '">' +
-                    this.s.dt.i18n('stateRestore.renameTitle', this.c.i18n.renameTitle) +
-                    '</h2>')
-            };
-            // When a StateRestore instance is created the current state of the table should also be saved.
-            this.save(state, successCallback);
-        }
-        /**
-         * Removes a state from storage and then triggers the dtsr-remove event
-         * so that the StateRestoreCollection class can remove it's references as well.
-         *
-         * @param skipModal Flag to indicate if the modal should be skipped or not
-         */
-        StateRestore.prototype.remove = function (skipModal) {
-            var _a;
-            var _this = this;
-            if (skipModal === void 0) { skipModal = false; }
-            // Check if removal of states is allowed
-            if (!this.c.remove) {
-                return false;
-            }
-            var removeFunction;
-            var ajaxData = {
-                action: 'remove',
-                stateRestore: (_a = {},
-                    _a[this.s.identifier] = this.s.savedState,
-                    _a)
-            };
-            var successCallback = function () {
-                _this.dom.confirmation.trigger('dtsr-remove');
-                $$2(_this.s.dt.table().node()).trigger('stateRestore-change');
-                _this.dom.background.click();
-                _this.dom.confirmation.remove();
-                $$2(document).unbind('keyup', function (e) { return _this._keyupFunction(e); });
-                _this.dom.confirmationButton.off('click');
-            };
-            // If the remove is not happening over ajax remove it from local storage and then trigger the event
-            if (!this.c.ajax) {
-                removeFunction = function () {
-                    try {
-                        localStorage.removeItem('DataTables_stateRestore_' + _this.s.identifier + '_' + location.pathname +
-                            (_this.s.tableId ? '_' + _this.s.tableId : ''));
-                        successCallback();
-                    }
-                    catch (e) {
-                        _this.dom.confirmation.children('.' + _this.classes.modalError).remove();
-                        _this.dom.confirmation.append(_this.dom.removeError);
-                        return 'remove';
-                    }
-                    return true;
-                };
-            }
-            // Ajax property has to be a string, not just true
-            // Also only want to save if the table has been initialised and the states have been loaded in
-            else if (typeof this.c.ajax === 'string' && this.s.dt.settings()[0]._bInitComplete) {
-                removeFunction = function () {
-                    $$2.ajax({
-                        data: ajaxData,
-                        success: successCallback,
-                        type: 'POST',
-                        url: _this.c.ajax
-                    });
-                    return true;
-                };
-            }
-            else if (typeof this.c.ajax === 'function') {
-                removeFunction = function () {
-                    if (typeof _this.c.ajax === 'function') {
-                        _this.c.ajax.call(_this.s.dt, ajaxData, successCallback);
-                    }
-                    return true;
-                };
-            }
-            // If the modal is to be skipped then remove straight away
-            if (skipModal) {
-                this.dom.confirmation.appendTo(this.dom.dtContainer);
-                $$2(this.s.dt.table().node()).trigger('dtsr-modal-inserted');
-                removeFunction();
-                this.dom.confirmation.remove();
-            }
-            // Otherwise display the modal
-            else {
-                this._newModal(this.dom.removeTitle, this.s.dt.i18n('stateRestore.removeSubmit', this.c.i18n.removeSubmit), removeFunction, this.dom.removeContents);
-            }
-            return true;
-        };
-        /**
-         * Compares the state held within this instance with a state that is passed in
-         *
-         * @param state The state that is to be compared against
-         * @returns boolean indicating if the states match
-         */
-        StateRestore.prototype.compare = function (state) {
-            // Order
-            if (!this.c.saveState.order) {
-                state.order = undefined;
-            }
-            // Search
-            if (!this.c.saveState.search) {
-                state.search = undefined;
-            }
-            // Columns
-            if (this.c.saveState.columns && state.columns) {
-                for (var i = 0, ien = state.columns.length; i < ien; i++) {
-                    // Visibility
-                    if (typeof this.c.saveState.columns !== 'boolean' && !this.c.saveState.columns.visible) {
-                        state.columns[i].visible = undefined;
-                    }
-                    // Search
-                    if (typeof this.c.saveState.columns !== 'boolean' && !this.c.saveState.columns.search) {
-                        state.columns[i].search = undefined;
-                    }
-                }
-            }
-            else if (!this.c.saveState.columns) {
-                state.columns = undefined;
-            }
-            // Paging
-            if (!this.c.saveState.paging) {
-                state.page = undefined;
-            }
-            // SearchBuilder
-            if (!this.c.saveState.searchBuilder) {
-                state.searchBuilder = undefined;
-            }
-            // SearchPanes
-            if (!this.c.saveState.searchPanes) {
-                state.searchPanes = undefined;
-            }
-            // Select
-            if (!this.c.saveState.select) {
-                state.select = undefined;
-            }
-            // ColReorder
-            if (!this.c.saveState.colReorder) {
-                state.ColReorder = undefined;
-            }
-            // Scroller
-            if (!this.c.saveState.scroller) {
-                state.scroller = undefined;
-                if (dataTable$1.Scroller !== undefined) {
-                    state.start = 0;
-                }
-            }
-            // Paging
-            if (!this.c.saveState.paging) {
-                state.start = 0;
-            }
-            // Page Length
-            if (!this.c.saveState.length) {
-                state.length = undefined;
-            }
-            // Need to delete properties that we do not want to compare
-            delete state.time;
-            var copyState = this.s.savedState;
-            delete copyState.time;
-            delete copyState.c;
-            delete copyState.stateRestore;
-            // Perform a deep compare of the two state objects
-            return this._deepCompare(state, copyState);
-        };
-        /**
-         * Removes all of the dom elements from the document
-         */
-        StateRestore.prototype.destroy = function () {
-            Object.values(this.dom).forEach(function (node) { return node.off().remove(); });
-        };
-        /**
-         * Loads the state referenced by the identifier from storage
-         *
-         * @param state The identifier of the state that should be loaded
-         * @returns the state that has been loaded
-         */
-        StateRestore.prototype.load = function () {
-            var _this = this;
-            var loadedState = this.s.savedState;
-            var settings = this.s.dt.settings()[0];
-            // Always want the states stored here to be loaded in - regardless of when they were created
-            loadedState.time = +new Date();
-            settings.oLoadedState = $$2.extend(true, {}, loadedState);
-            // Click on a background if there is one to shut the collection
-            $$2('div.dt-button-background').click();
-            // Call the internal datatables function to implement the state on the table
-            $$2.fn.dataTable.ext.oApi._fnImplementState(settings, loadedState, function () {
-                var correctPaging = function (e, preSettings) {
-                    setTimeout(function () {
-                        var currpage = preSettings._iDisplayStart / preSettings._iDisplayLength;
-                        var intendedPage = loadedState.start / loadedState.length;
-                        // If the paging is incorrect then we have to set it again so that it is correct
-                        // This happens when a searchpanes filter is removed
-                        // This has to happen in a timeout because searchpanes only deselects after a timeout
-                        if (currpage >= 0 && intendedPage >= 0 && currpage !== intendedPage) {
-                            _this.s.dt.page(intendedPage).draw(false);
-                        }
-                    }, 50);
-                };
-                _this.s.dt.one('preDraw', correctPaging);
-                _this.s.dt.draw(false);
-            });
-            return loadedState;
-        };
-        /**
-         * Shows a modal that allows a state to be renamed
-         *
-         * @param newIdentifier Optional. The new identifier for this state
-         */
-        StateRestore.prototype.rename = function (newIdentifier, currentIdentifiers) {
-            var _this = this;
-            if (newIdentifier === void 0) { newIdentifier = null; }
-            // Check if renaming of states is allowed
-            if (!this.c.rename) {
-                return;
-            }
-            var renameFunction = function () {
-                var _a;
-                if (newIdentifier === null) {
-                    var tempIdentifier = $$2('input.' + _this.classes.input.replace(/ /g, '.')).val();
-                    if (tempIdentifier.length === 0) {
-                        _this.dom.confirmation.children('.' + _this.classes.modalError).remove();
-                        _this.dom.confirmation.append(_this.dom.emptyError);
-                        return 'empty';
-                    }
-                    else if (currentIdentifiers.includes(tempIdentifier)) {
-                        _this.dom.confirmation.children('.' + _this.classes.modalError).remove();
-                        _this.dom.confirmation.append(_this.dom.duplicateError);
-                        return 'duplicate';
-                    }
-                    else {
-                        newIdentifier = tempIdentifier;
-                    }
-                }
-                var ajaxData = {
-                    action: 'rename',
-                    stateRestore: (_a = {},
-                        _a[_this.s.identifier] = newIdentifier,
-                        _a)
-                };
-                var successCallback = function () {
-                    _this.s.identifier = newIdentifier;
-                    _this.save(_this.s.savedState, function () { return null; }, false);
-                    _this.dom.removeContents = $$2('<div class="' + _this.classes.confirmationText + '"><span>' +
-                        _this.s.dt
-                            .i18n('stateRestore.removeConfirm', _this.c.i18n.removeConfirm)
-                            .replace(/%s/g, _this.s.identifier) +
-                        '</span></div>');
-                    _this.dom.confirmation.trigger('dtsr-rename');
-                    _this.dom.background.click();
-                    _this.dom.confirmation.remove();
-                    $$2(document).unbind('keyup', function (e) { return _this._keyupFunction(e); });
-                    _this.dom.confirmationButton.off('click');
-                };
-                if (!_this.c.ajax) {
-                    try {
-                        localStorage.removeItem('DataTables_stateRestore_' + _this.s.identifier + '_' + location.pathname +
-                            (_this.s.tableId ? '_' + _this.s.tableId : ''));
-                        successCallback();
-                    }
-                    catch (e) {
-                        _this.dom.confirmation.children('.' + _this.classes.modalError).remove();
-                        _this.dom.confirmation.append(_this.dom.removeError);
-                        return false;
-                    }
-                }
-                else if (typeof _this.c.ajax === 'string' && _this.s.dt.settings()[0]._bInitComplete) {
-                    $$2.ajax({
-                        data: ajaxData,
-                        success: successCallback,
-                        type: 'POST',
-                        url: _this.c.ajax
-                    });
-                }
-                else if (typeof _this.c.ajax === 'function') {
-                    _this.c.ajax.call(_this.s.dt, ajaxData, successCallback);
-                }
-                return true;
-            };
-            // Check if a new identifier has been provided, if so no need for a modal
-            if (newIdentifier !== null) {
-                if (currentIdentifiers.includes(newIdentifier)) {
-                    throw new Error(this.s.dt.i18n('stateRestore.duplicateError', this.c.i18n.duplicateError));
-                }
-                else if (newIdentifier.length === 0) {
-                    throw new Error(this.s.dt.i18n('stateRestore.emptyError', this.c.i18n.emptyError));
-                }
-                else {
-                    this.dom.confirmation.appendTo(this.dom.dtContainer);
-                    $$2(this.s.dt.table().node()).trigger('dtsr-modal-inserted');
-                    renameFunction();
-                    this.dom.confirmation.remove();
-                }
-            }
-            else {
-                this.dom.renameInput.val(this.s.identifier);
-                this.dom.renameContents.append(this.dom.renameInput);
-                this._newModal(this.dom.renameTitle, this.s.dt.i18n('stateRestore.renameButton', this.c.i18n.renameButton), renameFunction, this.dom.renameContents);
-            }
-        };
-        /**
-         * Saves the tables current state using the identifier that is passed in.
-         *
-         * @param state Optional. If provided this is the state that will be saved rather than using the current state
-         */
-        StateRestore.prototype.save = function (state, passedSuccessCallback, callAjax) {
-            var _a;
-            var _this = this;
-            if (callAjax === void 0) { callAjax = true; }
-            // Check if saving states is allowed
-            if (!this.c.save) {
-                if (passedSuccessCallback) {
-                    passedSuccessCallback.call(this);
-                }
-                return;
-            }
-            // this.s.dt.state.save();
-            var savedState;
-            // If no state has been provided then create a new one from the current state
-            this.s.dt.state.save();
-            if (state === undefined) {
-                savedState = this.s.dt.state();
-            }
-            else if (typeof state !== 'object') {
-                return;
-            }
-            else {
-                savedState = state;
-            }
-            if (savedState.stateRestore) {
-                savedState.stateRestore.isPreDefined = this.s.isPreDefined;
-                savedState.stateRestore.state = this.s.identifier;
-                savedState.stateRestore.tableId = this.s.tableId;
-            }
-            else {
-                savedState.stateRestore = {
-                    isPreDefined: this.s.isPreDefined,
-                    state: this.s.identifier,
-                    tableId: this.s.tableId
-                };
-            }
-            this.s.savedState = savedState;
-            // Order
-            if (!this.c.saveState.order) {
-                this.s.savedState.order = undefined;
-            }
-            // Search
-            if (!this.c.saveState.search) {
-                this.s.savedState.search = undefined;
-            }
-            // Columns
-            if (this.c.saveState.columns && this.s.savedState.columns) {
-                for (var i = 0, ien = this.s.savedState.columns.length; i < ien; i++) {
-                    // Visibility
-                    if (typeof this.c.saveState.columns !== 'boolean' && !this.c.saveState.columns.visible) {
-                        this.s.savedState.columns[i].visible = undefined;
-                    }
-                    // Search
-                    if (typeof this.c.saveState.columns !== 'boolean' && !this.c.saveState.columns.search) {
-                        this.s.savedState.columns[i].search = undefined;
-                    }
-                }
-            }
-            else if (!this.c.saveState.columns) {
-                this.s.savedState.columns = undefined;
-            }
-            // SearchBuilder
-            if (!this.c.saveState.searchBuilder) {
-                this.s.savedState.searchBuilder = undefined;
-            }
-            // SearchPanes
-            if (!this.c.saveState.searchPanes) {
-                this.s.savedState.searchPanes = undefined;
-            }
-            // Select
-            if (!this.c.saveState.select) {
-                this.s.savedState.select = undefined;
-            }
-            // ColReorder
-            if (!this.c.saveState.colReorder) {
-                this.s.savedState.ColReorder = undefined;
-            }
-            // Scroller
-            if (!this.c.saveState.scroller) {
-                this.s.savedState.scroller = undefined;
-                if (dataTable$1.Scroller !== undefined) {
-                    this.s.savedState.start = 0;
-                }
-            }
-            // Paging
-            if (!this.c.saveState.paging) {
-                this.s.savedState.start = 0;
-            }
-            // Page Length
-            if (!this.c.saveState.length) {
-                this.s.savedState.length = undefined;
-            }
-            this.s.savedState.c = this.c;
-            // Need to remove the parent reference before we save the state
-            // Its not needed to rebuild, but it does cause a circular reference when converting to JSON
-            if (this.s.savedState.c.splitSecondaries.length) {
-                for (var _i = 0, _b = this.s.savedState.c.splitSecondaries; _i < _b.length; _i++) {
-                    var secondary = _b[_i];
-                    if (secondary.parent) {
-                        secondary.parent = undefined;
-                    }
-                }
-            }
-            // If the state is predefined there is no need to save it over ajax or to local storage
-            if (this.s.isPreDefined) {
-                if (passedSuccessCallback) {
-                    passedSuccessCallback.call(this);
-                }
-                return;
-            }
-            var ajaxData = {
-                action: 'save',
-                stateRestore: (_a = {},
-                    _a[this.s.identifier] = this.s.savedState,
-                    _a)
-            };
-            var successCallback = function () {
-                if (passedSuccessCallback) {
-                    passedSuccessCallback.call(_this);
-                }
-                _this.dom.confirmation.trigger('dtsr-save');
-                $$2(_this.s.dt.table().node()).trigger('stateRestore-change');
-            };
-            if (!this.c.ajax) {
-                localStorage.setItem('DataTables_stateRestore_' + this.s.identifier + '_' + location.pathname +
-                    (this.s.tableId ? '_' + this.s.tableId : ''), JSON.stringify(this.s.savedState));
-                successCallback();
-            }
-            else if (typeof this.c.ajax === 'string' && callAjax) {
-                if (this.s.dt.settings()[0]._bInitComplete) {
-                    $$2.ajax({
-                        data: ajaxData,
-                        success: successCallback,
-                        type: 'POST',
-                        url: this.c.ajax
-                    });
-                }
-                else {
-                    this.s.dt.one('init', function () {
-                        $$2.ajax({
-                            data: ajaxData,
-                            success: successCallback,
-                            type: 'POST',
-                            url: _this.c.ajax
-                        });
-                    });
-                }
-            }
-            else if (typeof this.c.ajax === 'function' && callAjax) {
-                this.c.ajax.call(this.s.dt, ajaxData, successCallback);
-            }
-        };
-        /**
-         * Performs a deep compare of two state objects, returning true if they match
-         *
-         * @param state1 The first object to compare
-         * @param state2 The second object to compare
-         * @returns boolean indicating if the objects match
-         */
-        StateRestore.prototype._deepCompare = function (state1, state2) {
-            // Put keys and states into arrays as this makes the later code easier to work
-            var states = [state1, state2];
-            var keys = [Object.keys(state1).sort(), Object.keys(state2).sort()];
-            // If scroller is included then we need to remove the start value
-            //  as it can be different but yield the same results
-            if (keys[0].includes('scroller')) {
-                var startIdx = keys[0].indexOf('start');
-                if (startIdx) {
-                    keys[0].splice(startIdx, 1);
-                }
-            }
-            if (keys[1].includes('scroller')) {
-                var startIdx = keys[1].indexOf('start');
-                if (startIdx) {
-                    keys[1].splice(startIdx, 1);
-                }
-            }
-            // We want to remove any private properties within the states
-            for (var i = 0; i < keys[0].length; i++) {
-                if (keys[0][i].indexOf('_') === 0) {
-                    keys[0].splice(i, 1);
-                    i--;
-                    continue;
-                }
-                // If scroller is included then we need to remove the following values
-                //  as they can be different but yield the same results
-                if (keys[0][i] === 'baseRowTop' ||
-                    keys[0][i] === 'baseScrollTop' ||
-                    keys[0][i] === 'scrollTop' ||
-                    (!this.c.saveState.paging && keys[0][i] === 'page')) {
-                    keys[0].splice(i, 1);
-                    i--;
-                    continue;
-                }
-            }
-            for (var i = 0; i < keys[1].length; i++) {
-                if (keys[1][i].indexOf('_') === 0) {
-                    keys[1].splice(i, 1);
-                    i--;
-                    continue;
-                }
-                if (keys[1][i] === 'baseRowTop' ||
-                    keys[1][i] === 'baseScrollTop' ||
-                    keys[1][i] === 'scrollTop' ||
-                    (!this.c.saveState.paging && keys[0][i] === 'page')) {
-                    keys[1].splice(i, 1);
-                    i--;
-                    continue;
-                }
-            }
-            if (keys[0].length === 0 && keys[1].length > 0 ||
-                keys[1].length === 0 && keys[0].length > 0) {
-                return false;
-            }
-            // We are only going to compare the keys that are common between both states
-            for (var i = 0; i < keys[0].length; i++) {
-                if (!keys[1].includes(keys[0][i])) {
-                    keys[0].splice(i, 1);
-                    i--;
-                }
-            }
-            for (var i = 0; i < keys[1].length; i++) {
-                if (!keys[0].includes(keys[1][i])) {
-                    keys[1].splice(i, 1);
-                    i--;
-                }
-            }
-            // Then each key and value has to be checked against each other
-            for (var i = 0; i < keys[0].length; i++) {
-                // If the keys dont equal, or their corresponding types are different we can return false
-                if (keys[0][i] !== keys[1][i] || typeof states[0][keys[0][i]] !== typeof states[1][keys[1][i]]) {
-                    return false;
-                }
-                // If the type is an object then further deep comparisons are required
-                if (typeof states[0][keys[0][i]] === 'object') {
-                    if (!this._deepCompare(states[0][keys[0][i]], states[1][keys[1][i]])) {
-                        return false;
-                    }
-                }
-                else if (typeof states[0][keys[0][i]] === 'number' && typeof states[1][keys[1][i]] === 'number') {
-                    if (Math.round(states[0][keys[0][i]]) !== Math.round(states[1][keys[1][i]])) {
-                        return false;
-                    }
-                }
-                // Otherwise we can just check the value
-                else if (states[0][keys[0][i]] !== states[1][keys[1][i]]) {
-                    return false;
-                }
-            }
-            // If we get all the way to here there are no differences so return true for this object
-            return true;
-        };
-        StateRestore.prototype._keyupFunction = function (e) {
-            // If enter same action as pressing the button
-            if (e.key === 'Enter') {
-                this.dom.confirmationButton.click();
-            }
-            // If escape close modal
-            else if (e.key === 'Escape') {
-                $$2('div.' + this.classes.background.replace(/ /g, '.')).click();
-            }
-        };
-        /**
-         * Creates a new confirmation modal for the user to approve an action
-         *
-         * @param title The title that is to be displayed at the top of the modal
-         * @param buttonText The text that is to be displayed in the confirmation button of the modal
-         * @param buttonAction The action that should be taken when the confirmation button is pressed
-         * @param modalContents The contents for the main body of the modal
-         */
-        StateRestore.prototype._newModal = function (title, buttonText, buttonAction, modalContents) {
-            var _this = this;
-            this.dom.background.appendTo(this.dom.dtContainer);
-            this.dom.confirmationTitleRow.empty().append(title);
-            this.dom.confirmationButton.html(buttonText);
-            this.dom.confirmation
-                .empty()
-                .append(this.dom.confirmationTitleRow)
-                .append(modalContents)
-                .append($$2('<div class="' + this.classes.confirmationButtons + '"></div>')
-                .append(this.dom.confirmationButton))
-                .appendTo(this.dom.dtContainer);
-            $$2(this.s.dt.table().node()).trigger('dtsr-modal-inserted');
-            var inputs = modalContents.children('input');
-            // If there is an input focus on that
-            if (inputs.length > 0) {
-                $$2(inputs[0]).focus();
-            }
-            // Otherwise focus on the confirmation button
-            else {
-                this.dom.confirmationButton.focus();
-            }
-            var background = $$2('div.' + this.classes.background.replace(/ /g, '.'));
-            if (this.c.modalCloseButton) {
-                this.dom.confirmation.append(this.dom.closeButton);
-                this.dom.closeButton.on('click', function () { return background.click(); });
-            }
-            // When the button is clicked, call the appropriate action,
-            // remove the background and modal from the screen and unbind the keyup event.
-            this.dom.confirmationButton.on('click', function () { return buttonAction(); });
-            this.dom.confirmation.on('click', function (e) {
-                e.stopPropagation();
-            });
-            // When the button is clicked, remove the background and modal from the screen and unbind the keyup event.
-            background.one('click', function () {
-                _this.dom.background.remove();
-                _this.dom.confirmation.remove();
-                $$2(document).unbind('keyup', function (e) { return _this._keyupFunction(e); });
-            });
-            $$2(document).on('keyup', function (e) { return _this._keyupFunction(e); });
-        };
-        /**
-         * Convert from camelCase notation to the internal Hungarian.
-         * We could use the Hungarian convert function here, but this is cleaner
-         *
-         * @param {object} obj Object to convert
-         * @returns {object} Inverted object
-         * @memberof DataTable#oApi
-         */
-        StateRestore.prototype._searchToHung = function (obj) {
-            return {
-                bCaseInsensitive: obj.caseInsensitive,
-                bRegex: obj.regex,
-                bSmart: obj.smart,
-                sSearch: obj.search
-            };
-        };
-        StateRestore.version = '1.2.1';
-        StateRestore.classes = {
-            background: 'dtsr-background',
-            closeButton: 'dtsr-popover-close',
-            confirmation: 'dtsr-confirmation',
-            confirmationButton: 'dtsr-confirmation-button',
-            confirmationButtons: 'dtsr-confirmation-buttons',
-            confirmationMessage: 'dtsr-confirmation-message dtsr-name-label',
-            confirmationText: 'dtsr-confirmation-text',
-            confirmationTitle: 'dtsr-confirmation-title',
-            confirmationTitleRow: 'dtsr-confirmation-title-row',
-            dtButton: 'dt-button',
-            input: 'dtsr-input',
-            modalError: 'dtsr-modal-error',
-            renameModal: 'dtsr-rename-modal'
-        };
-        StateRestore.defaults = {
-            _createInSaved: false,
-            ajax: false,
-            create: true,
-            creationModal: false,
-            i18n: {
-                creationModal: {
-                    button: 'Create',
-                    colReorder: 'Column Order:',
-                    columns: {
-                        search: 'Column Search:',
-                        visible: 'Column Visibility:'
-                    },
-                    length: 'Page Length:',
-                    name: 'Name:',
-                    order: 'Sorting:',
-                    paging: 'Paging:',
-                    scroller: 'Scroll Position:',
-                    search: 'Search:',
-                    searchBuilder: 'SearchBuilder:',
-                    searchPanes: 'SearchPanes:',
-                    select: 'Select:',
-                    title: 'Create New State',
-                    toggleLabel: 'Includes:'
-                },
-                duplicateError: 'A state with this name already exists.',
-                emptyError: 'Name cannot be empty.',
-                emptyStates: 'No saved states',
-                removeConfirm: 'Are you sure you want to remove %s?',
-                removeError: 'Failed to remove state.',
-                removeJoiner: ' and ',
-                removeSubmit: 'Remove',
-                removeTitle: 'Remove State',
-                renameButton: 'Rename',
-                renameLabel: 'New Name for %s:',
-                renameTitle: 'Rename State'
-            },
-            modalCloseButton: true,
-            remove: true,
-            rename: true,
-            save: true,
-            saveState: {
-                colReorder: true,
-                columns: {
-                    search: true,
-                    visible: true
-                },
-                length: true,
-                order: true,
-                paging: true,
-                scroller: true,
-                search: true,
-                searchBuilder: true,
-                searchPanes: true,
-                select: true
-            },
-            splitSecondaries: [
-                'updateState',
-                'renameState',
-                'removeState'
-            ],
-            toggle: {
-                colReorder: false,
-                columns: {
-                    search: false,
-                    visible: false
-                },
-                length: false,
-                order: false,
-                paging: false,
-                scroller: false,
-                search: false,
-                searchBuilder: false,
-                searchPanes: false,
-                select: false
-            }
-        };
-        return StateRestore;
-    }());
-
-    var $$1;
-    var dataTable;
-    function setJQuery(jq) {
-        $$1 = jq;
-        dataTable = jq.fn.dataTable;
-    }
-    var StateRestoreCollection = /** @class */ (function () {
-        function StateRestoreCollection(settings, opts) {
-            var _this = this;
-            // Check that the required version of DataTables is included
-            if (!dataTable || !dataTable.versionCheck || !dataTable.versionCheck('1.10.0')) {
-                throw new Error('StateRestore requires DataTables 1.10 or newer');
-            }
-            // Check that Select is included
-            // eslint-disable-next-line no-extra-parens
-            if (!dataTable.Buttons) {
-                throw new Error('StateRestore requires Buttons');
-            }
-            var table = new dataTable.Api(settings);
-            this.classes = $$1.extend(true, {}, StateRestoreCollection.classes);
-            if (table.settings()[0]._stateRestore !== undefined) {
-                return;
-            }
-            // Get options from user
-            this.c = $$1.extend(true, {}, StateRestoreCollection.defaults, opts);
-            this.s = {
-                dt: table,
-                hasColReorder: dataTable.ColReorder !== undefined,
-                hasScroller: dataTable.Scroller !== undefined,
-                hasSearchBuilder: dataTable.SearchBuilder !== undefined,
-                hasSearchPanes: dataTable.SearchPanes !== undefined,
-                hasSelect: dataTable.select !== undefined,
-                states: []
-            };
-            this.s.dt.on('xhr', function (e, xhrsettings, json) {
-                // Has staterestore been used before? Is there anything to load?
-                if (json && json.stateRestore) {
-                    _this._addPreDefined(json.stateRestore);
-                }
-            });
-            this.dom = {
-                background: $$1('<div class="' + this.classes.background + '"/>'),
-                closeButton: $$1('<div class="' + this.classes.closeButton + '">x</div>'),
-                colReorderToggle: $$1('<div class="' + this.classes.formRow + ' ' + this.classes.checkRow + '">' +
-                    '<input type="checkbox" class="' +
-                    this.classes.colReorderToggle + ' ' +
-                    this.classes.checkBox +
-                    '" checked>' +
-                    '<label class="' + this.classes.checkLabel + '">' +
-                    this.s.dt.i18n('stateRestore.creationModal.colReorder', this.c.i18n.creationModal.colReorder) +
-                    '</label>' +
-                    '</div>'),
-                columnsSearchToggle: $$1('<div class="' + this.classes.formRow + ' ' + this.classes.checkRow + '">' +
-                    '<input type="checkbox" class="' +
-                    this.classes.columnsSearchToggle + ' ' +
-                    this.classes.checkBox +
-                    '" checked>' +
-                    '<label class="' + this.classes.checkLabel + '">' +
-                    this.s.dt.i18n('stateRestore.creationModal.columns.search', this.c.i18n.creationModal.columns.search) +
-                    '</label>' +
-                    '</div>'),
-                columnsVisibleToggle: $$1('<div class="' + this.classes.formRow + ' ' + this.classes.checkRow + ' ' + '">' +
-                    '<input type="checkbox" class="' +
-                    this.classes.columnsVisibleToggle + ' ' +
-                    this.classes.checkBox +
-                    '" checked>' +
-                    '<label class="' + this.classes.checkLabel + '">' +
-                    this.s.dt.i18n('stateRestore.creationModal.columns.visible', this.c.i18n.creationModal.columns.visible) +
-                    '</label>' +
-                    '</div>'),
-                confirmation: $$1('<div class="' + this.classes.confirmation + '"/>'),
-                confirmationTitleRow: $$1('<div class="' + this.classes.confirmationTitleRow + '"></div>'),
-                createButtonRow: $$1('<div class="' + this.classes.formRow + ' ' + this.classes.modalFoot + '">' +
-                    '<button class="' + this.classes.creationButton + ' ' + this.classes.dtButton + '">' +
-                    this.s.dt.i18n('stateRestore.creationModal.button', this.c.i18n.creationModal.button) +
-                    '</button>' +
-                    '</div>'),
-                creation: $$1('<div class="' + this.classes.creation + '"/>'),
-                creationForm: $$1('<div class="' + this.classes.creationForm + '"/>'),
-                creationTitle: $$1('<div class="' + this.classes.creationText + '">' +
-                    '<h2 class="' + this.classes.creationTitle + '">' +
-                    this.s.dt.i18n('stateRestore.creationModal.title', this.c.i18n.creationModal.title) +
-                    '</h2>' +
-                    '</div>'),
-                dtContainer: $$1(this.s.dt.table().container()),
-                duplicateError: $$1('<span class="' + this.classes.modalError + '">' +
-                    this.s.dt.i18n('stateRestore.duplicateError', this.c.i18n.duplicateError) +
-                    '</span>'),
-                emptyError: $$1('<span class="' + this.classes.modalError + '">' +
-                    this.s.dt.i18n('stateRestore.emptyError', this.c.i18n.emptyError) +
-                    '</span>'),
-                lengthToggle: $$1('<div class="' + this.classes.formRow + ' ' + this.classes.checkRow + '">' +
-                    '<input type="checkbox" class="' +
-                    this.classes.lengthToggle + ' ' +
-                    this.classes.checkBox +
-                    '" checked>' +
-                    '<label class="' + this.classes.checkLabel + '">' +
-                    this.s.dt.i18n('stateRestore.creationModal.length', this.c.i18n.creationModal.length) +
-                    '</label>' +
-                    '</div>'),
-                nameInputRow: $$1('<div class="' + this.classes.formRow + '">' +
-                    '<label class="' + this.classes.nameLabel + '">' +
-                    this.s.dt.i18n('stateRestore.creationModal.name', this.c.i18n.creationModal.name) +
-                    '</label>' +
-                    '<input class="' + this.classes.nameInput + '" type="text">' +
-                    '</div>'),
-                orderToggle: $$1('<div class="' + this.classes.formRow + ' ' + this.classes.checkRow + '">' +
-                    '<input type="checkbox" class="' +
-                    this.classes.orderToggle + ' ' +
-                    this.classes.checkBox +
-                    '" checked>' +
-                    '<label class="' + this.classes.checkLabel + '">' +
-                    this.s.dt.i18n('stateRestore.creationModal.order', this.c.i18n.creationModal.order) +
-                    '</label>' +
-                    '</div>'),
-                pagingToggle: $$1('<div class="' + this.classes.formRow + ' ' + this.classes.checkRow + '">' +
-                    '<input type="checkbox" class="' +
-                    this.classes.pagingToggle + ' ' +
-                    this.classes.checkBox +
-                    '" checked>' +
-                    '<label class="' + this.classes.checkLabel + '">' +
-                    this.s.dt.i18n('stateRestore.creationModal.paging', this.c.i18n.creationModal.paging) +
-                    '</label>' +
-                    '</div>'),
-                removeContents: $$1('<div class="' + this.classes.confirmationText + '"><span></span></div>'),
-                removeTitle: $$1('<div class="' + this.classes.creationText + '">' +
-                    '<h2 class="' + this.classes.creationTitle + '">' +
-                    this.s.dt.i18n('stateRestore.removeTitle', this.c.i18n.removeTitle) +
-                    '</h2>' +
-                    '</div>'),
-                scrollerToggle: $$1('<div class="' + this.classes.formRow + ' ' + this.classes.checkRow + '">' +
-                    '<input type="checkbox" class="' +
-                    this.classes.scrollerToggle + ' ' +
-                    this.classes.checkBox +
-                    '" checked>' +
-                    '<label class="' + this.classes.checkLabel + '">' +
-                    this.s.dt.i18n('stateRestore.creationModal.scroller', this.c.i18n.creationModal.scroller) +
-                    '</label>' +
-                    '</div>'),
-                searchBuilderToggle: $$1('<div class="' + this.classes.formRow + ' ' + this.classes.checkRow + '">' +
-                    '<input type="checkbox" class="' +
-                    this.classes.searchBuilderToggle + ' ' +
-                    this.classes.checkBox +
-                    '" checked>' +
-                    '<label class="' + this.classes.checkLabel + '">' +
-                    this.s.dt.i18n('stateRestore.creationModal.searchBuilder', this.c.i18n.creationModal.searchBuilder) +
-                    '</label>' +
-                    '</div>'),
-                searchPanesToggle: $$1('<div class="' + this.classes.formRow + ' ' + this.classes.checkRow + '">' +
-                    '<input type="checkbox" class="' +
-                    this.classes.searchPanesToggle + ' ' +
-                    this.classes.checkBox +
-                    '" checked>' +
-                    '<label class="' + this.classes.checkLabel + '">' +
-                    this.s.dt.i18n('stateRestore.creationModal.searchPanes', this.c.i18n.creationModal.searchPanes) +
-                    '</label>' +
-                    '</div>'),
-                searchToggle: $$1('<div class="' + this.classes.formRow + ' ' + this.classes.checkRow + '">' +
-                    '<input type="checkbox" class="' +
-                    this.classes.searchToggle + ' ' +
-                    this.classes.checkBox +
-                    '" checked>' +
-                    '<label class="' + this.classes.checkLabel + '">' +
-                    this.s.dt.i18n('stateRestore.creationModal.search', this.c.i18n.creationModal.search) +
-                    '</label>' +
-                    '</div>'),
-                selectToggle: $$1('<div class="' + this.classes.formRow + ' ' + this.classes.checkRow + '">' +
-                    '<input type="checkbox" class="' +
-                    this.classes.selectToggle + ' ' +
-                    this.classes.checkBox +
-                    '" checked>' +
-                    '<label class="' + this.classes.checkLabel + '">' +
-                    this.s.dt.i18n('stateRestore.creationModal.select', this.c.i18n.creationModal.select) +
-                    '</label>' +
-                    '</div>'),
-                toggleLabel: $$1('<label class="' + this.classes.nameLabel + ' ' + this.classes.toggleLabel + '">' +
-                    this.s.dt.i18n('stateRestore.creationModal.toggleLabel', this.c.i18n.creationModal.toggleLabel) +
-                    '</label>')
-            };
-            table.settings()[0]._stateRestore = this;
-            this._searchForStates();
-            // Has staterestore been used before? Is there anything to load?
-            this._addPreDefined(this.c.preDefined);
-            var ajaxFunction;
-            var ajaxData = {
-                action: 'load'
-            };
-            if (typeof this.c.ajax === 'function') {
-                ajaxFunction = function () {
-                    if (typeof _this.c.ajax === 'function') {
-                        _this.c.ajax.call(_this.s.dt, ajaxData, function (s) { return _this._addPreDefined(s); });
-                    }
-                };
-            }
-            else if (typeof this.c.ajax === 'string') {
-                ajaxFunction = function () {
-                    $$1.ajax({
-                        data: ajaxData,
-                        success: function (data) {
-                            _this._addPreDefined(data);
-                        },
-                        type: 'POST',
-                        url: _this.c.ajax
-                    });
-                };
-            }
-            if (typeof ajaxFunction === 'function') {
-                if (this.s.dt.settings()[0]._bInitComplete) {
-                    ajaxFunction();
-                }
-                else {
-                    this.s.dt.one('preInit.dtsr', function () {
-                        ajaxFunction();
-                    });
-                }
-            }
-            this.s.dt.on('destroy.dtsr', function () {
-                _this.destroy();
-            });
-            this.s.dt.on('draw.dtsr buttons-action.dtsr', function () { return _this.findActive(); });
-            return this;
-        }
-        /**
-         * Adds a new StateRestore instance to the collection based on the current properties of the table
-         *
-         * @param identifier The value that is used to identify a state.
-         * @returns The state that has been created
-         */
-        StateRestoreCollection.prototype.addState = function (identifier, currentIdentifiers, options) {
-            var _this = this;
-            // If creation/saving is not allowed then return
-            if (!this.c.create || !this.c.save) {
-                return;
-            }
-            // Check if the state exists before creating a new ones
-            var state = this.getState(identifier);
-            var createFunction = function (id, toggles) {
-                if (id.length === 0) {
-                    return 'empty';
-                }
-                else if (currentIdentifiers.includes(id)) {
-                    return 'duplicate';
-                }
-                _this.s.dt.state.save();
-                var that = _this;
-                var successCallback = function () {
-                    that.s.states.push(this);
-                    that._collectionRebuild();
-                };
-                var currState = _this.s.dt.state();
-                currState.stateRestore = {
-                    isPredefined: false,
-                    state: id,
-                    tableId: _this.s.dt.table().node().id
-                };
-                if (toggles.saveState) {
-                    var opts = _this.c.saveState;
-                    // We don't want to extend, but instead AND all properties of the saveState option
-                    for (var _i = 0, _a = Object.keys(toggles.saveState); _i < _a.length; _i++) {
-                        var key = _a[_i];
-                        if (!toggles.saveState[key]) {
-                            opts[key] = false;
-                        }
-                    }
-                    _this.c.saveState = opts;
-                }
-                var newState = new StateRestore(_this.s.dt.settings()[0], $$1.extend(true, {}, _this.c, options), id, currState, false, successCallback);
-                $$1(_this.s.dt.table().node()).on('dtsr-modal-inserted', function () {
-                    newState.dom.confirmation.one('dtsr-remove', function () { return _this._removeCallback(newState.s.identifier); });
-                    newState.dom.confirmation.one('dtsr-rename', function () { return _this._collectionRebuild(); });
-                    newState.dom.confirmation.one('dtsr-save', function () { return _this._collectionRebuild(); });
-                });
-                return true;
-            };
-            // If there isn't already a state with this identifier
-            if (state === null) {
-                if (this.c.creationModal || options !== undefined && options.creationModal) {
-                    this._creationModal(createFunction, identifier, options);
-                }
-                else {
-                    var success = createFunction(identifier, {});
-                    if (success === 'empty') {
-                        throw new Error(this.s.dt.i18n('stateRestore.emptyError', this.c.i18n.emptyError));
-                    }
-                    else if (success === 'duplicate') {
-                        throw new Error(this.s.dt.i18n('stateRestore.duplicateError', this.c.i18n.duplicateError));
-                    }
-                }
-            }
-            else {
-                throw new Error(this.s.dt.i18n('stateRestore.duplicateError', this.c.i18n.duplicateError));
-            }
-        };
-        /**
-         * Removes all of the states, showing a modal to the user for confirmation
-         *
-         * @param removeFunction The action to be taken when the action is confirmed
-         */
-        StateRestoreCollection.prototype.removeAll = function (removeFunction) {
-            // There are no states to remove so just return
-            if (this.s.states.length === 0) {
-                return;
-            }
-            var ids = this.s.states.map(function (state) { return state.s.identifier; });
-            var replacementString = ids[0];
-            if (ids.length > 1) {
-                replacementString = ids.slice(0, -1).join(', ') +
-                    this.s.dt.i18n('stateRestore.removeJoiner', this.c.i18n.removeJoiner) +
-                    ids.slice(-1);
-            }
-            $$1(this.dom.removeContents.children('span')).html(this.s.dt
-                .i18n('stateRestore.removeConfirm', this.c.i18n.removeConfirm)
-                .replace(/%s/g, replacementString));
-            this._newModal(this.dom.removeTitle, this.s.dt.i18n('stateRestore.removeSubmit', this.c.i18n.removeSubmit), removeFunction, this.dom.removeContents);
-        };
-        /**
-         * Removes all of the dom elements from the document for the collection and the stored states
-         */
-        StateRestoreCollection.prototype.destroy = function () {
-            for (var _i = 0, _a = this.s.states; _i < _a.length; _i++) {
-                var state = _a[_i];
-                state.destroy();
-            }
-            Object.values(this.dom).forEach(function (node) {
-                node.off();
-                node.remove();
-            });
-            this.s.states = [];
-            this.s.dt.off('.dtsr');
-            $$1(this.s.dt.table().node()).off('.dtsr');
-        };
-        /**
-         * Identifies active states and updates their button to reflect this.
-         *
-         * @returns An array containing objects with the details of currently active states
-         */
-        StateRestoreCollection.prototype.findActive = function () {
-            // Make sure that the state is up to date
-            this.s.dt.state.save();
-            var currState = this.s.dt.state();
-            // Make all of the buttons inactive so that only any that match will be marked as active
-            var buttons = $$1('button.' + $$1.fn.DataTable.Buttons.defaults.dom.button.className.replace(/ /g, '.'));
-            // Some of the styling libraries use a tags instead of buttons
-            if (buttons.length === 0) {
-                buttons = $$1('a.' + $$1.fn.DataTable.Buttons.defaults.dom.button.className.replace(/ /g, '.'));
-            }
-            for (var _i = 0, buttons_1 = buttons; _i < buttons_1.length; _i++) {
-                var button = buttons_1[_i];
-                this.s.dt.button($$1(button).parent()[0]).active(false);
-            }
-            var results = [];
-            // Go through all of the states comparing if their state is the same to the current one
-            for (var _a = 0, _b = this.s.states; _a < _b.length; _a++) {
-                var state = _b[_a];
-                if (state.compare(currState)) {
-                    results.push({
-                        data: state.s.savedState,
-                        name: state.s.identifier
-                    });
-                    // If so, find the corresponding button and mark it as active
-                    for (var _c = 0, buttons_2 = buttons; _c < buttons_2.length; _c++) {
-                        var button = buttons_2[_c];
-                        if ($$1(button).text() === state.s.identifier) {
-                            this.s.dt.button($$1(button).parent()[0]).active(true);
-                            break;
-                        }
-                    }
-                }
-            }
-            return results;
-        };
-        /**
-         * Gets a single state that has the identifier matching that which is passed in
-         *
-         * @param identifier The value that is used to identify a state
-         * @returns The state that has been identified or null if no states have been identified
-         */
-        StateRestoreCollection.prototype.getState = function (identifier) {
-            for (var _i = 0, _a = this.s.states; _i < _a.length; _i++) {
-                var state = _a[_i];
-                if (state.s.identifier === identifier) {
-                    return state;
-                }
-            }
-            return null;
-        };
-        /**
-         * Gets an array of all of the states
-         *
-         * @returns Any states that have been identified
-         */
-        StateRestoreCollection.prototype.getStates = function (ids) {
-            if (ids === undefined) {
-                return this.s.states;
-            }
-            else {
-                var states = [];
-                for (var _i = 0, ids_1 = ids; _i < ids_1.length; _i++) {
-                    var id = ids_1[_i];
-                    var found = false;
-                    for (var _a = 0, _b = this.s.states; _a < _b.length; _a++) {
-                        var state = _b[_a];
-                        if (id === state.s.identifier) {
-                            states.push(state);
-                            found = true;
-                            break;
-                        }
-                    }
-                    if (!found) {
-                        states.push(undefined);
-                    }
-                }
-                return states;
-            }
-        };
-        /**
-         * Reloads states that are set via datatables config or over ajax
-         *
-         * @param preDefined Object containing the predefined states that are to be reintroduced
-         */
-        StateRestoreCollection.prototype._addPreDefined = function (preDefined) {
-            var _this = this;
-            // There is a potential issue here if sorting where the string parts of the name are the same,
-            // only the number differs and there are many states - but this wouldn't be usfeul naming so
-            // more of a priority to sort alphabetically
-            var states = Object.keys(preDefined).sort(function (a, b) { return a > b ? 1 : a < b ? -1 : 0; });
-            var _loop_1 = function (state) {
-                for (var i = 0; i < this_1.s.states.length; i++) {
-                    if (this_1.s.states[i].s.identifier === state) {
-                        this_1.s.states.splice(i, 1);
-                    }
-                }
-                var that = this_1;
-                var successCallback = function () {
-                    that.s.states.push(this);
-                    that._collectionRebuild();
-                };
-                var loadedState = preDefined[state];
-                var newState = new StateRestore(this_1.s.dt, $$1.extend(true, {}, this_1.c, loadedState.c !== undefined ?
-                    { saveState: loadedState.c.saveState } :
-                    undefined, true), state, loadedState, true, successCallback);
-                newState.s.savedState = loadedState;
-                $$1(this_1.s.dt.table().node()).on('dtsr-modal-inserted', function () {
-                    newState.dom.confirmation.one('dtsr-remove', function () { return _this._removeCallback(newState.s.identifier); });
-                    newState.dom.confirmation.one('dtsr-rename', function () { return _this._collectionRebuild(); });
-                    newState.dom.confirmation.one('dtsr-save', function () { return _this._collectionRebuild(); });
-                });
-            };
-            var this_1 = this;
-            for (var _i = 0, states_1 = states; _i < states_1.length; _i++) {
-                var state = states_1[_i];
-                _loop_1(state);
-            }
-        };
-        /**
-         * Rebuilds all of the buttons in the collection of states to make sure that states and text is up to date
-         */
-        StateRestoreCollection.prototype._collectionRebuild = function () {
-            var button = this.s.dt.button('SaveStateRestore:name');
-            var stateButtons = [];
-            // Need to get the original configuration object, so we can rebuild it
-            // It might be nested, so need to traverse down the tree
-            if (button[0]) {
-                var idxs = button.index().split('-');
-                stateButtons = button[0].inst.c.buttons;
-                for (var i = 0; i < idxs.length; i++) {
-                    if (stateButtons[idxs[i]].buttons) {
-                        stateButtons = stateButtons[idxs[i]].buttons;
-                    }
-                    else {
-                        stateButtons = [];
-                        break;
-                    }
-                }
-            }
-            // remove any states from the previous rebuild - if they are still there they will be added later
-            for (var i = 0; i < stateButtons.length; i++) {
-                if (stateButtons[i].extend === 'stateRestore') {
-                    stateButtons.splice(i, 1);
-                    i--;
-                }
-            }
-            if (this.c._createInSaved) {
-                stateButtons.push('createState');
-            }
-            var emptyText = '<span class="' + this.classes.emptyStates + '">' +
-                this.s.dt.i18n('stateRestore.emptyStates', this.c.i18n.emptyStates) +
-                '</span>';
-            // If there are no states display an empty message
-            if (this.s.states.length === 0) {
-                // Don't want the empty text included more than twice
-                if (!stateButtons.includes(emptyText)) {
-                    stateButtons.push(emptyText);
-                }
-            }
-            else {
-                // There are states to add so there shouldn't be any empty text left!
-                while (stateButtons.includes(emptyText)) {
-                    stateButtons.splice(stateButtons.indexOf(emptyText), 1);
-                }
-                // There is a potential issue here if sorting where the string parts of the name are the same,
-                // only the number differs and there are many states - but this wouldn't be usfeul naming so
-                // more of a priority to sort alphabetically
-                this.s.states = this.s.states.sort(function (a, b) {
-                    var aId = a.s.identifier;
-                    var bId = b.s.identifier;
-                    return aId > bId ?
-                        1 :
-                        aId < bId ?
-                            -1 :
-                            0;
-                });
-                // Construct the split property of each button
-                for (var _i = 0, _a = this.s.states; _i < _a.length; _i++) {
-                    var state = _a[_i];
-                    var split = Object.assign([], this.c.splitSecondaries);
-                    if (split.includes('updateState') && (!this.c.save || !state.c.save)) {
-                        split.splice(split.indexOf('updateState'), 1);
-                    }
-                    if (split.includes('renameState') &&
-                        (!this.c.save || !state.c.save || !this.c.rename || !state.c.rename)) {
-                        split.splice(split.indexOf('renameState'), 1);
-                    }
-                    if (split.includes('removeState') && (!this.c.remove || !state.c.remove)) {
-                        split.splice(split.indexOf('removeState'), 1);
-                    }
-                    if (split.length > 0 &&
-                        !split.includes('<h3>' + state.s.identifier + '</h3>')) {
-                        split.unshift('<h3>' + state.s.identifier + '</h3>');
-                    }
-                    stateButtons.push({
-                        _stateRestore: state,
-                        attr: {
-                            title: state.s.identifier
-                        },
-                        config: {
-                            split: split
-                        },
-                        extend: 'stateRestore',
-                        text: state.s.identifier
-                    });
-                }
-            }
-            button.collectionRebuild(stateButtons);
-            // Need to disable the removeAllStates button if there are no states and it is present
-            var buttons = this.s.dt.buttons();
-            for (var _b = 0, buttons_3 = buttons; _b < buttons_3.length; _b++) {
-                var butt = buttons_3[_b];
-                if ($$1(butt.node).hasClass('dtsr-removeAllStates')) {
-                    if (this.s.states.length === 0) {
-                        this.s.dt.button(butt.node).disable();
-                    }
-                    else {
-                        this.s.dt.button(butt.node).enable();
-                    }
-                }
-            }
-        };
-        /**
-         * Displays a modal that is used to get information from the user to create a new state.
-         *
-         * @param buttonAction The action that should be taken when the button is pressed
-         * @param identifier The default identifier for the next new state
-         */
-        StateRestoreCollection.prototype._creationModal = function (buttonAction, identifier, options) {
-            var _this = this;
-            this.dom.creation.empty();
-            this.dom.creationForm.empty();
-            this.dom.nameInputRow.children('input').val(identifier);
-            this.dom.creationForm.append(this.dom.nameInputRow);
-            var tableConfig = this.s.dt.settings()[0].oInit;
-            var togglesToInsert = [];
-            var toggleDefined = options !== undefined && options.toggle !== undefined;
-            // Order toggle - check toggle and saving enabled
-            if (((!toggleDefined || options.toggle.order === undefined) && this.c.toggle.order ||
-                toggleDefined && options.toggle.order) &&
-                this.c.saveState.order &&
-                (tableConfig.ordering === undefined || tableConfig.ordering)) {
-                togglesToInsert.push(this.dom.orderToggle);
-            }
-            // Search toggle - check toggle and saving enabled
-            if (((!toggleDefined || options.toggle.search === undefined) && this.c.toggle.search ||
-                toggleDefined && options.toggle.search) &&
-                this.c.saveState.search &&
-                (tableConfig.searching === undefined || tableConfig.searching)) {
-                togglesToInsert.push(this.dom.searchToggle);
-            }
-            // Paging toggle - check toggle and saving enabled
-            if (((!toggleDefined || options.toggle.paging === undefined) && this.c.toggle.paging ||
-                toggleDefined && options.toggle.paging) &&
-                this.c.saveState.paging &&
-                (tableConfig.paging === undefined || tableConfig.paging)) {
-                togglesToInsert.push(this.dom.pagingToggle);
-            }
-            // Page Length toggle - check toggle and saving enabled
-            if (((!toggleDefined || options.toggle.length === undefined) && this.c.toggle.length ||
-                toggleDefined && options.toggle.length) &&
-                this.c.saveState.length &&
-                (tableConfig.length === undefined || tableConfig.length)) {
-                togglesToInsert.push(this.dom.lengthToggle);
-            }
-            // ColReorder toggle - check toggle and saving enabled
-            if (this.s.hasColReorder &&
-                ((!toggleDefined || options.toggle.colReorder === undefined) && this.c.toggle.colReorder ||
-                    toggleDefined && options.toggle.colReorder) &&
-                this.c.saveState.colReorder) {
-                togglesToInsert.push(this.dom.colReorderToggle);
-            }
-            // Scroller toggle - check toggle and saving enabled
-            if (this.s.hasScroller &&
-                ((!toggleDefined || options.toggle.scroller === undefined) && this.c.toggle.scroller ||
-                    toggleDefined && options.toggle.scroller) &&
-                this.c.saveState.scroller) {
-                togglesToInsert.push(this.dom.scrollerToggle);
-            }
-            // SearchBuilder toggle - check toggle and saving enabled
-            if (this.s.hasSearchBuilder &&
-                ((!toggleDefined || options.toggle.searchBuilder === undefined) && this.c.toggle.searchBuilder ||
-                    toggleDefined && options.toggle.searchBuilder) &&
-                this.c.saveState.searchBuilder) {
-                togglesToInsert.push(this.dom.searchBuilderToggle);
-            }
-            // SearchPanes toggle - check toggle and saving enabled
-            if (this.s.hasSearchPanes &&
-                ((!toggleDefined || options.toggle.searchPanes === undefined) && this.c.toggle.searchPanes ||
-                    toggleDefined && options.toggle.searchPanes) &&
-                this.c.saveState.searchPanes) {
-                togglesToInsert.push(this.dom.searchPanesToggle);
-            }
-            // Select toggle - check toggle and saving enabled
-            if (this.s.hasSelect &&
-                ((!toggleDefined || options.toggle.select === undefined) && this.c.toggle.select ||
-                    toggleDefined && options.toggle.select) &&
-                this.c.saveState.select) {
-                togglesToInsert.push(this.dom.selectToggle);
-            }
-            // Columns toggle - check toggle and saving enabled
-            if (typeof this.c.toggle.columns === 'boolean' &&
-                ((!toggleDefined || options.toggle.order === undefined) && this.c.toggle.columns ||
-                    toggleDefined && options.toggle.order) &&
-                this.c.saveState.columns) {
-                togglesToInsert.push(this.dom.columnsSearchToggle);
-                togglesToInsert.push(this.dom.columnsVisibleToggle);
-            }
-            else if ((!toggleDefined || options.toggle.columns === undefined) && typeof this.c.toggle.columns !== 'boolean' ||
-                typeof options.toggle.order !== 'boolean') {
-                if (typeof this.c.saveState.columns !== 'boolean' && this.c.saveState.columns) {
-                    // Column search toggle - check toggle and saving enabled
-                    if ((
-                    // columns.search is defined when passed in
-                    toggleDefined &&
-                        options.toggle.columns !== undefined &&
-                        typeof options.toggle.columns !== 'boolean' &&
-                        options.toggle.columns.search ||
-                        // Columns search is not defined when passed in but is in defaults
-                        (!toggleDefined ||
-                            options.toggle.columns === undefined ||
-                            typeof options.toggle.columns !== 'boolean' && options.toggle.columns.search === undefined) &&
-                            typeof this.c.toggle.columns !== 'boolean' &&
-                            this.c.toggle.columns.search) &&
-                        this.c.saveState.columns.search) {
-                        togglesToInsert.push(this.dom.columnsSearchToggle);
-                    }
-                    // Column visiblity toggle - check toggle and saving enabled
-                    if ((
-                    // columns.visible is defined when passed in
-                    toggleDefined &&
-                        options.toggle.columns !== undefined &&
-                        typeof options.toggle.columns !== 'boolean' &&
-                        options.toggle.columns.visible ||
-                        // Columns visible is not defined when passed in but is in defaults
-                        (!toggleDefined ||
-                            options.toggle.columns === undefined ||
-                            typeof options.toggle.columns !== 'boolean' && options.toggle.columns.visible === undefined) &&
-                            typeof this.c.toggle.columns !== 'boolean' &&
-                            this.c.toggle.columns.visible) &&
-                        this.c.saveState.columns.visible) {
-                        togglesToInsert.push(this.dom.columnsVisibleToggle);
-                    }
-                }
-                else if (this.c.saveState.columns) {
-                    togglesToInsert.push(this.dom.columnsSearchToggle);
-                    togglesToInsert.push(this.dom.columnsVisibleToggle);
-                }
-            }
-            // Make sure that the toggles are displayed alphabetically
-            togglesToInsert.sort(function (a, b) {
-                var aVal = a.children('label.dtsr-check-label')[0].innerHTML;
-                var bVal = b.children('label.dtsr-check-label')[0].innerHTML;
-                if (aVal < bVal) {
-                    return -1;
-                }
-                else if (aVal > bVal) {
-                    return 1;
-                }
-                else {
-                    return 0;
-                }
-            });
-            // Append all of the toggles that are to be inserted
-            for (var _i = 0, togglesToInsert_1 = togglesToInsert; _i < togglesToInsert_1.length; _i++) {
-                var toggle = togglesToInsert_1[_i];
-                this.dom.creationForm.append(toggle);
-            }
-            // Insert the toggle label next to the first check box
-            $$1(this.dom.creationForm.children('div.' + this.classes.checkRow)[0]).prepend(this.dom.toggleLabel);
-            // Insert the creation modal and the background
-            this.dom.background.appendTo(this.dom.dtContainer);
-            this.dom.creation
-                .append(this.dom.creationTitle)
-                .append(this.dom.creationForm)
-                .append(this.dom.createButtonRow)
-                .appendTo(this.dom.dtContainer);
-            $$1(this.s.dt.table().node()).trigger('dtsr-modal-inserted');
-            var _loop_2 = function (toggle) {
-                $$1(toggle.children('label:last-child')).on('click', function () {
-                    toggle.children('input').prop('checked', !toggle.children('input').prop('checked'));
-                });
-            };
-            // Allow the label to be clicked to toggle the checkbox
-            for (var _a = 0, togglesToInsert_2 = togglesToInsert; _a < togglesToInsert_2.length; _a++) {
-                var toggle = togglesToInsert_2[_a];
-                _loop_2(toggle);
-            }
-            var creationButton = $$1('button.' + this.classes.creationButton.replace(/ /g, '.'));
-            var inputs = this.dom.creationForm.find('input');
-            // If there is an input focus on that
-            if (inputs.length > 0) {
-                $$1(inputs[0]).focus();
-            }
-            // Otherwise focus on the confirmation button
-            else {
-                creationButton.focus();
-            }
-            var background = $$1('div.' + this.classes.background.replace(/ /g, '.'));
-            var keyupFunction = function (e) {
-                if (e.key === 'Enter') {
-                    creationButton.click();
-                }
-                else if (e.key === 'Escape') {
-                    background.click();
-                }
-            };
-            if (this.c.modalCloseButton) {
-                this.dom.creation.append(this.dom.closeButton);
-                this.dom.closeButton.on('click', function () { return background.click(); });
-            }
-            creationButton.on('click', function () {
-                // Get the values of the checkBoxes
-                var saveState = {
-                    colReorder: _this.dom.colReorderToggle.children('input').is(':checked'),
-                    columns: {
-                        search: _this.dom.columnsSearchToggle.children('input').is(':checked'),
-                        visible: _this.dom.columnsVisibleToggle.children('input').is(':checked')
-                    },
-                    length: _this.dom.lengthToggle.children('input').is(':checked'),
-                    order: _this.dom.orderToggle.children('input').is(':checked'),
-                    paging: _this.dom.pagingToggle.children('input').is(':checked'),
-                    scroller: _this.dom.scrollerToggle.children('input').is(':checked'),
-                    search: _this.dom.searchToggle.children('input').is(':checked'),
-                    searchBuilder: _this.dom.searchBuilderToggle.children('input').is(':checked'),
-                    searchPanes: _this.dom.searchPanesToggle.children('input').is(':checked'),
-                    select: _this.dom.selectToggle.children('input').is(':checked')
-                };
-                // Call the buttons functionality passing in the identifier and what should be saved
-                var success = buttonAction($$1('input.' + _this.classes.nameInput.replace(/ /g, '.')).val(), { saveState: saveState });
-                if (success === true) {
-                    // Remove the dom elements as operation has completed
-                    _this.dom.background.remove();
-                    _this.dom.creation.remove();
-                    // Unbind the keyup function  - don't want it to run unnecessarily on every keypress that occurs
-                    $$1(document).unbind('keyup', keyupFunction);
-                }
-                else {
-                    _this.dom.creation.children('.' + _this.classes.modalError).remove();
-                    _this.dom.creation.append(_this.dom[success + 'Error']);
-                }
-            });
-            background.one('click', function () {
-                // Remove the dome elements as operation has been cancelled
-                _this.dom.background.remove();
-                _this.dom.creation.remove();
-                // Unbind the keyup function - don't want it to run unnecessarily on every keypress that occurs
-                $$1(document).unbind('keyup', keyupFunction);
-                // Rebuild the collection to ensure that the latest changes are present
-                _this._collectionRebuild();
-            });
-            // Have to listen to the keyup event as `escape` doesn't trigger keypress
-            $$1(document).on('keyup', keyupFunction);
-            // Need to save the state before the focus is lost when the modal is interacted with
-            this.s.dt.state.save();
-        };
-        /**
-         * This callback is called when a state is removed.
-         * This removes the state from storage and also strips it's button from the container
-         *
-         * @param identifier The value that is used to identify a state
-         */
-        StateRestoreCollection.prototype._removeCallback = function (identifier) {
-            for (var i = 0; i < this.s.states.length; i++) {
-                if (this.s.states[i].s.identifier === identifier) {
-                    this.s.states.splice(i, 1);
-                    i--;
-                }
-            }
-            this._collectionRebuild();
-            return true;
-        };
-        /**
-         * Creates a new confirmation modal for the user to approve an action
-         *
-         * @param title The title that is to be displayed at the top of the modal
-         * @param buttonText The text that is to be displayed in the confirmation button of the modal
-         * @param buttonAction The action that should be taken when the confirmation button is pressed
-         * @param modalContents The contents for the main body of the modal
-         */
-        StateRestoreCollection.prototype._newModal = function (title, buttonText, buttonAction, modalContents) {
-            var _this = this;
-            this.dom.background.appendTo(this.dom.dtContainer);
-            this.dom.confirmationTitleRow.empty().append(title);
-            var confirmationButton = $$1('<button class="' + this.classes.confirmationButton + ' ' + this.classes.dtButton + '">' +
-                buttonText +
-                '</button>');
-            this.dom.confirmation
-                .empty()
-                .append(this.dom.confirmationTitleRow)
-                .append(modalContents)
-                .append($$1('<div class="' + this.classes.confirmationButtons + '"></div>')
-                .append(confirmationButton))
-                .appendTo(this.dom.dtContainer);
-            $$1(this.s.dt.table().node()).trigger('dtsr-modal-inserted');
-            var inputs = modalContents.children('input');
-            // If there is an input focus on that
-            if (inputs.length > 0) {
-                $$1(inputs[0]).focus();
-            }
-            // Otherwise focus on the confirmation button
-            else {
-                confirmationButton.focus();
-            }
-            var background = $$1('div.' + this.classes.background.replace(/ /g, '.'));
-            var keyupFunction = function (e) {
-                // If enter same action as pressing the button
-                if (e.key === 'Enter') {
-                    confirmationButton.click();
-                }
-                // If escape close modal
-                else if (e.key === 'Escape') {
-                    background.click();
-                }
-            };
-            // When the button is clicked, call the appropriate action,
-            // remove the background and modal from the screen and unbind the keyup event.
-            confirmationButton.on('click', function () {
-                var success = buttonAction(true);
-                if (success === true) {
-                    _this.dom.background.remove();
-                    _this.dom.confirmation.remove();
-                    $$1(document).unbind('keyup', keyupFunction);
-                    confirmationButton.off('click');
-                }
-                else {
-                    _this.dom.confirmation.children('.' + _this.classes.modalError).remove();
-                    _this.dom.confirmation.append(_this.dom[success + 'Error']);
-                }
-            });
-            this.dom.confirmation.on('click', function (e) {
-                e.stopPropagation();
-            });
-            // When the button is clicked, remove the background and modal from the screen and unbind the keyup event.
-            background.one('click', function () {
-                _this.dom.background.remove();
-                _this.dom.confirmation.remove();
-                $$1(document).unbind('keyup', keyupFunction);
-            });
-            $$1(document).on('keyup', keyupFunction);
-        };
-        /**
-         * Private method that checks for previously created states on initialisation
-         */
-        StateRestoreCollection.prototype._searchForStates = function () {
-            var _this = this;
-            var keys = Object.keys(localStorage);
-            var _loop_3 = function (key) {
-                // eslint-disable-next-line no-useless-escape
-                if (key.match(new RegExp('^DataTables_stateRestore_.*_' + location.pathname.replace(/\//g, '/') + '$')) ||
-                    key.match(new RegExp('^DataTables_stateRestore_.*_' + location.pathname.replace(/\//g, '/') +
-                        '_' + this_2.s.dt.table().node().id + '$'))) {
-                    var loadedState_1 = JSON.parse(localStorage.getItem(key));
-                    if (loadedState_1.stateRestore.isPreDefined ||
-                        (loadedState_1.stateRestore.tableId &&
-                            loadedState_1.stateRestore.tableId !== this_2.s.dt.table().node().id)) {
-                        return "continue";
-                    }
-                    var that_1 = this_2;
-                    var successCallback = function () {
-                        this.s.savedState = loadedState_1;
-                        that_1.s.states.push(this);
-                        that_1._collectionRebuild();
-                    };
-                    var newState_1 = new StateRestore(this_2.s.dt, $$1.extend(true, {}, this_2.c, { saveState: loadedState_1.c.saveState }), loadedState_1.stateRestore.state, loadedState_1, false, successCallback);
-                    $$1(this_2.s.dt.table().node()).on('dtsr-modal-inserted', function () {
-                        newState_1.dom.confirmation.one('dtsr-remove', function () { return _this._removeCallback(newState_1.s.identifier); });
-                        newState_1.dom.confirmation.one('dtsr-rename', function () { return _this._collectionRebuild(); });
-                        newState_1.dom.confirmation.one('dtsr-save', function () { return _this._collectionRebuild(); });
-                    });
-                }
-            };
-            var this_2 = this;
-            for (var _i = 0, keys_1 = keys; _i < keys_1.length; _i++) {
-                var key = keys_1[_i];
-                _loop_3(key);
-            }
-        };
-        StateRestoreCollection.version = '1.0.0';
-        StateRestoreCollection.classes = {
-            background: 'dtsr-background',
-            checkBox: 'dtsr-check-box',
-            checkLabel: 'dtsr-check-label',
-            checkRow: 'dtsr-check-row',
-            closeButton: 'dtsr-popover-close',
-            colReorderToggle: 'dtsr-colReorder-toggle',
-            columnsSearchToggle: 'dtsr-columns-search-toggle',
-            columnsVisibleToggle: 'dtsr-columns-visible-toggle',
-            confirmation: 'dtsr-confirmation',
-            confirmationButton: 'dtsr-confirmation-button',
-            confirmationButtons: 'dtsr-confirmation-buttons',
-            confirmationMessage: 'dtsr-confirmation-message dtsr-name-label',
-            confirmationText: 'dtsr-confirmation-text',
-            confirmationTitle: 'dtsr-confirmation-title',
-            confirmationTitleRow: 'dtsr-confirmation-title-row',
-            creation: 'dtsr-creation',
-            creationButton: 'dtsr-creation-button',
-            creationForm: 'dtsr-creation-form',
-            creationText: 'dtsr-creation-text',
-            creationTitle: 'dtsr-creation-title',
-            dtButton: 'dt-button',
-            emptyStates: 'dtsr-emptyStates',
-            formRow: 'dtsr-form-row',
-            leftSide: 'dtsr-left',
-            lengthToggle: 'dtsr-length-toggle',
-            modalError: 'dtsr-modal-error',
-            modalFoot: 'dtsr-modal-foot',
-            nameInput: 'dtsr-name-input',
-            nameLabel: 'dtsr-name-label',
-            orderToggle: 'dtsr-order-toggle',
-            pagingToggle: 'dtsr-paging-toggle',
-            rightSide: 'dtsr-right',
-            scrollerToggle: 'dtsr-scroller-toggle',
-            searchBuilderToggle: 'dtsr-searchBuilder-toggle',
-            searchPanesToggle: 'dtsr-searchPanes-toggle',
-            searchToggle: 'dtsr-search-toggle',
-            selectToggle: 'dtsr-select-toggle',
-            toggleLabel: 'dtsr-toggle-title'
-        };
-        StateRestoreCollection.defaults = {
-            _createInSaved: false,
-            ajax: false,
-            create: true,
-            creationModal: false,
-            i18n: {
-                creationModal: {
-                    button: 'Create',
-                    colReorder: 'Column Order',
-                    columns: {
-                        search: 'Column Search',
-                        visible: 'Column Visibility'
-                    },
-                    length: 'Page Length',
-                    name: 'Name:',
-                    order: 'Sorting',
-                    paging: 'Paging',
-                    scroller: 'Scroll Position',
-                    search: 'Search',
-                    searchBuilder: 'SearchBuilder',
-                    searchPanes: 'SearchPanes',
-                    select: 'Select',
-                    title: 'Create New State',
-                    toggleLabel: 'Includes:'
-                },
-                duplicateError: 'A state with this name already exists.',
-                emptyError: 'Name cannot be empty.',
-                emptyStates: 'No saved states',
-                removeConfirm: 'Are you sure you want to remove %s?',
-                removeError: 'Failed to remove state.',
-                removeJoiner: ' and ',
-                removeSubmit: 'Remove',
-                removeTitle: 'Remove State',
-                renameButton: 'Rename',
-                renameLabel: 'New Name for %s:',
-                renameTitle: 'Rename State'
-            },
-            modalCloseButton: true,
-            preDefined: {},
-            remove: true,
-            rename: true,
-            save: true,
-            saveState: {
-                colReorder: true,
-                columns: {
-                    search: true,
-                    visible: true
-                },
-                length: true,
-                order: true,
-                paging: true,
-                scroller: true,
-                search: true,
-                searchBuilder: true,
-                searchPanes: true,
-                select: true
-            },
-            splitSecondaries: [
-                'updateState',
-                'renameState',
-                'removeState'
-            ],
-            toggle: {
-                colReorder: false,
-                columns: {
-                    search: false,
-                    visible: false
-                },
-                length: false,
-                order: false,
-                paging: false,
-                scroller: false,
-                search: false,
-                searchBuilder: false,
-                searchPanes: false,
-                select: false
-            }
-        };
-        return StateRestoreCollection;
-    }());
-
-    /*! StateRestore 1.2.1
-     * 2019-2022 SpryMedia Ltd - datatables.net/license
-     */
-    setJQuery$1($);
-    setJQuery($);
-    $.fn.dataTable.StateRestore = StateRestore;
-    $.fn.DataTable.StateRestore = StateRestore;
-    $.fn.dataTable.StateRestoreCollection = StateRestoreCollection;
-    $.fn.DataTable.StateRestoreCollection = StateRestoreCollection;
-    var apiRegister = DataTable.Api.register;
-    apiRegister('stateRestore()', function () {
-        return this;
-    });
-    apiRegister('stateRestore.state()', function (identifier) {
-        var ctx = this.context[0];
-        if (!ctx._stateRestore) {
-            var api = DataTable.Api(ctx);
-            var src = new DataTable.StateRestoreCollection(api, {});
-            _stateRegen(api, src);
-        }
-        this[0] = ctx._stateRestore.getState(identifier);
-        return this;
-    });
-    apiRegister('stateRestore.state.add()', function (identifier, options) {
-        var ctx = this.context[0];
-        if (!ctx._stateRestore) {
-            var api = DataTable.Api(ctx);
-            var src = new DataTable.StateRestoreCollection(api, {});
-            _stateRegen(api, src);
-        }
-        if (!ctx._stateRestore.c.create) {
-            return this;
-        }
-        if (ctx._stateRestore.addState) {
-            var states = ctx._stateRestore.s.states;
-            var ids = [];
-            for (var _i = 0, states_1 = states; _i < states_1.length; _i++) {
-                var intState = states_1[_i];
-                ids.push(intState.s.identifier);
-            }
-            ctx._stateRestore.addState(identifier, ids, options);
-            return this;
-        }
-    });
-    apiRegister('stateRestore.states()', function (ids) {
-        var ctx = this.context[0];
-        if (!ctx._stateRestore) {
-            var api = DataTable.Api(ctx);
-            var src = new DataTable.StateRestoreCollection(api, {});
-            _stateRegen(api, src);
-        }
-        this.length = 0;
-        this.push.apply(this, ctx._stateRestore.getStates(ids));
-        return this;
-    });
-    apiRegister('stateRestore.state().save()', function () {
-        var ctx = this[0];
-        // Check if saving states is allowed
-        if (ctx.c.save) {
-            ctx.save();
-        }
-        return this;
-    });
-    apiRegister('stateRestore.state().rename()', function (newIdentifier) {
-        var ctx = this.context[0];
-        var state = this[0];
-        // Check if renaming states is allowed
-        if (state.c.save) {
-            var states = ctx._stateRestore.s.states;
-            var ids = [];
-            for (var _i = 0, states_2 = states; _i < states_2.length; _i++) {
-                var intState = states_2[_i];
-                ids.push(intState.s.identifier);
-            }
-            state.rename(newIdentifier, ids);
-        }
-        return this;
-    });
-    apiRegister('stateRestore.state().load()', function () {
-        var ctx = this[0];
-        ctx.load();
-        return this;
-    });
-    apiRegister('stateRestore.state().remove()', function (skipModal) {
-        var ctx = this[0];
-        // Check if removal of states is allowed
-        if (ctx.c.remove) {
-            ctx.remove(skipModal);
-        }
-        return this;
-    });
-    apiRegister('stateRestore.states().remove()', function (skipModal) {
-        var _this = this;
-        var removeAllCallBack = function (skipModalIn) {
-            var success = true;
-            var that = _this.toArray();
-            while (that.length > 0) {
-                var set = that[0];
-                if (set !== undefined && set.c.remove) {
-                    var tempSuccess = set.remove(skipModalIn);
-                    if (tempSuccess !== true) {
-                        success = tempSuccess;
-                    }
-                    else {
-                        that.splice(0, 1);
-                    }
-                }
-                else {
-                    break;
-                }
-            }
-            return success;
-        };
-        if (this.context[0]._stateRestore && this.context[0]._stateRestore.c.remove) {
-            if (skipModal) {
-                removeAllCallBack(skipModal);
-            }
-            else {
-                this.context[0]._stateRestore.removeAll(removeAllCallBack);
-            }
-        }
-        return this;
-    });
-    apiRegister('stateRestore.activeStates()', function () {
-        var ctx = this.context[0];
-        this.length = 0;
-        if (!ctx._stateRestore) {
-            var api = DataTable.Api(ctx);
-            var src = new DataTable.StateRestoreCollection(api, {});
-            _stateRegen(api, src);
-        }
-        if (ctx._stateRestore) {
-            this.push.apply(this, ctx._stateRestore.findActive());
-        }
-        return this;
-    });
-    DataTable.ext.buttons.stateRestore = {
-        action: function (e, dt, node, config) {
-            config._stateRestore.load();
-            node.blur();
-        },
-        config: {
-            split: ['updateState', 'renameState', 'removeState']
-        },
-        text: function (dt) {
-            return dt.i18n('buttons.stateRestore', 'State %d', dt.stateRestore.states()[0].length + 1);
-        }
-    };
-    DataTable.ext.buttons.updateState = {
-        action: function (e, dt, node, config) {
-            $('div.dt-button-background').click();
-            config.parent._stateRestore.save();
-        },
-        text: function (dt) {
-            return dt.i18n('buttons.updateState', 'Update');
-        }
-    };
-    DataTable.ext.buttons.savedStates = {
-        buttons: [],
-        extend: 'collection',
-        init: function (dt, node, config) {
-            dt.on('stateRestore-change', function () {
-                dt.button(node).text(dt.i18n('buttons.savedStates', 'Saved States', dt.stateRestore.states().length));
-            });
-            if (dt.settings()[0]._stateRestore === undefined) {
-                _buttonInit(dt, config);
-            }
-        },
-        name: 'SaveStateRestore',
-        text: function (dt) {
-            return dt.i18n('buttons.savedStates', 'Saved States', 0);
-        }
-    };
-    DataTable.ext.buttons.savedStatesCreate = {
-        buttons: [],
-        extend: 'collection',
-        init: function (dt, node, config) {
-            dt.on('stateRestore-change', function () {
-                dt.button(node).text(dt.i18n('buttons.savedStates', 'Saved States', dt.stateRestore.states().length));
-            });
-            if (dt.settings()[0]._stateRestore === undefined) {
-                if (config.config === undefined) {
-                    config.config = {};
-                }
-                config.config._createInSaved = true;
-                _buttonInit(dt, config);
-            }
-        },
-        name: 'SaveStateRestore',
-        text: function (dt) {
-            return dt.i18n('buttons.savedStates', 'Saved States', 0);
-        }
-    };
-    DataTable.ext.buttons.createState = {
-        action: function (e, dt, node, config) {
-            e.stopPropagation();
-            var stateRestoreOpts = dt.settings()[0]._stateRestore.c;
-            var language = dt.settings()[0].oLanguage;
-            // If creation/saving is not allowed then return
-            if (!stateRestoreOpts.create || !stateRestoreOpts.save) {
-                return;
-            }
-            var prevStates = dt.stateRestore.states().toArray();
-            // Create a replacement regex based on the i18n values
-            var defaultString = language.buttons !== undefined && language.buttons.stateRestore !== undefined ?
-                language.buttons.stateRestore :
-                'State ';
-            var replaceRegex;
-            if (defaultString.indexOf('%d') === defaultString.length - 3) {
-                replaceRegex = new RegExp(defaultString.replace(/%d/g, ''));
-            }
-            else {
-                var splitString = defaultString.split('%d');
-                replaceRegex = [];
-                for (var _i = 0, splitString_1 = splitString; _i < splitString_1.length; _i++) {
-                    var split = splitString_1[_i];
-                    replaceRegex.push(new RegExp(split));
-                }
-            }
-            var getId = function (identifier) {
-                var id;
-                if (Array.isArray(replaceRegex)) {
-                    id = identifier;
-                    for (var _i = 0, replaceRegex_1 = replaceRegex; _i < replaceRegex_1.length; _i++) {
-                        var reg = replaceRegex_1[_i];
-                        id = id.replace(reg, '');
-                    }
-                }
-                else {
-                    id = identifier.replace(replaceRegex, '');
-                }
-                // If the id after replacement is not a number, or the length is the same as before,
-                //  it has been customised so return 0
-                if (isNaN(+id) || id.length === identifier) {
-                    return 0;
-                }
-                // Otherwise return the number that has been assigned previously
-                else {
-                    return +id;
-                }
-            };
-            // Extract the numbers from the identifiers that use the standard naming convention
-            var identifiers = prevStates
-                .map(function (state) { return getId(state.s.identifier); })
-                .sort(function (a, b) { return +a < +b ?
-                1 :
-                +a > +b ?
-                    -1 :
-                    0; });
-            var lastNumber = identifiers[0];
-            dt.stateRestore.state.add(dt.i18n('buttons.stateRestore', 'State %d', lastNumber !== undefined ? lastNumber + 1 : 1), config.config);
-            var states = dt.stateRestore.states().sort(function (a, b) {
-                var aId = +getId(a.s.identifier);
-                var bId = +getId(b.s.identifier);
-                return aId > bId ?
-                    1 :
-                    aId < bId ?
-                        -1 :
-                        0;
-            });
-            var button = dt.button('SaveStateRestore:name');
-            var stateButtons = button[0] !== undefined && button[0].inst.c.buttons[0].buttons !== undefined ?
-                button[0].inst.c.buttons[0].buttons :
-                [];
-            // remove any states from the previous rebuild - if they are still there they will be added later
-            for (var i = 0; i < stateButtons.length; i++) {
-                if (stateButtons[i].extend === 'stateRestore') {
-                    stateButtons.splice(i, 1);
-                    i--;
-                }
-            }
-            if (stateRestoreOpts._createInSaved) {
-                stateButtons.push('createState');
-                stateButtons.push('');
-            }
-            for (var _a = 0, states_3 = states; _a < states_3.length; _a++) {
-                var state = states_3[_a];
-                var split = Object.assign([], stateRestoreOpts.splitSecondaries);
-                if (split.includes('updateState') && !stateRestoreOpts.save) {
-                    split.splice(split.indexOf('updateState'), 1);
-                }
-                if (split.includes('renameState') &&
-                    (!stateRestoreOpts.save || !stateRestoreOpts.rename)) {
-                    split.splice(split.indexOf('renameState'), 1);
-                }
-                if (split.includes('removeState') && !stateRestoreOpts.remove) {
-                    split.splice(split.indexOf('removeState'), 1);
-                }
-                if (split.length > 0 &&
-                    !split.includes('<h3>' + state.s.identifier + '</h3>')) {
-                    split.unshift('<h3>' + state.s.identifier + '</h3>');
-                }
-                stateButtons.push({
-                    _stateRestore: state,
-                    attr: {
-                        title: state.s.identifier
-                    },
-                    config: {
-                        split: split
-                    },
-                    extend: 'stateRestore',
-                    text: state.s.identifier
-                });
-            }
-            dt.button('SaveStateRestore:name').collectionRebuild(stateButtons);
-            node.blur();
-            // Need to disable the removeAllStates button if there are no states and it is present
-            var buttons = dt.buttons();
-            for (var _b = 0, buttons_1 = buttons; _b < buttons_1.length; _b++) {
-                var butt = buttons_1[_b];
-                if ($(butt.node).hasClass('dtsr-removeAllStates')) {
-                    if (states.length === 0) {
-                        dt.button(butt.node).disable();
-                    }
-                    else {
-                        dt.button(butt.node).enable();
-                    }
-                }
-            }
-        },
-        init: function (dt, node, config) {
-            if (dt.settings()[0]._stateRestore === undefined && dt.button('SaveStateRestore:name').length > 1) {
-                _buttonInit(dt, config);
-            }
-        },
-        text: function (dt) {
-            return dt.i18n('buttons.createState', 'Create State');
-        }
-    };
-    DataTable.ext.buttons.removeState = {
-        action: function (e, dt, node, config) {
-            config.parent._stateRestore.remove();
-            node.blur();
-        },
-        text: function (dt) {
-            return dt.i18n('buttons.removeState', 'Remove');
-        }
-    };
-    DataTable.ext.buttons.removeAllStates = {
-        action: function (e, dt, node) {
-            dt.stateRestore.states().remove(true);
-            node.blur();
-        },
-        className: 'dt-button dtsr-removeAllStates',
-        init: function (dt, node) {
-            if (!dt.settings()[0]._stateRestore || dt.stateRestore.states().length === 0) {
-                $(node).addClass('disabled');
-            }
-        },
-        text: function (dt) {
-            return dt.i18n('buttons.removeAllStates', 'Remove All States');
-        }
-    };
-    DataTable.ext.buttons.renameState = {
-        action: function (e, dt, node, config) {
-            var states = dt.settings()[0]._stateRestore.s.states;
-            var ids = [];
-            for (var _i = 0, states_4 = states; _i < states_4.length; _i++) {
-                var state = states_4[_i];
-                ids.push(state.s.identifier);
-            }
-            config.parent._stateRestore.rename(undefined, ids);
-            node.blur();
-        },
-        text: function (dt) {
-            return dt.i18n('buttons.renameState', 'Rename');
-        }
-    };
-    function _init(settings, options) {
-        if (options === void 0) { options = null; }
-        var api = new DataTable.Api(settings);
-        var opts = options
-            ? options
-            : api.init().stateRestore || DataTable.defaults.stateRestore;
-        var stateRestore = new StateRestoreCollection(api, opts);
-        _stateRegen(api, stateRestore);
-        return stateRestore;
-    }
-    /**
-     * Initialisation function if initialising using a button
-     *
-     * @param dt The datatables instance
-     * @param config the config for the button
-     */
-    function _buttonInit(dt, config) {
-        var SRC = new DataTable.StateRestoreCollection(dt, config.config);
-        _stateRegen(dt, SRC);
-    }
-    function _stateRegen(dt, src) {
-        var states = dt.stateRestore.states();
-        var button = dt.button('SaveStateRestore:name');
-        var stateButtons = [];
-        // Need to get the original configuration object, so we can rebuild it
-        // It might be nested, so need to traverse down the tree
-        if (button[0]) {
-            var idxs = button.index().split('-');
-            stateButtons = button[0].inst.c.buttons;
-            for (var i = 0; i < idxs.length; i++) {
-                if (stateButtons[idxs[i]].buttons) {
-                    stateButtons = stateButtons[idxs[i]].buttons;
-                }
-                else {
-                    stateButtons = [];
-                    break;
-                }
-            }
-        }
-        var stateRestoreOpts = dt.settings()[0]._stateRestore.c;
-        // remove any states from the previous rebuild - if they are still there they will be added later
-        for (var i = 0; i < stateButtons.length; i++) {
-            if (stateButtons[i].extend === 'stateRestore') {
-                stateButtons.splice(i, 1);
-                i--;
-            }
-        }
-        if (stateRestoreOpts._createInSaved) {
-            stateButtons.push('createState');
-        }
-        if (states === undefined || states.length === 0) {
-            stateButtons.push('<span class="' + src.classes.emptyStates + '">' +
-                dt.i18n('stateRestore.emptyStates', src.c.i18n.emptyStates) +
-                '</span>');
-        }
-        else {
-            for (var _i = 0, states_5 = states; _i < states_5.length; _i++) {
-                var state = states_5[_i];
-                var split = Object.assign([], stateRestoreOpts.splitSecondaries);
-                if (split.includes('updateState') && !stateRestoreOpts.save) {
-                    split.splice(split.indexOf('updateState'), 1);
-                }
-                if (split.includes('renameState') &&
-                    (!stateRestoreOpts.save || !stateRestoreOpts.rename)) {
-                    split.splice(split.indexOf('renameState'), 1);
-                }
-                if (split.includes('removeState') && !stateRestoreOpts.remove) {
-                    split.splice(split.indexOf('removeState'), 1);
-                }
-                if (split.length > 0 &&
-                    !split.includes('<h3>' + state.s.identifier + '</h3>')) {
-                    split.unshift('<h3>' + state.s.identifier + '</h3>');
-                }
-                stateButtons.push({
-                    _stateRestore: state,
-                    attr: {
-                        title: state.s.identifier
-                    },
-                    config: {
-                        split: split
-                    },
-                    extend: 'stateRestore',
-                    text: state.s.identifier
-                });
-            }
-        }
-        dt.button('SaveStateRestore:name').collectionRebuild(stateButtons);
-        // Need to disable the removeAllStates button if there are no states and it is present
-        var buttons = dt.buttons();
-        for (var _a = 0, buttons_2 = buttons; _a < buttons_2.length; _a++) {
-            var butt = buttons_2[_a];
-            if ($(butt.node).hasClass('dtsr-removeAllStates')) {
-                if (states.length === 0) {
-                    dt.button(butt.node).disable();
-                }
-                else {
-                    dt.button(butt.node).enable();
-                }
-            }
-        }
-    }
-    // Attach a listener to the document which listens for DataTables initialisation
-    // events so we can automatically initialise
-    $(document).on('preInit.dt.dtsr', function (e, settings) {
-        if (e.namespace !== 'dt') {
-            return;
-        }
-        if (settings.oInit.stateRestore ||
-            DataTable.defaults.stateRestore) {
-            if (!settings._stateRestore) {
-                _init(settings, null);
-            }
-        }
-    });
-
-})();
-
-
-return DataTable;
-}));
-
-
-/*! Bootstrap integration for DataTables' StateRestore
- * © SpryMedia Ltd - datatables.net/license
- */
-
-(function( factory ){
-	if ( typeof define === 'function' && define.amd ) {
-		// AMD
-		define( ['jquery', 'datatables.net-jqui', 'datatables.net-staterestore'], function ( $ ) {
-			return factory( $, window, document );
-		} );
-	}
-	else if ( typeof exports === 'object' ) {
-		// CommonJS
-		module.exports = function (root, $) {
-			if ( ! root ) {
-				// CommonJS environments without a window global must pass a
-				// root. This will give an error otherwise
-				root = window;
-			}
-
-			if ( ! $ ) {
-				$ = typeof window !== 'undefined' ? // jQuery's factory checks for a global window
-					require('jquery') :
-					require('jquery')( root );
-			}
-
-			if ( ! $.fn.dataTable ) {
-				require('datatables.net-jqui')(root, $);
-			}
-
-			if ( ! $.fn.dataTable.StateRestore ) {
-				require('datatables.net-staterestore')(root, $);
-			}
-
-			return factory( $, root, root.document );
-		};
-	}
-	else {
-		// Browser
-		factory( jQuery, window, document );
-	}
-}(function( $, window, document, undefined ) {
-'use strict';
-var DataTable = $.fn.dataTable;
-
-
-$.extend(true, DataTable.StateRestoreCollection.classes, {
-    checkBox: 'dtsr-check-box form-check-input',
-    checkLabel: 'dtsr-check-label form-check-label',
-    checkRow: 'dtsr-check-row form',
-    creationButton: 'dtsr-creation-button ui-button ui-corner-all ui-widget',
-    creationForm: 'dtsr-creation-form modal-body',
-    creationText: 'dtsr-creation-text modal-header',
-    creationTitle: 'dtsr-creation-title modal-title',
-    nameInput: 'dtsr-name-input form-control',
-    nameLabel: 'dtsr-name-label form-label',
-    nameRow: 'dtsr-name-row medium-6 cell'
-});
-$.extend(true, DataTable.StateRestore.classes, {
-    // eslint-disable-next-line max-len
-    confirmationButton: 'dtsr-confirmation-button ui-button ui-state-default ui-button-text-only ui-corner-all ui-widget'
+	DataTable.select.init(new DataTable.Api(ctx));
 });
 
 

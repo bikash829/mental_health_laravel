@@ -353,9 +353,39 @@
           </div>
 
         <!-- educational information step   -->
+
           <div class="col-12 col-lg-8 col-xl-8 col-xxl-8 form-container" id="education_info_container">
+              <div class="table-responsive">
+                  <table class="table table-bordered" id="dataTable" width="100%" cellspacing="0">
+                      <thead>
+                      <tr>
+                          <th>Institute</th>
+                          <th>Specialization</th>
+                          <th>Duration</th>
+                          <th>Passing Year</th>
+                          <th>Course Title</th>
+                          <th>Actions</th>
+                      </tr>
+                      </thead>
+
+                      <tbody>
+                      @foreach ($user?->education as $edu)
+                          <tr>
+                              <td>{{$edu?->institute}}</td>
+                              <td>{{$edu?->specialization}}</td>
+                              <td>{{$edu?->duration}}</td>
+                              <td>{{$edu?->passing_year}}</td>
+                              <td>{{$edu?->edu_doc_title}}</td>
+                              <td><a class="btn btn-danger" href="#"><i class="fa-regular fa-trash-can"></i></a></td>
+
+                          </tr>
+                      @endforeach
+
+                      </tbody>
+                  </table>
+              </div>
               <!-- Educational Information-->
-              <form id="form_education" class="needs-validation" enctype="multipart/form-data" novalidate>
+              <form id="form_education" class="needs-validation my-5" enctype="multipart/form-data" novalidate>
                   @csrf
                   @method('POST')
                 <div class="input-edu-container row gy-3 ">
@@ -768,7 +798,7 @@
                                       'Content-Type': 'multipart/form-data',
                                   }
                               }).then(function (response) {
-                                  console.log(response);
+                                  console.log(response.data.educations);
 
                                   toastContentSuccess.empty();
                                   toastContainer = toastContainer.text(response.data['message']);
@@ -778,6 +808,24 @@
                                   toastBootstrap.show()
                                   // form reset
                                   frmEducation[0].reset();
+                                  $('#dataTable tbody tr').remove();
+
+                                  (response.data.educations).forEach((value,key)=>{
+                                      $('#dataTable').append(
+                                          `<tr>
+                                            <td>${value.institute}</td>
+                                            <td>${value.specialization}</td>
+                                            <td>${value.duration}</td>
+                                            <td>${value.passing_year}</td>
+                                            <td>${value.edu_doc_title}</td>
+                                            <td><a href="#" class="btn-danger"><i class="fa-regular fa-trash-can"></i><a/></td>
+                                        </tr>`
+                                      );
+                                  })
+
+
+
+
                                   // alert(response.data['message']);
 
                               }).catch(function (error) {
@@ -951,14 +999,14 @@
         });
 
 
+        $('#dataTable').DataTable( {
+            responsive: true,
+            "searching": false,  // Disable search bar
+            "paging": false,     // Disable pagination
+            "info": false
+        } );
 
 
-        // if (toastTrigger) {
-        //     const toastBootstrap = bootstrap.Toast.getOrCreateInstance(toastLiveExample)
-        //     toastTrigger.addEventListener('click', () => {
-        //
-        //     })
-        // }
     </script>
 
 

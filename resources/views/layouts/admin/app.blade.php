@@ -18,6 +18,13 @@
     @yield('link')
     <!-- Custom styles for this template-->
     <link href="{{asset('admin/css/sb-admin-2.min.css')}}" rel="stylesheet">
+    <!-- DataTables stylesheet-->
+    <link href="{{asset('vendor/DataTables/datatables.min.css')}} " rel="stylesheet">
+    <link href="{{asset('vendor/DataTables/Responsive-2.5.0/css/responsive.dataTables.min.css')}} " rel="stylesheet">
+    {{--uikit --}}
+    <link href="{{asset('vendor/DataTables/Responsive-2.5.0/uikit/dataTables.uikit.min.css')}} " rel="stylesheet">
+    <link href="{{asset('vendor/DataTables/uikit/uikit.min.css')}} " rel="stylesheet">
+
 
     <!-- jquery js  -->
     <script src="{{asset('vendor/jquery/jquery-3.6.3.min.js')}}"></script>
@@ -356,6 +363,13 @@
 <!-- Page level custom scripts -->
 <script src="{{asset('admin/js/demo/chart-area-demo.js')}}"></script>
 <script src="{{asset('admin/js/demo/chart-pie-demo.js')}}"></script>
+
+<!-- DataTable js scripts file -->
+<script src="{{asset('vendor/DataTables/datatables.min.js')}} "></script>
+<script src="{{asset('vendor/DataTables/Responsive-2.5.0/js/dataTables.responsive.min.js')}} "></script>
+{{--uikit--}}
+<script src="{{asset('vendor/DataTables/uikit/dataTables.uikit.min.js')}} "></script>
+<script src="{{asset('vendor/DataTables/uikit/jquery.dataTables.min.js')}} "></script>
 
 @yield('scripts')
 

@@ -26,8 +26,6 @@
     <link href="{{asset('vendor/DataTables/uikit/uikit.min.css')}} " rel="stylesheet">
 
 
-    <!-- jquery js  -->
-    <script src="{{asset('vendor/jquery/jquery-3.6.3.min.js')}}"></script>
     @vite(['resources/sass/app.scss', 'resources/js/app.js'])
 
 
@@ -346,10 +344,12 @@
 
 
 <!-- Bootstrap core JavaScript-->
+
 <script src="{{asset('admin/vendor/jquery/jquery.min.js')}}"></script>
 
-
-<script src="{{asset('admin/vendor/bootstrap/js/bootstrap.bundle.min.js')}}"></script>
+{{--<script src="{{asset('vendor/bootstrap-5.3.0-alpha1-dist/js/bootstrap.min.js')}}"></script>--}}
+<script src="{{asset('vendor/popper/popper.min.js')}}"></script>
+<script src="{{asset('admin/vendor/bootstrap/js/bootstrap.min.js')}}"></script>
 
 <!-- Core plugin JavaScript-->
 <script src="{{asset('admin/vendor/jquery-easing/jquery.easing.min.js')}}"></script>

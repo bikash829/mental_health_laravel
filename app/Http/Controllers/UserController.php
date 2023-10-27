@@ -60,9 +60,9 @@ class UserController extends Controller
                     'additional_phone'=>['numeric','max:99999999999999999999',],
                     'identity_type' => ['required','integer','max:3'],
                     'identity_no' => ['required','min:6','max:20',],
-                    'identity_proof_file' => ['required','mimes:jpeg,jpg,png,pdf','max:2048'],
+                    'identity_proof_file' => ['mimes:jpeg,jpg,png,pdf','max:2048'],
                     'license_no' => ['required','min:6','max:50'],
-                    'license_attachment_file' => ['required','mimes:jpeg,jpg,png,pdf','max:2048'],
+                    'license_attachment_file' => ['mimes:jpeg,jpg,png,pdf','max:2048'],
                     'religion' => ['string','max:10'],
                 ]);
 
@@ -244,6 +244,9 @@ class UserController extends Controller
     {
         //
     }
+
+
+
 
 
 }

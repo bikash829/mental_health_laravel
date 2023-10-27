@@ -17,7 +17,7 @@
           <div class="toast-container position-fixed top-0 end-0 p-3" >
               <div id="liveToast" class="toast" role="alert" aria-live="assertive"  aria-atomic="true">
                   <div class="toast-header">
-{{--                      <img src="..." class="rounded me-2" alt="...">--}}
+                    {{--<img src="..." class="rounded me-2" alt="...">--}}
                       <strong class="me-auto text-danger">Warning!</strong>
                       <small>11 mins ago</small>
                       <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
@@ -33,7 +33,7 @@
               <div id="toastSuccess" class="toast" role="alert" aria-live="assertive"  aria-atomic="true">
                   <div class="toast-header">
                       <strong class="me-auto text-success">Alert!</strong>
-{{--                      <small>11 mins ago</small>--}}
+                    {{-- <small>11 mins ago</small>--}}
                       <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
                   </div>
                   <div class="toast-body">
@@ -293,17 +293,32 @@
                   </div>
               </div>
 
-              <div class="col-12 col-lg-4 col-xl-4 col-xxl-4">
-                <label for="identity_proof" class="form-label">Identity Proof(img,pdf)</label>
-                <input class="form-control" type="file"  name="identity_proof"  accept=".pdf,.jpg,.jpeg,.png" id="identity_proof" required>
-                  <div class="invalid-feedback">
-                      @error('identity_proof')
-                      {{ $message }}
-                      @else
-                          Please upload an attachment of your identity
-                          @enderror
-                  </div>
-              </div>
+
+                @isset($user->identity_proof)
+                    <div class="col-12 col-lg-4 col-xl-4 col-xxl-4">
+                        <label for="identity_proof" class="form-label">Identity Proof(image/pdf)</label>
+                        <div>
+                            <div class="btn-group" role="group" aria-label="Basic outlined example">
+                                <a href="#"  class="btn btn-outline-secondary btn-sm text-primary">View attachment</a>
+                                <input value="change file" id="identity_proof"  accept=".pdf,.jpg,.jpeg,.png" name="identity_proof" type="file"  class="btn btn-outline-secondary btn-sm" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Change current attachment">
+                            </div>
+                        </div>
+
+                    </div>
+                @else
+                    <div class="col-12 col-lg-4 col-xl-4 col-xxl-4">
+                        <label for="identity_proof" class="form-label">Identity Proof(img,pdf)</label>
+                        <input class="form-control" type="file"  name="identity_proof"  accept=".pdf,.jpg,.jpeg,.png" id="identity_proof" required>
+                        <div class="invalid-feedback">
+                            @error('identity_proof')
+                            {{ $message }}
+                            @else
+                                Please upload an attachment of your identity
+                                @enderror
+                        </div>
+                    </div>
+
+                @endisset
 
               <!-- license  -->
 
@@ -318,18 +333,31 @@
                       @enderror
                   </div>
               </div>
+                @isset($user->expert->license_attachment)
+                    <div class="col-12 col-lg-6 col-xl-6 col-xxl-6">
+                        <label for="license_attachment" class="form-label">License Attachment</label>
+                        <div>
+                            <div class="btn-group" role="group" aria-label="Basic outlined example">
+                                <a href="#"  class="btn btn-outline-secondary btn-sm text-primary">View uploaded license</a>
+                                <input id="license_attachment" name="license_attachment"  accept=".pdf,.jpg,.jpeg,.png"  type="file"  class="btn btn-outline-secondary btn-sm" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Change current attachment">
+                            </div>
+                        </div>
 
-              <div class="col-12 col-lg-6 col-xl-6 col-xxl-6">
-                <label for="license_attachment" class="form-label">License Attachment</label>
-                <input type="file" class="form-control" name="license_attachment" accept=".pdf,.jpg,.jpeg,.png" id="license_attachment" placeholder="" required>
-                  <div class="invalid-feedback">
-                      @error('license_attachment')
-                      {{ $message }}
-                      @else
-                          Please upload you license attachment
-                      @enderror
-                  </div>
-              </div>
+                    </div>
+                @else
+                    <div class="col-12 col-lg-6 col-xl-6 col-xxl-6">
+                        <label for="license_attachment" class="form-label">License Attachment</label>
+                        <input type="file" class="" name="license_attachment" accept=".pdf,.jpg,.jpeg,.png" id="license_attachment" placeholder="" required>
+                        <div class="invalid-feedback">
+                            @error('license_attachment')
+                            {{ $message }}
+
+                            Please upload you license attachment
+                            @enderror
+                        </div>
+                    </div>
+                @endisset
+
 
               <div class="col-12">
                 <div class="form-check">
@@ -376,11 +404,9 @@
                               <td>{{$edu?->duration}}</td>
                               <td>{{$edu?->passing_year}}</td>
                               <td>{{$edu?->edu_doc_title}}</td>
-                              <td><a class="btn btn-danger" href="#"><i class="fa-regular fa-trash-can"></i></a></td>
-
+                              <td><a class="btn btn-danger" href="{{route('')}}"><i class="fa-regular fa-trash-can"></i></a></td>
                           </tr>
                       @endforeach
-
                       </tbody>
                   </table>
               </div>
@@ -432,7 +458,7 @@
                 <div class="col-12 mt-4">
                   <div class="text-center">
                     <button class="btn btn-outline-info" type="button" name="back">Previous</button>
-                    <button class="btn btn-outline-primary" name="btnSaveEducationInfo" type="submit">Continue</button>
+                    <button class="btn btn-outline-primary" id="btnEduNextPage" name="btnSaveEducationInfo" type="submit">Continue</button>
                   </div>
                 </div>
 
@@ -575,50 +601,53 @@
 
     <script type="text/javascript">
         $(document).ready(function (){
-          // form container
-          const personalInfoContainer = $("#personal_info_container");
-          const educationInfoContainer= $("#education_info_container");
-          const trainingInfoContainer= $("#training_info_container");
-          const experienceContainer= $("#experience_container");
+            // form container
+            const personalInfoContainer = $("#personal_info_container");
+            const educationInfoContainer= $("#education_info_container");
+            const trainingInfoContainer= $("#training_info_container");
+            const experienceContainer= $("#experience_container");
 
-          // form
-          const frmPersonalInfo = $("#form_personal_info");
-          const frmEducation = $("#form_education");
-          const frmTraining = $("#form_training");
-          const frmExperience = $("#form_experience");
-
-
-          // tab switching
-          const tabPersonalInfo = $("#tab_personal_info");
-          const tabEducation = $("#tab_education");
-          const tabTraining = $("#tab_training");
-          const tabExperience = $("#tab_xp");
-
-          // add more field button
-          const btnAddEdu = $('#btnAddMoreEdu');
-          const btnAddTraining = $('#btnAddMoreTrain');
-          const btnAddExp = $('#btnAddMoreExperience');
-
-          // hiding content
-          personalInfoContainer.show();
-          educationInfoContainer.hide();
-          trainingInfoContainer.hide();
-          experienceContainer.hide();
+            // form
+            const frmPersonalInfo = $("#form_personal_info");
+            const frmEducation = $("#form_education");
+            const frmTraining = $("#form_training");
+            const frmExperience = $("#form_experience");
 
 
-          // colors
-          let tabActive = `rgb(13, 110, 253)`;
-          let tabVisited = `rgb(13, 201, 239)`;
-          let tabFontActive = `rgb(255,255,255)`;
+            // tab switching
+            const tabPersonalInfo = $("#tab_personal_info");
+            const tabEducation = $("#tab_education");
+            const tabTraining = $("#tab_training");
+            const tabExperience = $("#tab_xp");
+
+            // add more field button
+            const btnAddEdu = $('#btnAddMoreEdu');
+            const btnAddTraining = $('#btnAddMoreTrain');
+            const btnAddExp = $('#btnAddMoreExperience');
+
+            // hiding content
+            personalInfoContainer.show();
+            educationInfoContainer.hide();
+            trainingInfoContainer.hide();
+            experienceContainer.hide();
 
 
-          // data container
-          // tab activity
-          const formData = {}; //form data container
-          let formActive = new Map();
-          const tabActiveList = new Map();
+            // colors
+            let tabActive = `rgb(13, 110, 253)`;
+            let tabVisited = `rgb(13, 201, 239)`;
+            let tabFontActive = `rgb(255,255,255)`;
 
-          // bootstrap toast
+            // continue buttons
+            const btnEducationSubmit = $("#btnEduNextPage");
+
+
+            // data container
+            // tab activity
+            const formData = {}; //form data container
+            let formActive = new Map();
+            const tabActiveList = new Map();
+
+            // bootstrap toast
             const toastTrigger = document.getElementById('liveToastBtn')
             const toastLiveExample = document.getElementById('liveToast')
             const toastSuccess = document.getElementById('toastSuccess')
@@ -629,190 +658,199 @@
 
 
 
-          //==========================job validation function=================
-          function jobStatusValidation(arg){
-              let checkbox, formContainer, currentDatebox;
+            //==========================job validation function=================
+            function jobStatusValidation(arg){
+                let checkbox, formContainer, currentDatebox;
 
-              checkbox = arg.currentTarget;
-              formContainer = $(checkbox).parentsUntil($('.input-xp-container')).parent();
-              currentDatebox = $(formContainer).find($(`[data-job-condition="resign_date"]`));
+                checkbox = arg.currentTarget;
+                formContainer = $(checkbox).parentsUntil($('.input-xp-container')).parent();
+                currentDatebox = $(formContainer).find($(`[data-job-condition="resign_date"]`));
 
-              if(checkbox.checked){
-                  currentDatebox.attr('disabled','');
-                  currentDatebox.removeAttr('required','');
-                  currentDatebox[0].value = '';
-              }else{
-                  currentDatebox.removeAttr('disabled','');
-                  currentDatebox.attr('required','');
-              }
+                if(checkbox.checked){
+                    currentDatebox.attr('disabled','');
+                    currentDatebox.removeAttr('required','');
+                    currentDatebox[0].value = '';
+                }else{
+                    currentDatebox.removeAttr('disabled','');
+                    currentDatebox.attr('required','');
+                }
 
-          }
+            }
 
-          // =====================tab function===========================
-          function tabVisibility(){
-              switch(true) {
-                  case personalInfoContainer.is(":visible"):
-                      tabPersonalInfo.css('background-color', tabActive);
+            // =====================tab function===========================
+            function tabVisibility(){
+                switch(true) {
+                    case personalInfoContainer.is(":visible"):
+                        tabPersonalInfo.css('background-color', tabActive);
 
-                      break;
-                  case educationInfoContainer.is(":visible"):
-                      tabEducation.css('background-color', tabActive);
-                      // code block
-                      break;
-                  case trainingInfoContainer.is(":visible"):
-                      tabTraining.css('background-color', tabActive);
-                      break;
+                        break;
+                    case educationInfoContainer.is(":visible"):
+                        tabEducation.css('background-color', tabActive);
+                        // code block
+                        break;
+                    case trainingInfoContainer.is(":visible"):
+                        tabTraining.css('background-color', tabActive);
+                        break;
 
-                  case experienceContainer.is(":visible"):
-                      tabExperience.css('background-color', tabActive);
-                      break;
-                  default:
-                      console.log("Unknown");
-                  // code block
-              }
-          }
+                    case experienceContainer.is(":visible"):
+                        tabExperience.css('background-color', tabActive);
+                        break;
+                    default:
+                        console.log("Unknown");
+                    // code block
+                }
+            }
 
-          function tabActivated(tabList){
-              tabList.forEach(element => {
-                  element.css('background-color', tabVisited);
-                  element.css('cursor', 'pointer');
-                  element.css('color', tabFontActive);
+            function tabActivated(tabList){
+                tabList.forEach(element => {
+                    element.css('background-color', tabVisited);
+                    element.css('cursor', 'pointer');
+                    element.css('color', tabFontActive);
 
-              });
-          }
+                });
+            }
 
-          function switchTab(elementHide,elementShow){
-              elementHide.forEach(element => {
-                  element.hide()
-              });
-              elementShow.show();
-          }
+            function switchTab(elementHide,elementShow){
+                elementHide.forEach(element => {
+                    element.hide()
+                });
+                elementShow.show();
+            }
 
-          //=============================form validation
-          (() => {
-              'use strict'
-              // Fetch all the forms we want to apply custom Bootstrap validation styles to
-              const forms = document.querySelectorAll('.needs-validation')
+            //=============================form validation
+            (() => {
+                'use strict'
+                // Fetch all the forms we want to apply custom Bootstrap validation styles to
+                const forms = document.querySelectorAll('.needs-validation')
 
-              // Loop over them and prevent submission
-              Array.from(forms).forEach(form => {
-                  form.addEventListener('submit', event => {
-                      if (!form.checkValidity()) {
-                          event.preventDefault()
-                          event.stopPropagation()
-                      }else{ // ============ validated
-                          event.preventDefault();
+                // Loop over them and prevent submission
+                Array.from(forms).forEach(form => {
+                    form.addEventListener('submit', event => {
+                        if (!form.checkValidity()) {
+                            event.preventDefault()
+                            event.stopPropagation()
+                        }else{ // ============ validated
+                            event.preventDefault();
 
-                          let formDataTransport = new FormData();
+                            let formDataTransport = new FormData();
 
-                          if(event.currentTarget.id === 'form_personal_info'){// ==========================personal information
+                            if(event.currentTarget.id === 'form_personal_info'){// ==========================personal information
 
-                              const rawPersonalInfo = new FormOperation(event.target.elements,personalInfoContainer);
-                              formData["personalInfo"] = rawPersonalInfo.formDataPack;
+                                const rawPersonalInfo = new FormOperation(event.target.elements,personalInfoContainer);
+                                formData["personalInfo"] = rawPersonalInfo.formDataPack;
 
-                              // assigning data
-                              formData["personalInfo"].repackedData.forEach(function(value,key){
-                                  formDataTransport.append(key,value);
-                              })
-
-                              const identityProofInput = $('#identity_proof')[0];
-                              const licenseAttachmentInput = $('#license_attachment')[0];
-
-                              const identityProof = identityProofInput.files[0];
-                              const licenseAttachment = licenseAttachmentInput.files[0];
-
-                              formDataTransport.append('identity_proof_file', identityProof);
-                              formDataTransport.append('license_attachment_file', licenseAttachment);
-
-                              axios.post('{{route('doctor.profile.store')}}',formDataTransport, {
-                                  headers: {
-                                      'Content-Type': 'multipart/form-data',
-                                  }
-                              }).then(function (response) {
-                                  console.log(response);
-                                      toastContentSuccess.empty();
-                                      toastContainer = toastContainer.text(response.data['message']);
-
-                                      toastContentSuccess.append(toastContainer);
-                                      const toastBootstrap = bootstrap.Toast.getOrCreateInstance(toastSuccess)
-                                      toastBootstrap.show()
-                                      // alert(response.data['message']);
-                                      personalInfoContainer.hide(0,e=>{
-                                          educationInfoContainer.show();
-                                          tabActiveList.set('tabPersonal',tabPersonalInfo);
-                                          tabActiveList.set('tabEdu',tabEducation);
-
-                                          if(!formActive.get('personalInfo')){
-                                              formActive.set('personalInfo',personalInfoContainer);
-                                              formActive.set('educationInfo',educationInfoContainer);
-                                              tabActiveList.set('tabPersonal',tabPersonalInfo);
-                                              tabActiveList.set('tabEdu',tabEducation);
-                                          }
-                                          tabActivate();
-
-                                      })
-                              }).catch(function (error) {
-                                  if (error.response.status === 422) {
-                                      let errors = error.response.data.errors;
-                                      // Clear previous error messages
-                                      toastContent.empty();
-
-                                      console.log(Object.entries(errors));
-                                      let ul = $("<ul>");
-                                      Object.entries(errors).forEach((value)=>{
-                                          let fieldName = value[0], errorMessage = value[1][0],  li = $("<li>").text(errorMessage) ;
-                                          console.log(fieldName,errorMessage);
-                                          ul.append(li);
-                                      })
-
-                                      toastContent.append(ul);
-                                      const toastBootstrap = bootstrap.Toast.getOrCreateInstance(toastLiveExample)
-                                      toastBootstrap.show()
-
-                                  }
-                              });
+                                // assigning data
+                                formData["personalInfo"].repackedData.forEach(function(value,key){
+                                    formDataTransport.append(key,value);
+                                })
 
 
-                          }else if(event.currentTarget.id === 'form_education'){  //======================= education information
-                              console.log('you are here in education info');
-                              const rawEducationInfo = new FormOperation(event.target.elements,educationInfoContainer);
+                                const identityProofInput = $('#identity_proof')[0];
+                                const licenseAttachmentInput = $('#license_attachment')[0];
 
-                              formData["educationInfo"] = rawEducationInfo.formDataPack;
+                                const identityProof = identityProofInput.files[0];
+                                const licenseAttachment = licenseAttachmentInput.files[0];
 
 
-                              // const rawPersonalInfo = new FormOperation(event.target.elements,personalInfoContainer);
-                              // formData["personalInfo"] = rawPersonalInfo.formDataPack;
+                                if(identityProof !== undefined){
+                                    formDataTransport.append('identity_proof_file', identityProof);
+                                }
 
-                              // assigning data
-                              formData["educationInfo"].repackedData.forEach(function(value,key){
-                                  formDataTransport.append(key,value);
-                              })
+                                if(identityProof !== licenseAttachment){
+                                    formDataTransport.append('license_attachment_file', licenseAttachment);
+                                }
 
-                              const education_certificate = $('#education_certificate')[0];
-                              const education_certificate_file = education_certificate.files[0];
 
-                              formDataTransport.append('education_certificate_file', education_certificate_file);
 
-                              axios.post('{{route('doctor.profile.store')}}',formDataTransport, {
-                                  headers: {
-                                      'Content-Type': 'multipart/form-data',
-                                  }
-                              }).then(function (response) {
-                                  console.log(response.data.educations);
 
-                                  toastContentSuccess.empty();
-                                  toastContainer = toastContainer.text(response.data['message']);
+                                axios.post('{{route('doctor.profile.store')}}',formDataTransport, {
+                                    headers: {
+                                        'Content-Type': 'multipart/form-data',
+                                    }
+                                }).then(function (response) {
+                                    console.log(response);
+                                    toastContentSuccess.empty();
+                                    toastContainer = toastContainer.text(response.data['message']);
 
-                                  toastContentSuccess.append(toastContainer);
-                                  const toastBootstrap = bootstrap.Toast.getOrCreateInstance(toastSuccess)
-                                  toastBootstrap.show()
-                                  // form reset
-                                  frmEducation[0].reset();
-                                  $('#dataTable tbody tr').remove();
+                                    toastContentSuccess.append(toastContainer);
+                                    const toastBootstrap = bootstrap.Toast.getOrCreateInstance(toastSuccess)
+                                    toastBootstrap.show()
+                                    // alert(response.data['message']);
+                                    personalInfoContainer.hide(0,e=>{
+                                        educationInfoContainer.show();
+                                        tabActiveList.set('tabPersonal',tabPersonalInfo);
+                                        tabActiveList.set('tabEdu',tabEducation);
 
-                                  (response.data.educations).forEach((value,key)=>{
-                                      $('#dataTable').append(
-                                          `<tr>
+                                        if(!formActive.get('personalInfo')){
+                                            formActive.set('personalInfo',personalInfoContainer);
+                                            formActive.set('educationInfo',educationInfoContainer);
+                                            tabActiveList.set('tabPersonal',tabPersonalInfo);
+                                            tabActiveList.set('tabEdu',tabEducation);
+                                        }
+                                        tabActivate();
+
+                                    })
+                                }).catch(function (error) {
+                                    if (error.response.status === 422) {
+                                        let errors = error.response.data.errors;
+                                        // Clear previous error messages
+                                        toastContent.empty();
+
+                                        console.log(Object.entries(errors));
+                                        let ul = $("<ul>");
+                                        Object.entries(errors).forEach((value)=>{
+                                            let fieldName = value[0], errorMessage = value[1][0],  li = $("<li>").text(errorMessage) ;
+                                            console.log(fieldName,errorMessage);
+                                            ul.append(li);
+                                        })
+
+                                        toastContent.append(ul);
+                                        const toastBootstrap = bootstrap.Toast.getOrCreateInstance(toastLiveExample)
+                                        toastBootstrap.show()
+
+                                    }
+                                });
+
+
+                            }else if(event.currentTarget.id === 'form_education'){  //======================= education information
+                                const rawEducationInfo = new FormOperation(event.target.elements,educationInfoContainer);
+
+                                formData["educationInfo"] = rawEducationInfo.formDataPack;
+
+
+                                // const rawPersonalInfo = new FormOperation(event.target.elements,personalInfoContainer);
+                                // formData["personalInfo"] = rawPersonalInfo.formDataPack;
+
+                                // assigning data
+                                formData["educationInfo"].repackedData.forEach(function(value,key){
+                                    formDataTransport.append(key,value);
+                                })
+
+                                const education_certificate = $('#education_certificate')[0];
+                                const education_certificate_file = education_certificate.files[0];
+
+                                formDataTransport.append('education_certificate_file', education_certificate_file);
+
+                                axios.post('{{route('doctor.profile.store')}}',formDataTransport, {
+                                    headers: {
+                                        'Content-Type': 'multipart/form-data',
+                                    }
+                                }).then(function (response) {
+                                    console.log(response.data.educations);
+
+                                    toastContentSuccess.empty();
+                                    toastContainer = toastContainer.text(response.data['message']);
+
+                                    toastContentSuccess.append(toastContainer);
+                                    const toastBootstrap = bootstrap.Toast.getOrCreateInstance(toastSuccess)
+                                    toastBootstrap.show()
+                                    // form reset
+                                    frmEducation[0].reset();
+                                    $('#dataTable tbody tr').remove();
+
+                                    (response.data.educations).forEach((value,key)=>{
+                                        $('#dataTable').append(
+                                            `<tr>
                                             <td>${value.institute}</td>
                                             <td>${value.specialization}</td>
                                             <td>${value.duration}</td>
@@ -820,177 +858,194 @@
                                             <td>${value.edu_doc_title}</td>
                                             <td><a href="#" class="btn-danger"><i class="fa-regular fa-trash-can"></i><a/></td>
                                         </tr>`
-                                      );
-                                  })
+                                        );
+                                    })
+                                    submitEducation();
+                                    // alert(response.data['message']);
 
+                                }).catch(function (error) {
+                                    console.log(error);
+                                    if (error.response.status === 422) {
+                                        let errors = error.response.data.errors;
+                                        // Clear previous error messages
+                                        toastContent.empty();
 
+                                        console.log(Object.entries(errors));
+                                        let ul = $("<ul>");
+                                        Object.entries(errors).forEach((value)=>{
+                                            let fieldName = value[0], errorMessage = value[1][0],  li = $("<li>").text(errorMessage) ;
+                                            console.log(fieldName,errorMessage);
+                                            ul.append(li);
+                                        })
 
+                                        toastContent.append(ul);
+                                        const toastBootstrap = bootstrap.Toast.getOrCreateInstance(toastLiveExample)
+                                        toastBootstrap.show()
 
-                                  // alert(response.data['message']);
+                                    }
+                                });
 
-                              }).catch(function (error) {
-                                  console.log(error);
-                                  if (error.response.status === 422) {
-                                      let errors = error.response.data.errors;
-                                      // Clear previous error messages
-                                      toastContent.empty();
-
-                                      console.log(Object.entries(errors));
-                                      let ul = $("<ul>");
-                                      Object.entries(errors).forEach((value)=>{
-                                          let fieldName = value[0], errorMessage = value[1][0],  li = $("<li>").text(errorMessage) ;
-                                          console.log(fieldName,errorMessage);
-                                          ul.append(li);
-                                      })
-
-                                      toastContent.append(ul);
-                                      const toastBootstrap = bootstrap.Toast.getOrCreateInstance(toastLiveExample)
-                                      toastBootstrap.show()
-
-                                  }
-                              });
-
-                                  // educationInfoContainer.hide(0,e=>{
-                                  //     trainingInfoContainer.show();
-                                  //
-                                  //     if(!formActive.get('trainingInfo')){
-                                  //         formActive.set('trainingInfo',trainingInfoContainer);
-                                  //         tabActiveList.set('tabTraining',tabTraining);
-                                  //     }
-                                  //
-                                  // })
-                              // console.log(rawEducationInfo.formElements);
-                              console.log(formData);
-                          }else if(event.currentTarget.id === 'form_training'){  //===================== training information
-                              console.log('you are here in training info');
+                                // educationInfoContainer.hide(0,e=>{
+                                //     trainingInfoContainer.show();
+                                //
+                                //     if(!formActive.get('trainingInfo')){
+                                //         formActive.set('trainingInfo',trainingInfoContainer);
+                                //         tabActiveList.set('tabTraining',tabTraining);
+                                //     }
+                                //
+                                // })
+                                // console.log(rawEducationInfo.formElements);
+                                console.log(formData);
+                            }else if(event.currentTarget.id === 'form_training'){  //===================== training information
+                                console.log('you are here in training info');
                                 //object creation
-                                  const rawTrainingInfo = new FormOperation(event.target.elements,trainingInfoContainer);
+                                const rawTrainingInfo = new FormOperation(event.target.elements,trainingInfoContainer);
 
-                                      formData["trainingInfo"] = rawTrainingInfo.formDataPack;
-                                      trainingInfoContainer.hide(0,e=>{
-                                          experienceContainer.show(0,()=>{
-                                              //job validation
-                                              $(`[data-job-condition="present"]`).click(e=>{
-                                                  jobStatusValidation(e);
-                                              });
+                                formData["trainingInfo"] = rawTrainingInfo.formDataPack;
+                                trainingInfoContainer.hide(0,e=>{
+                                    experienceContainer.show(0,()=>{
+                                        //job validation
+                                        $(`[data-job-condition="present"]`).click(e=>{
+                                            jobStatusValidation(e);
+                                        });
 
-                                              $('#form_experience .btn-close').click(e=>{
-                                                  $(e.currentTarget).parent().parent().remove();
-                                              })
-                                          })
-                                          if(!formActive.get('experienceInfo')){
-                                              formActive.set('expInfo',experienceContainer);
-                                              tabActiveList.set('tabExp',tabExperience);
-                                          }
-                                      });
-                                  console.log(formData);
+                                        $('#form_experience .btn-close').click(e=>{
+                                            $(e.currentTarget).parent().parent().remove();
+                                        })
+                                    })
+                                    if(!formActive.get('experienceInfo')){
+                                        formActive.set('expInfo',experienceContainer);
+                                        tabActiveList.set('tabExp',tabExperience);
+                                    }
+                                });
+                                console.log(formData);
 
-                          }else if(event.currentTarget.id === 'form_experience'){ // ==================  experience info
-                              //object creation
-                              const rawExperienceInfo = new FormOperation(event.target.elements);
-                                  formData["experienceInfo"] = rawExperienceInfo.formDataPack;
-                                  alert("Form data submitted successfully")
-                              console.log(formData);
-                          }
-                      }
+                            }else if(event.currentTarget.id === 'form_experience'){ // ==================  experience info
+                                //object creation
+                                const rawExperienceInfo = new FormOperation(event.target.elements);
+                                formData["experienceInfo"] = rawExperienceInfo.formDataPack;
+                                alert("Form data submitted successfully")
+                                console.log(formData);
+                            }
+                        }
 
-                      form.classList.add('was-validated')
-                  }, false)
-              })
-          })();
-
-
-          // ===========================back to the previous page
-          // education
-          (educationInfoContainer.find("[name='back']")).click(()=> educationInfoContainer.hide(0,()=>personalInfoContainer.show()));
-
-          // training
-          (trainingInfoContainer.find("[name='back']")).click(()=> trainingInfoContainer.hide(0,()=>educationInfoContainer.show()));
-
-          //experience
-          (experienceContainer.find("[name='back']")).click(() => experienceContainer.hide(0,()=>trainingInfoContainer.show()));
+                        form.classList.add('was-validated')
+                    }, false)
+                })
+            })();
 
 
-          // ================================tab handler
-          $('form').submit(()=>tabActivate())
-          $(document).click(()=>tabActivate())
-          function tabActivate(){
-                  // jQuery methods go here...
-                  tabActivated(tabActiveList);
-                  tabVisibility();
+            // ===========================back to the previous page
+            // education
+            (educationInfoContainer.find("[name='back']")).click(()=> educationInfoContainer.hide(0,()=>personalInfoContainer.show()));
 
-                  if(formActive.get('personalInfo')){
+            // training
+            (trainingInfoContainer.find("[name='back']")).click(()=> trainingInfoContainer.hide(0,()=>educationInfoContainer.show()));
 
-                      tabPersonalInfo.click(e=>{
-                          switchTab(formActive,personalInfoContainer);
-                      })
-                  }
+            //experience
+            (experienceContainer.find("[name='back']")).click(() => experienceContainer.hide(0,()=>trainingInfoContainer.show()));
 
 
-                  if(formActive.get('educationInfo')){
-                      tabEducation.click(e=>{
-                          switchTab(formActive,educationInfoContainer);
-                      })
-                  }
+            // ================================tab handler
+            $('form').submit(()=>tabActivate())
+            $(document).click(()=>tabActivate())
+            function tabActivate(){
+                // jQuery methods go here...
+                tabActivated(tabActiveList);
+                tabVisibility();
 
-                  if(formActive.get('trainingInfo')){
-                      tabTraining.click(e=>{
-                          switchTab(formActive,trainingInfoContainer);
-                      })
-                  }
+                if(formActive.get('personalInfo')){
 
-                  if(formActive.get('expInfo')){
-                      tabExperience.click(e=>{
-                          switchTab(formActive,experienceContainer);
-                      })
-                  }
-              }
+                    tabPersonalInfo.click(e=>{
+                        switchTab(formActive,personalInfoContainer);
+                    })
+                }
 
 
+                if(formActive.get('educationInfo')){
+                    tabEducation.click(e=>{
+                        switchTab(formActive,educationInfoContainer);
+                    })
+                }
 
-          // ++++++++++++++++++++++++++   add more field
-          // for education info
-          // const addMoreEdu = new CloneFields($('#form_education .input-edu-container'),btnAddEdu,'<p class="my-0 "><strong class="h3">More Academic Info</strong></p>');
-          //
-          // btnAddEdu.click(e=>{
-          //   addMoreEdu.formClone();
-          //   $('#form_education .btn-close').click(e=>{
-          //     $(e.currentTarget).parent().parent().remove();
-          //   })
-          // })
+                if(formActive.get('trainingInfo')){
+                    tabTraining.click(e=>{
+                        switchTab(formActive,trainingInfoContainer);
+                    })
+                }
 
-          // for training info
-          const addMoreTrain = new CloneFields($('#training_info_container .input-train-container'),btnAddTraining,'<p class="my-0 "><strong class="h3">More Training Info</strong></p>');
-
-          btnAddTraining.click(e=>{
-              addMoreTrain.formClone();
-              $('#training_info_container .btn-close').click(e=>{
-                  $(e.currentTarget).parent().parent().remove();
-              })
-          });
-
-          // add more experience info
-          const addMoreExperience = new CloneFields($('#form_experience .input-xp-container'),btnAddExp,'<p class="my-0 "><strong class="h3">More Experience Info</strong></p>');
-
-          btnAddExp.click(e=>{
-              addMoreExperience.formClone(addMoreExperience.counter);
-              addMoreExperience.counter++;
-
-              //job validation
-              $(`[data-job-condition="present"]`).click(e=>{
-                  jobStatusValidation(e);
-              });
-
-              $('#form_experience .btn-close').click(e=>{
-                  $(e.currentTarget).parent().parent().remove();
-              })
-          });
+                if(formActive.get('expInfo')){
+                    tabExperience.click(e=>{
+                        switchTab(formActive,experienceContainer);
+                    })
+                }
+            }
 
 
 
-          })// main loader ending tag
+            // ++++++++++++++++++++++++++   add more field
+            // for education info
+            // const addMoreEdu = new CloneFields($('#form_education .input-edu-container'),btnAddEdu,'<p class="my-0 "><strong class="h3">More Academic Info</strong></p>');
+            //
+            // btnAddEdu.click(e=>{
+            //   addMoreEdu.formClone();
+            //   $('#form_education .btn-close').click(e=>{
+            //     $(e.currentTarget).parent().parent().remove();
+            //   })
+            // })
+
+            // for training info
+            const addMoreTrain = new CloneFields($('#training_info_container .input-train-container'),btnAddTraining,'<p class="my-0 "><strong class="h3">More Training Info</strong></p>');
+
+            btnAddTraining.click(e=>{
+                addMoreTrain.formClone();
+                $('#training_info_container .btn-close').click(e=>{
+                    $(e.currentTarget).parent().parent().remove();
+                })
+            });
+
+            // add more experience info
+            const addMoreExperience = new CloneFields($('#form_experience .input-xp-container'),btnAddExp,'<p class="my-0 "><strong class="h3">More Experience Info</strong></p>');
+
+            btnAddExp.click(e=>{
+                addMoreExperience.formClone(addMoreExperience.counter);
+                addMoreExperience.counter++;
+
+                //job validation
+                $(`[data-job-condition="present"]`).click(e=>{
+                    jobStatusValidation(e);
+                });
+
+                $('#form_experience .btn-close').click(e=>{
+                    $(e.currentTarget).parent().parent().remove();
+                })
+            });
 
 
+
+
+            // eudcation page data checker
+            submitEducation(); // called the function
+            function submitEducation(){
+                if($("#dataTable tbody tr td").length >= 3){
+                    console.log('you are here ');
+                    btnEducationSubmit.removeAttr("type",'submit');
+                    btnEducationSubmit.attr('type','button');
+                    btnEducationSubmit.click((e)=>{
+                        educationInfoContainer.hide(0,e=>{
+                            trainingInfoContainer.show();
+
+                            if(!formActive.get('trainingInfo')){
+                                formActive.set('trainingInfo',trainingInfoContainer);
+                                tabActiveList.set('tabTraining',tabTraining);
+                            }
+
+                        })
+                    })
+                }
+            }
+
+        })// main loader ending tag
         // ============================bootstrap toast functions
         $(document).ready(function(){
             $("#liveToast").toast({

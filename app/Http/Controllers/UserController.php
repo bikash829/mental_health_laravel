@@ -3,6 +3,9 @@
 namespace App\Http\Controllers;
 
 use App\Models\Address;
+use App\Models\TrainingInfo;
+use App\Models\ExperienceInfo;
+use App\Models\Education;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -119,11 +122,51 @@ class UserController extends Controller
                 return response()->json(['message' => 'Your education information saved successfully','educations'=>$user->education]);
 
                 break;
+
+
+            case 'AddTraining': // case training info save
+                $request->validate([
+                    'institute' => ['required','string','max:100'],
+                    'specialization' => ['required','string','max:50'],
+                    'from_date'=>['required','date'],
+                    'to_date'=>['required','date'],
+                    'training_title'=> ['required','string','max:100'],
+                    'training_certificate_file' => ['required','mimes:jpeg,jpg,png,pdf','max:2048'],
+
+                ]);
+
+                if($request->file('training_certificate_file')){
+                    $file = $request->file('training_certificate_file');
+                    $fileName = Str::uuid().'.'.$file->extension();
+                    $fileLocation = 'uploads/important_documents/training_documents';
+                    $file->move(public_path($fileLocation), $fileName);
+
+                    // merging info into request
+                    $request->merge(['training_certificate' => $fileName]);
+                    $request->merge(['certificate_location' => $fileLocation]);
+                }
+
+                $user->training()->create($request->all());
+
+                return response()->json(['message' => 'Your training information saved successfully','trainings'=>$user->training]);
+
+            case 'saveExperienceInfo':  // case experience info save
+                $request->validate([
+                    'org_name' => ['required','string','max:200'],
+                    'department' => ['required','string','max:50'],
+                    'position' => ['required','string','max:50'],
+                    'from_date'=>['required','date'],
+                    // 'to_date'=>['date'],
+                    'job_status'=> ['string','max:10'],
+
+                ]);
+
+                $user->experience()->create($request->all());
+                return response()->json(['message' => 'Your experience saved successfully','experiences'=>$user->experience]);
+
             default:
                 return redirect(route('error404'));
         }
-
-
     }
 
     /**
@@ -246,6 +289,37 @@ class UserController extends Controller
     }
 
 
+    public function delete_education(Request $request){
+        $user = Auth::user();
+        $education = Education::find($request->id);
+        $education->delete();
+        return response()->json(['message' => 'Record deleted','educations'=>$user->education]);
+
+    }
+
+
+    /**
+     * Delete training info from an specific user
+     */
+
+     public function delete_training(Request $request){
+        $row = TrainingInfo::find($request->id);
+        $row->delete();
+        return response()->json(['message' => 'Record deleted',]);
+
+     }
+
+     /**
+     * Delete experience info from an specific user
+     */
+
+     public function delete_experience(Request $request){
+        // return $request;
+        $row = ExperienceInfo::find($request->id);
+        $row->delete();
+        return response()->json(['message' => 'Record deleted',]);
+
+     }
 
 
 

@@ -21,6 +21,8 @@ return new class extends Migration
             $table->string('password');
             $table->integer('marital_status')->nullable()->comment('1=Unmarried, 2=Married, 3=Divorced');
 
+            $table->string('nationality',50)->nullable();
+
 
             $table->string('gender',10)->nullable();
             $table->string('phone_code',30)->nullable();

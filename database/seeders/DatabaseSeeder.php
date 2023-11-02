@@ -17,6 +17,8 @@ class DatabaseSeeder extends Seeder
     public function run(): void
     {
         // Call the manual seeder
+        $this->call(CountriesSeeder::class);
+
         $this->call(BloodGroupSeeder::class);
 
         $this->call([

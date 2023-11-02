@@ -11,16 +11,10 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('experience_infos', function (Blueprint $table) {
+        Schema::create('country_users', function (Blueprint $table) {
             $table->id();
-            $table->string('org_name');
-            $table->string('department',50);
-
-            $table->date('from_date');
-            $table->date('to_date')->nullable();
-            $table->string('job_status',10)->nullable();
-            $table->string('position',50);
             $table->foreignId('user_id')->constrained();
+            $table->foreignId('country_id')->constrained();
             $table->timestamps();
         });
     }
@@ -30,6 +24,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('experience_infos');
+        Schema::dropIfExists('country_users');
     }
 };

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Country;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -77,6 +78,9 @@ class DoctorController extends Controller
 
     public function doctor_profile_wizard_step(){
         $user = Auth::user();
-        return view('wizard_step_form.doctor_form',compact('user'));
+        $country_phone = json_decode(file_get_contents(public_path('data/countries.json')),true);
+        // dd($country_phone);
+
+        return view('wizard_step_form.doctor_form',compact('user','country_phone'));
     }
 }

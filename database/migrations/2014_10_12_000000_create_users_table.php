@@ -25,6 +25,7 @@ return new class extends Migration
 
 
             $table->string('gender',10)->nullable();
+
             $table->string('phone_code',30)->nullable();
             $table->string('phone',30)->nullable();
             $table->string('additional_phone_code',30)->nullable();

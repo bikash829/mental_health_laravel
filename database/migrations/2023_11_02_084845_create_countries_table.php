@@ -11,10 +11,16 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('country_users', function (Blueprint $table) {
+
+        Schema::create('countries', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('user_id')->constrained();
-            $table->foreignId('country_id')->constrained();
+            $table->string('num_code');
+            $table->string('alpha_2_code');
+            $table->string('alpha_3_code');
+            $table->string('country_name');
+            $table->string('nationality');
+
+
             $table->timestamps();
         });
     }
@@ -24,6 +30,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('country_users');
+        Schema::dropIfExists('countries');
     }
 };

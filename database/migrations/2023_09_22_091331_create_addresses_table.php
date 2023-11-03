@@ -18,6 +18,7 @@ return new class extends Migration
             $table->string('zip_code',50);
             $table->string('city',30);
             $table->string('state',50);
+            $table->string('country',50);
 //            $table->unsignedBigInteger('user_id');
 //            $table->foreign('user_id')
 //                ->references('id')

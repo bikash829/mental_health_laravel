@@ -158,10 +158,10 @@
                         <label for="marital_status" class="form-label">Martial Status(Optional)</label>
                         <select name="marital_status" id="marital_status" required class="form-select"
                             aria-label="Default select example">
-                            <option disabled @selected($user->expert->doc_title == null)>Select One</option>
-                            <option @selected($user->expert->doc_title == 1) value="1">Unmarried</option>
-                            <option @selected($user->expert->doc_title == 2) value="2">Married</option>
-                            <option @selected($user->expert->doc_title == 3) value="3">Divorced</option>
+                            <option disabled @selected($user?->expert?->doc_title == null)>Select One</option>
+                            <option @selected($user?->expert?->doc_title == 1) value="1">Unmarried</option>
+                            <option @selected($user?->expert?->doc_title == 2) value="2">Married</option>
+                            <option @selected($user?->expert?->doc_title == 3) value="3">Divorced</option>
                         </select>
 
                     </div>
@@ -170,10 +170,12 @@
                         <label for="nationality" class="form-label">Nationality</label>
                         <select name="nationality" id="nationality" required class="form-select"
                             aria-label="Default select example">
-                            <option value="" disabled selected>Select One</option>
-                            <option value="1">Bangladeshi</option>
-                            <option value="2">Indian</option>
-                            <option value="3">British</option>
+                            <option value="" disabled @selected($user?->nationality == null)>Select One</option>
+                            @foreach ($country_phone as $data)
+                                <option @selected($user?->nationality == $data['nationality']) value="{{ $data['nationality'] }}">
+                                    {{ $data['nationality'] }}</option>
+                            @endforeach
+
                         </select>
                     </div>
 
@@ -246,10 +248,12 @@
                         <label for="country" class="form-label">Country</label>
                         <select class="form-select" aria-label="Default select example" name="country" id="country"
                             required>
-                            <option value="" disabled selected>Select One</option>
-                            <option value="1">Bangladesh</option>
-                            <option value="2">India</option>
-                            <option value="3">UK</option>
+                            <option value="" disabled @selected($user?->address->country == null)>Select One</option>
+
+                            @foreach ($country_phone as $data)
+                                <option @selected($user?->address->country == $data['en_short_name']) value="{{ $data['en_short_name'] }}">
+                                    {{ $data['en_short_name'] }}</option>
+                            @endforeach
                         </select>
                     </div>
                     <!-- end address  -->
@@ -259,13 +263,17 @@
                         <label for="phone_code" class="form-label">Phone Code</label>
                         <select name="phone_code" id="phone_code" required class="form-select"
                             aria-label="Default select example">
-                            <option value="" disabled selected>Select One</option>
-                            <option value="1">+88</option>
-                            <option value="2">+1597</option>
-                            <option value="3">+9715</option>
+                            <option value="" disabled @selected($user?->phone_code == null)>Select One</option>
+
+                            @foreach ($country_phone as $data)
+                                <option @selected($user?->phone_code == $data['num_code']) value="{{ $data['num_code'] }}">
+                                    {{ $data['num_code'] }}</option>
+                            @endforeach
+
+
                         </select>
                     </div>
-                    <div class="col-12 col-lg-5 col-xl-5 col-xxl-5">
+                    <div class="col-12 col-lg-4 col-xl-4 col-xxl-4">
                         <label for="phone" class="form-label">Contact No.</label>
                         <input type="number" class="form-control" value="{{ $user->phone }}" min="8"
                             name="phone" id="phone" data-contact="phone" placeholder="01XXXXXXXXX" required>
@@ -277,7 +285,23 @@
                             @enderror
                         </div>
                     </div>
-                    <div class="col-12 col-lg-5 col-xl-5 col-xxl-5">
+
+                    <div class="col-12 col-lg-2 col-xl-2 col-xxl-2">
+                        <label for="additional_phone_code" class="form-label">Phone Code</label>
+                        <select name="additional_phone_code" id="additional_phone_code" required class="form-select"
+                            aria-label="Default select example">
+                            <option value="" disabled @selected($user?->additional_phone_code == null)>Select One</option>
+
+                            @foreach ($country_phone as $data)
+                                <option @selected($user?->additional_phone_code == $data['num_code']) value="{{ $data['num_code'] }}">
+                                    {{ $data['num_code'] }}</option>
+                            @endforeach
+
+
+                        </select>
+                    </div>
+
+                    <div class="col-12 col-lg-4 col-xl-4 col-xxl-4">
                         <label for="additional_phone" class="form-label">Additional Number</label>
                         <input type="number" class="form-control" value="{{ $user->additional_phone }}"
                             name="additional_phone" id="additional_phone" data-contact="additional_phone"
@@ -293,7 +317,7 @@
 
 
                     <!-- identity -->
-                    <div class="col-12 col-lg-3 col-xl-3 col-xxl-3">
+                    <div class="col-12 col-lg-2 col-xl-2 col-xxl-2">
                         <label for="identity" class="form-label">Identity</label>
                         <select name="identity_type" id="" required class="form-select">
                             <option @selected($user->identity_type == null) value="" disabled>Select Type</option>
@@ -302,7 +326,7 @@
                         </select>
                     </div>
 
-                    <div class="col-12 col-lg-5 col-xl-5 col-xxl-5">
+                    <div class="col-12 col-lg-4 col-xl-4 col-xxl-4">
                         <label for="identity" class="form-label">Identity no.</label>
                         <input type="text" class="form-control" value="{{ $user->identity_no }}" name="identity_no"
                             id="identity" placeholder="854XXXXXXXXXXXXXXXX" max="20" min="6" required>
@@ -315,10 +339,24 @@
                         </div>
                     </div>
 
+                    {{-- <div class="col-12 col-lg-4 col-xl-4 col-xxl-4">
+                        <label for="identity_proof" class="form-label">Identity Proof(img,pdf)</label>
+                        <input class="form-control" type="file" name="identity_proof" accept=".pdf,.jpg,.jpeg,.png"
+                            id="identity_proof" required>
+                        <div class="invalid-feedback">
+                            @error('identity_proof')
+                                {{ $message }}
+                            @else
+                                Please upload an attachment of your identity
+                            @enderror
+                        </div>
+                    </div> --}}
+
 
                     @isset($user->identity_proof)
-                        <div class="col-12 col-lg-4 col-xl-4 col-xxl-4">
+                        <div class="col-12 col-lg-6 col-xl-6 col-xxl-6">
                             <label for="identity_proof" class="form-label">Identity Proof(image/pdf)</label>
+
                             <div>
                                 <div class="btn-group" role="group" aria-label="Basic outlined example">
                                     <a href="#" class="btn btn-outline-secondary btn-sm text-primary">View
@@ -332,7 +370,7 @@
 
                         </div>
                     @else
-                        <div class="col-12 col-lg-4 col-xl-4 col-xxl-4">
+                        <div class="col-12 col-lg-6 col-xl-6 col-xxl-6">
                             <label for="identity_proof" class="form-label">Identity Proof(img,pdf)</label>
                             <input class="form-control" type="file" name="identity_proof" accept=".pdf,.jpg,.jpeg,.png"
                                 id="identity_proof" required>
@@ -361,6 +399,19 @@
                             @enderror
                         </div>
                     </div>
+
+                    {{-- <div class="col-12 col-lg-6 col-xl-6 col-xxl-6">
+                        <label for="license_attachment" class="form-label">License Attachment</label>
+                        <input type="file" class="form-control" name="license_attachment" accept=".pdf,.jpg,.jpeg,.png"
+                            id="license_attachment" placeholder="" required>
+                        <div class="invalid-feedback">
+                            @error('license_attachment')
+                                {{ $message }}
+
+                                Please upload you license attachment
+                            @enderror
+                        </div>
+                    </div> --}}
                     @isset($user->expert->license_attachment)
                         <div class="col-12 col-lg-6 col-xl-6 col-xxl-6">
                             <label for="license_attachment" class="form-label">License Attachment</label>
@@ -378,8 +429,8 @@
                     @else
                         <div class="col-12 col-lg-6 col-xl-6 col-xxl-6">
                             <label for="license_attachment" class="form-label">License Attachment</label>
-                            <input type="file" class="" name="license_attachment" accept=".pdf,.jpg,.jpeg,.png"
-                                id="license_attachment" placeholder="" required>
+                            <input type="file" class="form-control" name="license_attachment"
+                                accept=".pdf,.jpg,.jpeg,.png" id="license_attachment" placeholder="" required>
                             <div class="invalid-feedback">
                                 @error('license_attachment')
                                     {{ $message }}
@@ -535,7 +586,9 @@
                                     <td>{{ $traingInfo?->to_date }}</td>
                                     <td>{{ $traingInfo?->training_title }}</td>
                                     {{-- <td><a class="btn btn-danger" href="{{route('doctor.profile.delete_education')}}"></i></a></td> --}}
-                                    <td><button class="btn btn-danger" name="training_id" value="{{ $traingInfo?->id }}"><i class="fa-regular fa-trash-can"></i></button>
+                                    <td><button class="btn btn-danger" name="training_id"
+                                            value="{{ $traingInfo?->id }}"><i
+                                                class="fa-regular fa-trash-can"></i></button>
                                     </td>
                                 </tr>
                             @endforeach
@@ -588,8 +641,9 @@
                     </div>
 
                     <div class="col-6 my-3 d-grid mx-auto">
-                        <button type="submit" id="btnAddMoreTrain" name="btnSaveForm" value="AddTraining" class="btn btn-outline-secondary"><span><i
-                                    class="fa-solid fa-plus"></i> Add More</span></button>
+                        <button type="submit" id="btnAddMoreTrain" name="btnSaveForm" value="AddTraining"
+                            class="btn btn-outline-secondary"><span><i class="fa-solid fa-plus"></i> Save & Add
+                                More</span></button>
                     </div>
 
                     <div class="col-12 mt-4">
@@ -628,10 +682,10 @@
                                     <td>{{ $xp?->from_date }}</td>
                                     <td>
 
-                                        @if($xp->job_status == 'true')
-                                            {{__("Present")}}
+                                        @if ($xp->job_status == 'true')
+                                            {{ __('Present') }}
                                         @else
-                                            {{$xp->to_date}}
+                                            {{ $xp->to_date }}
                                         @endif
                                     </td>
                                     {{-- <td><a class="btn btn-danger" href="{{route('doctor.profile.delete_education')}}"></i></a></td> --}}
@@ -696,8 +750,9 @@
                     </div>
 
                     <div class="col-6 my-3 d-grid mx-auto">
-                        <button type="submit" id="btnAddMoreExperience" name="btnSaveForm" value="saveExperienceInfo" class="btn btn-outline-secondary"><span><i
-                                    class="fa-solid fa-plus"></i>Save & Add More</span></button>
+                        <button type="submit" id="btnAddMoreExperience" name="btnSaveForm" value="saveExperienceInfo"
+                            class="btn btn-outline-secondary"><span><i class="fa-solid fa-plus"></i>Save & Add
+                                More</span></button>
                     </div>
 
 
@@ -858,34 +913,34 @@
             }
 
 
-            function educationNextPage(){
-                if(trDataChecker(tableEducation)){
-                    btnEducationSubmit.removeAttr('disabled','');
+            function educationNextPage() {
+                if (trDataChecker(tableEducation)) {
+                    btnEducationSubmit.removeAttr('disabled', '');
                     btnEducationSubmit.removeClass('btn-outline-secondary').addClass("btn-outline-primary");
-                }else{
-                    btnEducationSubmit.attr('disabled','');
+                } else {
+                    btnEducationSubmit.attr('disabled', '');
                     btnEducationSubmit.removeClass('btn-outline-primary').addClass("btn-outline-secondary");
                 }
 
             }
 
 
-            function trainingNextPage(){
-                if(trDataChecker(tableTraining)){
-                    btnTrainingSubmit.removeAttr('disabled','');
+            function trainingNextPage() {
+                if (trDataChecker(tableTraining)) {
+                    btnTrainingSubmit.removeAttr('disabled', '');
                     btnTrainingSubmit.removeClass('btn-outline-secondary').addClass("btn-outline-primary");
-                }else{
-                    btnTrainingSubmit.attr('disabled','');
+                } else {
+                    btnTrainingSubmit.attr('disabled', '');
                     btnTrainingSubmit.removeClass('btn-outline-primary').addClass("btn-outline-secondary");
                 }
             }
 
-            function experienceNextPage(){
-                if(trDataChecker(tableExperience)){
-                    btnSubmitExp.removeAttr('disabled','');
+            function experienceNextPage() {
+                if (trDataChecker(tableExperience)) {
+                    btnSubmitExp.removeAttr('disabled', '');
                     btnSubmitExp.removeClass('btn-outline-secondary').addClass("btn-outline-primary");
-                }else{
-                    btnSubmitExp.attr('disabled','');
+                } else {
+                    btnSubmitExp.attr('disabled', '');
                     btnSubmitExp.removeClass('btn-outline-primary').addClass("btn-outline-secondary");
                 }
             }
@@ -894,16 +949,16 @@
             /**
              * Data table checker
              */
-            function trDataChecker(tableToCheck){
+            function trDataChecker(tableToCheck) {
                 let countCellsSecondRow = 0;
                 let countRows = tableToCheck[0].rows;
-                if(countRows[1]?.cells?.length){
+                if (countRows[1]?.cells?.length) {
                     countCellsSecondRow = countRows[1].cells.length;
                 }
 
-                if(countCellsSecondRow > 3){
+                if (countCellsSecondRow > 3) {
                     return true;
-                }else{
+                } else {
                     return false;
                 }
 
@@ -924,7 +979,7 @@
             })
 
 
-            function deleteEducation() {  // delete information from education
+            function deleteEducation() { // delete information from education
                 $("#dataTable button").click((e) => {
                     console.log(e.currentTarget.value);
 
@@ -949,16 +1004,16 @@
                 trainingInfoContainer.hide(0, e => {
                     experienceContainer.show();
 
-                    if(!formActive.get('experienceInfo')){
-                        formActive.set('expInfo',experienceContainer);
-                        tabActiveList.set('tabExp',tabExperience);
+                    if (!formActive.get('experienceInfo')) {
+                        formActive.set('expInfo', experienceContainer);
+                        tabActiveList.set('tabExp', tabExperience);
                     }
 
                 })
             })
 
 
-            function deleteTraining() {  // delete information from training
+            function deleteTraining() { // delete information from training
                 $("#dataTableTraining button").click((e) => {
                     let currentRow = $(e.currentTarget).parent().parent();
                     let formDataTransport = new FormData();
@@ -978,14 +1033,14 @@
 
 
             /**
-            * experience handling
-            */
+             * experience handling
+             */
             btnSubmitExp.click((e) => {
-                window.location.href =  "{{route('doctor.profile')}}";
+                window.location.href = "{{ route('doctor.profile') }}";
             });
 
 
-            function deleteExperience() {  // delete information from experience
+            function deleteExperience() { // delete information from experience
                 $("#dataTableExperience button").click((e) => {
 
                     let currentRow = $(e.currentTarget).parent().parent();
@@ -1009,7 +1064,7 @@
             /**
              * toast success function
              */
-            function toastSuccessShow(message){
+            function toastSuccessShow(message) {
                 toastContentSuccess.empty();
                 toastContainer = toastContainer.text(message);
 
@@ -1036,7 +1091,8 @@
 
                             let formDataTransport = new FormData();
 
-                            if (event.currentTarget.id === 'form_personal_info') { // ==========================personal information
+                            if (event.currentTarget.id ===
+                                'form_personal_info') { // ==========================personal information
 
                                 const rawPersonalInfo = new FormOperation(event.target.elements,
                                     personalInfoContainer);
@@ -1106,6 +1162,7 @@
 
                                     })
                                 }).catch(function(error) {
+                                    console.log(error);
                                     if (error.response.status === 422) {
                                         let errors = error.response.data.errors;
                                         // Clear previous error messages
@@ -1119,7 +1176,7 @@
                                                 li = $("<li>").text(
                                                     errorMessage);
                                             console.log(fieldName,
-                                            errorMessage);
+                                                errorMessage);
                                             ul.append(li);
                                         })
 
@@ -1132,7 +1189,8 @@
                                 });
 
 
-                            } else if (event.currentTarget.id === 'form_education') { //======================= education information
+                            } else if (event.currentTarget.id ===
+                                'form_education') { //======================= education information
                                 const rawEducationInfo = new FormOperation(event.target
                                     .elements, educationInfoContainer);
 
@@ -1209,7 +1267,7 @@
                                                 li = $("<li>").text(
                                                     errorMessage);
                                             console.log(fieldName,
-                                            errorMessage);
+                                                errorMessage);
                                             ul.append(li);
                                         })
 
@@ -1232,21 +1290,25 @@
                                 // })
                                 // console.log(rawEducationInfo.formElements);
                                 console.log(formData);
-                            } else if (event.currentTarget.id === 'form_training') { //===================== training information
+                            } else if (event.currentTarget.id ===
+                                'form_training') { //===================== training information
                                 //object creation
-                                const rawTrainingInfo = new FormOperation(event.target.elements,trainingInfoContainer);
+                                const rawTrainingInfo = new FormOperation(event.target.elements,
+                                    trainingInfoContainer);
 
                                 formData["trainingInfo"] = rawTrainingInfo.formDataPack;
 
                                 // assigning data
-                                formData["trainingInfo"].repackedData.forEach(function(value,key) {
+                                formData["trainingInfo"].repackedData.forEach(function(value,
+                                    key) {
                                     formDataTransport.append(key, value);
                                 })
 
                                 const training_certificate = $('#training_certificate')[0];
                                 const training_certificate_file = training_certificate.files[0];
 
-                                formDataTransport.append('training_certificate_file',training_certificate_file);
+                                formDataTransport.append('training_certificate_file',
+                                    training_certificate_file);
 
                                 axios.post('{{ route('doctor.profile.store') }}',
                                     formDataTransport, {
@@ -1258,7 +1320,8 @@
                                     console.log(response.data.trainings);
 
                                     toastContentSuccess.empty();
-                                    toastContainer = toastContainer.text(response.data['message']);
+                                    toastContainer = toastContainer.text(response.data[
+                                        'message']);
 
                                     toastContentSuccess.append(toastContainer);
                                     const toastBootstrap = bootstrap.Toast
@@ -1302,7 +1365,7 @@
                                                 li = $("<li>").text(
                                                     errorMessage);
                                             console.log(fieldName,
-                                            errorMessage);
+                                                errorMessage);
                                             ul.append(li);
                                         })
 
@@ -1315,18 +1378,21 @@
                                 });
 
 
-                            } else if (event.currentTarget.id === 'form_experience') { // ==================  experience info
+                            } else if (event.currentTarget.id ===
+                                'form_experience') { // ==================  experience info
                                 //object creation
-                                const rawExperienceInfo = new FormOperation(event.target.elements);
+                                const rawExperienceInfo = new FormOperation(event.target
+                                    .elements);
                                 formData["experienceInfo"] = rawExperienceInfo.formDataPack;
                                 // assigning data
-                                formData["experienceInfo"].repackedData.forEach(function(value,key) {
+                                formData["experienceInfo"].repackedData.forEach(function(value,
+                                    key) {
                                     formDataTransport.append(key, value);
                                 })
 
                                 /*
-                                ** Data manupulation
-                                */
+                                 ** Data manupulation
+                                 */
                                 axios.post('{{ route('doctor.profile.store') }}',
                                     formDataTransport, {
                                         headers: {
@@ -1337,7 +1403,8 @@
                                     console.log(response);
 
                                     toastContentSuccess.empty();
-                                    toastContainer = toastContainer.text(response.data['message']);
+                                    toastContainer = toastContainer.text(response.data[
+                                        'message']);
 
                                     toastContentSuccess.append(toastContainer);
                                     const toastBootstrap = bootstrap.Toast
@@ -1346,12 +1413,13 @@
                                     // // form reset
                                     frmExperience[0].reset();
                                     $('#dataTableExperience tbody tr').remove();
-                                    (response.data.experiences).forEach((value, key) => {
+                                    (response.data.experiences).forEach((value,
+                                    key) => {
                                         let currentJobStatus;
 
-                                        if(value.job_status == 'true'){
+                                        if (value.job_status == 'true') {
                                             currentJobStatus = 'Present';
-                                        }else{
+                                        } else {
                                             currentJobStatus = value.to_date;
 
                                         }
@@ -1389,7 +1457,7 @@
                                                 li = $("<li>").text(
                                                     errorMessage);
                                             console.log(fieldName,
-                                            errorMessage);
+                                                errorMessage);
                                             ul.append(li);
                                         })
 
@@ -1461,11 +1529,11 @@
 
 
             /**
-            * job validation
-            */
+             * job validation
+             */
             $(`[data-job-condition="present"]`).click(e => {
-                    jobStatusValidation(e);
-                });
+                jobStatusValidation(e);
+            });
 
             $('#form_experience .btn-close').click(e => {
                 $(e.currentTarget).parent().parent().remove();

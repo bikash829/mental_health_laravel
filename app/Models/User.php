@@ -27,6 +27,7 @@ class User extends Authenticatable
         'gender',
         'phone_code',
         'phone',
+        'nationality',
         'additional_phone_code',
         'additional_phone',
         'date_of_birth',

@@ -17,6 +17,7 @@ class Address extends Model
         'zip_code',
         'city',
         'state',
+        'country',
         'user_id',
 
     ];

@@ -6,6 +6,8 @@ use App\Models\Country;
 use Illuminate\Http\Request;
 use Illuminate\Queue\Connectors\NullConnector;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
+use App\Models\Post;
 // use
 
 class DoctorController extends Controller
@@ -137,9 +139,9 @@ class DoctorController extends Controller
         /**
          * End account progress here
          */
+        $page_title = 'Doctor dashboard';
 
-
-        return view('doctor.dashboard',compact('user','progress'));
+        return view('doctor.dashboard',compact('user','progress','page_title'));
     }
 
     public function show_profile(){
@@ -148,8 +150,6 @@ class DoctorController extends Controller
          /**
          *  account progress point
          */
-
-
         $user->load('expert','training','education','experience');
 
         $countNull = 0;
@@ -182,10 +182,7 @@ class DoctorController extends Controller
                     }
                     $countColumn++;
                     break;
-
             }
-
-
         }
 
         $countColumn += 4; // for expert table column
@@ -205,15 +202,14 @@ class DoctorController extends Controller
             $countNull += 5;
         }
 
-
-
         $progress =  round((100 - (floatval($countNull) / floatval($countColumn)) * 100)) . '%' ;
         /**
          * End account progress here
          */
+        $page_title = 'Doctor profile';
 
 
-        return view('doctor.profile',compact('user','progress'));
+        return view('doctor.profile',compact('user','progress','page_title'));
     }
 
     public function doctor_profile_wizard_step(){
@@ -224,4 +220,9 @@ class DoctorController extends Controller
 
         return view('wizard_step_form.doctor_form',compact('user','country_phone'));
     }
+
+
+
+
 }
+

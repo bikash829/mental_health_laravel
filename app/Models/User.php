@@ -88,4 +88,8 @@ class User extends Authenticatable
     public function experience(){
         return $this->hasMany(ExperienceInfo::class);
     }
+
+    public function post(){
+        return $this->hasMany(Post::class);
+    }
 }

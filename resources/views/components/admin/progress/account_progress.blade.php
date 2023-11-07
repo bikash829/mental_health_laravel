@@ -18,7 +18,7 @@
         @endrole
 
         " class="btn btn-primary btn-icon-split">
-            <span class="text">Update Profile</span>
+            <span class="text">Edit Profile</span>
         </a>
     </div>
 

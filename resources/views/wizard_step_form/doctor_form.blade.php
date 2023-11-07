@@ -1168,7 +1168,6 @@
                                         // Clear previous error messages
                                         toastContent.empty();
 
-                                        console.log(Object.entries(errors));
                                         let ul = $("<ul>");
                                         Object.entries(errors).forEach((value) => {
                                             let fieldName = value[0],

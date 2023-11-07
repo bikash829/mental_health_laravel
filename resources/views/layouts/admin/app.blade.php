@@ -7,7 +7,14 @@
     <meta name="description" content="">
     <meta name="author" content="">
 
-    <title>{{Auth::user()->getRoleNames()[0]}} Dashboard</title>
+    {{-- <title>{{Auth::user()->getRoleNames()[0]}} Dashboard</title> --}}
+    <title>
+        @isset($page_title)
+            {{$page_title}}
+        @else
+            {{Auth::user()->getRoleNames()[0]}} Dashboard
+        @endisset
+    </title>
 
     <!-- Custom fonts for this template-->
     <link href="{{asset('admin/vendor/fontawesome-free/css/all.min.css')}} " rel="stylesheet" type="text/css">

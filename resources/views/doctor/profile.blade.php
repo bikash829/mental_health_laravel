@@ -7,7 +7,7 @@
 @section('content')
 <section class="profile segment-margin">
     <div class="col-12 pb-4">
-        <x-admin.progress.account_progress/>
+        <x-admin.progress.account_progress  :progress="$progress"/>
     </div>
 
     <div class="row justify-content-center">

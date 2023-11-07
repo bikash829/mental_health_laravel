@@ -6,7 +6,7 @@
 @section('content')
     <div class="container-fluid">
 
-        <x-admin.progress.account_progress/>
+        <x-admin.progress.account_progress :progress="$progress"/>
 
         <!-- Page Heading -->
         <div class="d-sm-flex align-items-center justify-content-between my-4">
@@ -44,7 +44,7 @@
                             <div class="col mr-2">
                                 <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
                                     Earnings (Annual)</div>
-                                <div class="h5 mb-0 font-weight-bold text-gray-800">$215,000</div>
+                                <div class="h5 mb-0 font-weight-bold text-gray-800">{{$progress}}%</div>
                             </div>
                             <div class="col-auto">
                                 <i class="fas fa-dollar-sign fa-2x text-gray-300"></i>

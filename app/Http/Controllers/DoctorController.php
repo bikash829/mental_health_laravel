@@ -4,7 +4,9 @@ namespace App\Http\Controllers;
 
 use App\Models\Country;
 use Illuminate\Http\Request;
+use Illuminate\Queue\Connectors\NullConnector;
 use Illuminate\Support\Facades\Auth;
+// use
 
 class DoctorController extends Controller
 {
@@ -68,18 +70,157 @@ class DoctorController extends Controller
     // doctor profile section
     public function show_dashboard(){
         $user = Auth::user();
-        return view('doctor.dashboard',compact('user'));
+
+        /**
+         *  account progress point
+         */
+        $user->load('expert','training','education','experience');
+
+        $countNull = 0;
+        $countColumn = 0;
+
+
+
+        foreach($user->getAttributes() as $column=>$value){
+
+            switch ($column) {
+                case 'additional_phone_code':
+                    break;
+                case 'additional_phone':
+                    break;
+
+                case 'religion':
+                    break;
+
+                case 'blood_group_id':
+                    break;
+
+                case 'remember_token':
+                    break;
+                case 'deleted_at':
+                    break;
+                case 'email_verified_at':
+                    break;
+
+                default:
+                    if($value === null){
+                        $countNull++;
+                    }
+                    $countColumn++;
+                    break;
+
+            }
+
+
+        }
+
+        $countColumn += 4; // for expert table column
+
+        $countColumn += 6;
+        if($user->education->isEmpty()){
+            $countNull += 6;
+        }
+
+        $countColumn += 6;
+        if($user->training->isEmpty()){
+            $countNull += 6;
+        }
+
+        $countColumn += 5;
+        if($user->experience->isEmpty()){
+            $countNull += 5;
+        }
+
+
+
+        $progress =  round((100 - (floatval($countNull) / floatval($countColumn)) * 100)) . '%' ;
+        /**
+         * End account progress here
+         */
+
+
+        return view('doctor.dashboard',compact('user','progress'));
     }
 
     public function show_profile(){
         $user = Auth::user();
-        return view('doctor.profile',compact('user'));
+
+         /**
+         *  account progress point
+         */
+
+
+        $user->load('expert','training','education','experience');
+
+        $countNull = 0;
+        $countColumn = 0;
+
+        foreach($user->getAttributes() as $column=>$value){
+
+            switch ($column) {
+                case 'additional_phone_code':
+                    break;
+                case 'additional_phone':
+                    break;
+
+                case 'religion':
+                    break;
+
+                case 'blood_group_id':
+                    break;
+
+                case 'remember_token':
+                    break;
+                case 'deleted_at':
+                    break;
+                case 'email_verified_at':
+                    break;
+
+                default:
+                    if($value === null){
+                        $countNull++;
+                    }
+                    $countColumn++;
+                    break;
+
+            }
+
+
+        }
+
+        $countColumn += 4; // for expert table column
+
+        $countColumn += 6;
+        if($user->education->isEmpty()){
+            $countNull += 6;
+        }
+
+        $countColumn += 6;
+        if($user->training->isEmpty()){
+            $countNull += 6;
+        }
+
+        $countColumn += 5;
+        if($user->experience->isEmpty()){
+            $countNull += 5;
+        }
+
+
+
+        $progress =  round((100 - (floatval($countNull) / floatval($countColumn)) * 100)) . '%' ;
+        /**
+         * End account progress here
+         */
+
+
+        return view('doctor.profile',compact('user','progress'));
     }
 
     public function doctor_profile_wizard_step(){
         $user = Auth::user();
         $country_phone = json_decode(file_get_contents(public_path('data/countries.json')),true);
-        // dd($country_phone);
+
+
 
         return view('wizard_step_form.doctor_form',compact('user','country_phone'));
     }

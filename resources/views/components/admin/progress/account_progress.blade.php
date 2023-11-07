@@ -2,9 +2,9 @@
     <!-- Do what you can, with what you have, where you are. - Theodore Roosevelt -->
     <div class="col-10">
         <h4 class="small font-weight-bold">Account Setup <span
-                class="float-right">50.43%</span></h4>
+                class="float-right">{{$progress}}</span></h4>
         <div class="progress">
-            <div class="progress-bar bg-success" role="progressbar" style="width: 50.43%"
+            <div class="progress-bar bg-success" role="progressbar" style="width: {{$progress}}"
                  aria-valuenow="100" aria-valuemin="0" aria-valuemax="100"></div>
         </div>
     </div>
@@ -23,3 +23,6 @@
     </div>
 
 </div>
+
+
+

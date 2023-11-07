@@ -14,7 +14,12 @@ class PostController extends Controller
     public function index()
     {
         //
-        return view('doctor.community_forum');
+        // $posts = Post::latest()->paginate(5);
+        $posts = Post::all();
+
+        // dd($posts);
+        return view('doctor.community_forum',compact('posts'));
+
     }
 
     /**

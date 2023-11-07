@@ -20,11 +20,12 @@
             </div>
         </div>
     </div>
+
     {{--            toast success --}}
     <div class="toast-container position-fixed top-0 end-0 p-3">
         <div id="toastSuccess" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
             <div class="toast-header">
-                <strong class="me-auto text-success">Sucess!</strong>
+                <strong class="me-auto text-success">Success!</strong>
                 <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
             </div>
             <div class="toast-body">
@@ -34,7 +35,7 @@
         </div>
     </div>
 
-    <x-coomunity_forum />
+    <x-coomunity_forum :posts="$posts"/>
 @endsection
 
 @section('scripts')
@@ -45,6 +46,9 @@
     <script>
         // Example starter JavaScript for disabling form submissions if there are invalid fields
 
+        /**
+         * toast variables
+         */
         const toastContentSuccess = $('#toastContentSuccess');
         const toastSuccess = $('#toastSuccess');
 
@@ -52,6 +56,7 @@
         const toastError = $('#toastError');
 
         let toastContainer = $('<div>');
+
 
         (() => {
             'use strict'
@@ -107,29 +112,33 @@
         })()
 
         // bootstrap toast
-         /**
-             * toast success function
-             */
-             function toastSuccessShow(message) {
-                toastContentSuccess.empty();
-                toastContainer = toastContainer.text(message);
+        /**
+         * toast success function
+         */
+            function toastSuccessShow(message) {
+            toastContentSuccess.empty();
+            toastContainer = toastContainer.text(message);
 
-                toastContentSuccess.append(toastContainer);
-                const toastBootstrap = bootstrap.Toast.getOrCreateInstance(toastSuccess)
-                toastBootstrap.show()
-            }
+            toastContentSuccess.append(toastContainer);
+            const toastBootstrap = bootstrap.Toast.getOrCreateInstance(toastSuccess)
+            toastBootstrap.show()
+        }
 
-            function toastErrorShow(message) {
-                toastContentError.empty();
-                // toastContainer = toastContainer.text(message);
+        function toastErrorShow(message) {
+            toastContentError.empty();
+            // toastContainer = toastContainer.text(message);
 
-                toastContentError.append(message);
-                const toastBootstrap = bootstrap.Toast.getOrCreateInstance(toastError)
-                toastBootstrap.show()
-            }
+            toastContentError.append(message);
+            const toastBootstrap = bootstrap.Toast.getOrCreateInstance(toastError)
+            toastBootstrap.show()
+        }
 
 
-
+        /**
+         * post live card
+         */
+        // const postCard = $('#postCard');
+        // postCard.hide();
 
 
 

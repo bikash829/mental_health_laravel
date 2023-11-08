@@ -28,7 +28,7 @@
     <script src="{{asset('vendor/jquery/jquery-3.6.3.min.js')}}" ></script>
 
     <!-- Scripts -->
-    @vite(['resources/js/app.js',])
+    {{-- @vite(['resources/js/app.js',]) --}}
 
 </head>
 
@@ -171,7 +171,8 @@
 
     {{--||||||||||||Modal ||||||||||--}}
 
-
+    {{-- <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script> --}}
+    <script src="{{asset('vendor/axios/axios.min.js')}}"></script>
     <!-- fontawesome -->
     <script src="{{asset('vendor/fontawesome-free-6.2.1-web/js/all.js')}}" type="text/javascript"></script>
 
@@ -199,9 +200,13 @@
     @yield('scripts')
 
     <script type="text/javascript">
+
         // tooltip code
         const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]')
         const tooltipList = [...tooltipTriggerList].map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl))
+
+
+
     </script>
 </body>
 </html>

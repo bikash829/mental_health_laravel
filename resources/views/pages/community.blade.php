@@ -47,6 +47,7 @@
 
 @section('scripts')
     <script>
+
         // let btnComment;
 
         // btnComment = document.querySelectorAll('.btn-comment');

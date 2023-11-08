@@ -15,10 +15,11 @@ class PostController extends Controller
     {
         //
         // $posts = Post::latest()->paginate(5);
+        $user = Auth::user();
         $posts = Post::all();
 
-        // dd($posts);
-        return view('doctor.community_forum',compact('posts'));
+
+        return view('doctor.community_forum',compact('user','posts'));
 
     }
 
@@ -88,4 +89,18 @@ class PostController extends Controller
     // public function create_post(Request $request){
 
     // }
+
+    public function store_comment(Request $request){
+        $request->validate([
+            'comment'=>['required','string', 'min:5'],
+            'post_id'=>['required','integer'],
+        ]);
+
+        $post = Post::find($request->post_id);
+
+        $post->comments()->create($request->all());
+
+        // return redirect()->back()->with('success','Post created successfully');
+        return response()->json(['success'=>'Comment posted']);
+    }
 }

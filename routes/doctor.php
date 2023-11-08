@@ -19,6 +19,7 @@ Route::group(['prefix'=>'doctor','name'=>'doctor','as'=>'doctor.'],function (){
 
     // make a route for commutnity forum and community forum post
     Route::resource('community',PostController::class);
+    Route::post('/community/post/comment/',[PostController::class,'store_comment'])->name('store_comment');
     // Route::get('/community_forum/',[PostController::class,'show_community_forum'])->name('community_forum');
     // Route::post('/create-post/',[DoctorController::class,'create_post'])->name('create_post');
 

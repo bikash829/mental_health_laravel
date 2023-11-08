@@ -35,7 +35,7 @@
         </div>
     </div>
 
-    <x-coomunity_forum :posts="$posts"/>
+    <x-coomunity_forum :posts="$posts" :user="$user"/>
 @endsection
 
 @section('scripts')
@@ -75,6 +75,7 @@
                         event.preventDefault()
 
                         const formData = new FormData(form);
+                        console.log(formData);
 
                         if (formData.get('frmPost') == 'article') {
 
@@ -82,6 +83,7 @@
                                 .then(function(response) {
                                     console.log(response);
                                     if (response.status == 200) {
+                                        form.reset();
                                         toastSuccessShow(response.data.success);
                                     } else {
                                         alert('Post creation failed');
@@ -102,6 +104,30 @@
 
                                     toastErrorShow(errorList);
                                 });
+                        }else if(formData.get('frmComment') == 'comment'){
+                            axios.post("{{ route('doctor.store_comment') }}", formData)
+                                .then(function(response) {
+                                    console.log(response);
+                                    if (response.status == 200) {
+                                        form.reset();
+                                        toastSuccessShow(response.data.success);
+                                    } else {
+                                        alert('Post creation failed');
+                                    }
+
+                                })
+                                .catch(function(error) {
+                                    console.log(error);
+                                    const errorList = $('<ul>');
+                                    Object.entries(error.response.data.errors).forEach(element => {
+                                        console.log(element);
+                                        errorList.append($("<li>").text(element[1][0]));
+                                    });
+
+                                    toastErrorShow(errorList);
+                                });
+                        }else{
+                            alert('something went wrong');
                         }
 
                     }

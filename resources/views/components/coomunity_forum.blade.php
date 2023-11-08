@@ -64,30 +64,39 @@
                 <div class="p-des__comments comment-reply" id="commentsReply">
                     <hr>
                     <!-- comments form  -->
-                    <form  method="POST" class="mb-2">
+                    <form  method="POST" class="mb-2 needs-validation" novalidate >
                         @csrf
 
-                        <h6 class="p-des__reply-author py-2"> <a href="#" class="text-secondary">User Name</a> </h6>
-                        {{-- <p class="text-center fs-6 text-danger">Please Login to comment</p> --}}
-                        <input type="hidden" name="user_id" value="">
-                        <input type="hidden" name="post_id" value="">
+                        <h6 class="p-des__reply-author py-2"> <a href="#" class="text-secondary">{{$user->first_name . ' ' . $user->last_name}}</a> </h6>
+
+                        <input type="hidden" name="user_id" value="{{$post->user->id}}">
+                        <input type="hidden" name="post_id" value="{{$post->id}}">
                         <div class="">
                             <textarea name="comment" required rows="2" class="form-control " placeholder="Leave a Comment"></textarea>
+                            <input type="hidden" name="frmComment" value="comment">
                         </div>
-                        <div class="text-end"><input class="btn btn-sm btn-secondary mt-1" type="submit" value="reply" name="btn-comment"></div>
+                        <div class="text-end">
+                            {{-- <input class="btn btn-sm btn-secondary mt-1" type="submit" value="reply" name="btn-comment"> --}}
+                            <button id="btnComment" class="btn btn-sm btn-secondary mt-1" type="submit" name="bnt-comment" value="reply">reply</button>
+                        </div>
                     </form>
 
 
                     <!-- show comments  -->
-                    <div class="p-des__reply">
-                        <h6 class="p-des__reply-author"> <a href="#" class="text-secondary">{{--<?= ucwords($comment['f_name'])  . ' ' . ucwords($comment['l_name'])  ?>--}}</a> </h6>
+                    @if($post->comments->count() > 0)
+                        @foreach($post->comments as $comment)
+                            <div class="p-des__reply">
+                                <h6 class="p-des__reply-author"> <a href="#" class="text-secondary">{{$comment->user->first_name . ' ' . $comment->user->last_name}}</a> </h6>
 
-                        <p>Comment Description</p>
-                        <div class="p-des__reply-info">
-                            <p class="p-des__reply-time">Comment date</p>
-                            <span class="p-des__reply-icon"><i class="picon-size fa-solid fa-face-grin-hearts"></i></span>
-                        </div>
-                    </div>
+                                <p>{{$comment->comment}}</p>
+                                <div class="p-des__reply-info">
+                                    <p class="p-des__reply-time">{{$comment->created_at}}</p>
+                                    <span class="p-des__reply-icon"><i class="picon-size fa-solid fa-face-grin-hearts"></i></span>
+                                </div>
+                            </div>
+                        @endforeach
+                    @endif
+
                 </div>
             </div>
         </div>

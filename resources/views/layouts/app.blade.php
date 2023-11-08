@@ -28,7 +28,7 @@
     <script src="{{asset('vendor/jquery/jquery-3.6.3.min.js')}}" ></script>
 
     <!-- Scripts -->
-{{--    @vite(['resources/sass/app.scss', 'resources/js/app.js'])--}}
+    @vite(['resources/js/app.js',])
 
 </head>
 

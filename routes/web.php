@@ -3,6 +3,7 @@
 use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
+use App\Models\Post;
 
 
 
@@ -39,8 +40,16 @@ Route::get('doctor&counselor/',function (){
 })->name('doctor_counselor');
 
 Route::get('community-forum/',function (){
+    $user = Auth::user();
+    $posts = Post::with(['comments' => function ($query)
+        {
+            $query->orderBy('id', 'desc');
+        }])
+        ->orderBy('id', 'desc')
+        ->get();
     $data = ['community'=>'active',];
-    return view('pages.community',$data);
+
+    return view('pages.community',$data,compact('posts','user'));
 })->name('community');
 
 Route::get('about-us/',function (){

@@ -11,7 +11,7 @@
             <div class="toast-header">
                 {{-- <img src="..." class="rounded me-2" alt="..."> --}}
                 <strong class="me-auto text-danger">Warning!</strong>
-                <small>11 mins ago</small>
+                {{-- <small>11 mins ago</small> --}}
                 <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
             </div>
             <div class="toast-body">
@@ -35,7 +35,11 @@
         </div>
     </div>
 
-    <x-coomunity_forum :posts="$posts" :user="$user"/>
+
+    <div class="m-2">
+        <x-coomunity_forum :posts="$posts" :user="$user"/>
+    </div>
+
 @endsection
 
 @section('scripts')
@@ -56,6 +60,39 @@
         const toastError = $('#toastError');
 
         let toastContainer = $('<div>');
+
+        const currentUser = "{{ $user->first_name . ' ' . $user->last_name }}";
+
+
+        /**
+         * cloning the post card
+         */
+
+        const postCard = $('#postCard');
+        const postCardClone = postCard.clone(false);
+
+        console.log(postCardClone);
+
+        function latestReply(data,author){
+            let replyCard;
+
+
+            replyCard = `
+                    <div class="p-des__reply">
+                        <h6 class="p-des__reply-author"> <a href="#" class="text-secondary">${author}</a> </h6>
+
+                        <p>${data.comment}</p>
+                        <div class="p-des__reply-info">
+                            <p class="p-des__reply-time">${data.created_at}</p>
+                            <p>id:${data.id} </p>
+                            <span class="p-des__reply-icon"><i class="picon-size fa-solid fa-face-grin-hearts"></i></span>
+                        </div>
+                    </div>`;
+
+            return replyCard;
+        }
+
+
 
 
         (() => {
@@ -85,12 +122,10 @@
                                     if (response.status == 200) {
                                         form.reset();
                                         toastSuccessShow(response.data.success);
+                                        location.reload(true);
                                     } else {
                                         alert('Post creation failed');
                                     }
-
-
-
 
                                 })
                                 .catch(function(error) {
@@ -109,6 +144,13 @@
                                 .then(function(response) {
                                     console.log(response);
                                     if (response.status == 200) {
+                                        const originalDate = new Date(response.data.comment['created_at']);
+                                        let formatDateTime = `${originalDate.getFullYear()}-${originalDate.getMonth()}-${originalDate.getDate()} ${originalDate.getHours()}:${originalDate.getMinutes()}:${originalDate.getSeconds()}`;
+
+                                        response.data.comment['created_at'] = formatDateTime;
+
+                                        $(form).after(latestReply(response.data.comment,currentUser));
+
                                         form.reset();
                                         toastSuccessShow(response.data.success);
                                     } else {

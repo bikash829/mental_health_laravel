@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Comment;
 use App\Models\Post;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -16,7 +17,12 @@ class PostController extends Controller
         //
         // $posts = Post::latest()->paginate(5);
         $user = Auth::user();
-        $posts = Post::all();
+        $posts = Post::with(['comments' => function ($query)
+            {
+                $query->orderBy('id', 'desc');
+            }])
+            ->orderBy('id', 'desc')
+            ->get();
 
 
         return view('doctor.community_forum',compact('user','posts'));
@@ -90,6 +96,8 @@ class PostController extends Controller
 
     // }
 
+
+    // post comments
     public function store_comment(Request $request){
         $request->validate([
             'comment'=>['required','string', 'min:5'],
@@ -99,8 +107,9 @@ class PostController extends Controller
         $post = Post::find($request->post_id);
 
         $post->comments()->create($request->all());
+        $latestComment = $post->comments()->latest()->first();
 
         // return redirect()->back()->with('success','Post created successfully');
-        return response()->json(['success'=>'Comment posted']);
+        return response()->json(['success'=>'Comment posted','comment'=>$latestComment]);
     }
 }

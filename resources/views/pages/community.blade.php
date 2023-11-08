@@ -10,131 +10,240 @@
 @endsection
 
 @section('content')
-    <section class="segment-margin community">
-        <!-- post sectoin  -->
-        <div class="community__post post">
-            <!-- creating new post section  -->
-            <div class="post__card">
-                <div class="post__title">
-                    <p class="text-center fs-4 text-danger">Please Login to create a new post</p>
-                    <h3 class="post__author">Create a new post</h3>
-                </div>
-                <div class="p-des">
-                    <div class="p-des__article">
 
-                        <form action="./backend/create_post.php" method="POST">
-
-                            <input type="hidden" name="user_id" value="">
-                            <div class="form-group py-2">
-
-                                <input type="text" name="post_title" required class="form-control" placeholder="Post Title" maxlength="256">
-                            </div>
-
-                            <div class="form-group py-2">
-
-                                <textarea name="post_details" required class="form-control" rows="3" placeholder="Write Your Post Here"></textarea>
-                            </div>
-
-                            <div class="form-group py-2">
-                                <div class="col text-center"><input type="submit" value="Post Now" name="post_article" class="btn btn-primary"></div>
-
-                            </div>
-                        </form>
-
-                    </div>
-
-                </div>
+    <div class="toast-container position-fixed top-0 end-0 p-3">
+        <div id="toastError" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
+            <div class="toast-header">
+                {{-- <img src="..." class="rounded me-2" alt="..."> --}}
+                <strong class="me-auto text-danger">Warning!</strong>
+                {{-- <small>11 mins ago</small> --}}
+                <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
             </div>
-
-            <!-- end creating new post  -->
-            <div class="post__card">
-                <div class="post__title">
-                    <h3 class="post__author">Full Name</h3>
-                    <h4 class="post__upload-info">{{'Doctor'}}  |  {{'Date of post'}} </h4>
+            <div class="toast-body">
+                <div id="toastContentError">
                 </div>
-                <div class="p-des">
-                    <h5>Post title</h5>
-                    <p class="p-des__article">
-                        Post description
-                    </p>
-                    <div class="p-des__react-info" id="blah">
-                        <div class="p-des__comment btn-comment"><span id="commnetsCount" class="comment-count"></span><span> comments</span><i class="picon-size fa-solid fa-comments"></i></div>
-                        <div class="p-des__react"> <span id="reactCount">5 </span><a href="#" class="text-secondary"><i class="picon-size fa-solid fa-face-grin-hearts"></i></a></div>
-                    </div>
-
-
-                    <div class="p-des__comments comment-reply" id="commentsReply">
-                        <hr>
-                        <!-- comments form  -->
-                        <form action="./backend/create_post.php" method="POST" class="mb-2">
-
-                            <h6 class="p-des__reply-author py-2"> <a href="#" class="text-secondary">User Name</a> </h6>
-                            <p class="text-center fs-6 text-danger">Please Login to comment</p>
-                            <input type="hidden" name="user_id" value="">
-                            <input type="hidden" name="post_id" value="">
-                            <div class="">
-                                <textarea name="comment" required rows="2" class="form-control " placeholder="Leave a Comment"></textarea>
-                            </div>
-                            <div class="text-end"><input class="btn btn-sm btn-secondary mt-1" type="submit" value="reply" name="btn-comment"></div>
-                        </form>
-
-
-                        <!-- show comments  -->
-                        <div class="p-des__reply">
-                            <h6 class="p-des__reply-author"> <a href="#" class="text-secondary">{{--<?= ucwords($comment['f_name'])  . ' ' . ucwords($comment['l_name'])  ?>--}}</a> </h6>
-
-                            <p>Comment Description</p>
-                            <div class="p-des__reply-info">
-                                <p class="p-des__reply-time">Comment date</p>
-                                <span class="p-des__reply-icon"><i class="picon-size fa-solid fa-face-grin-hearts"></i></span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-
-
-            <!-- page number  -->
-            <div aria-label="Page navigation example">
-                <ul class="pagination justify-content-center">
-                    <li class="page-item disabled">
-                        <a class="page-link">Previous</a>
-                    </li>
-                    <li class="page-item active"><a class="page-link" href="#">1</a></li>
-                    <li class="page-item"><a class="page-link" href="#">2</a></li>
-                    <li class="page-item"><a class="page-link" href="#">3</a></li>
-                    <li class="page-item">
-                        <a class="page-link" href="#">Next</a>
-                    </li>
-                </ul>
             </div>
         </div>
+    </div>
 
-        <!-- aside bar  -->
-        <div class="community__aside com-aside">
-            <h3 class="com-aside__title">Popular Posts</h3>
-            <div class="com-aside__update aside-update">
-                <h4 class="aside-update__header">&Lorem ipsum dolor, sit amet consectetur adipisicing elit.</h4>
-                    <p class="aside-update__author">Post by Mayesha</p>
+    {{--            toast success --}}
+    <div class="toast-container position-fixed top-0 end-0 p-3">
+        <div id="toastSuccess" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
+            <div class="toast-header">
+                <strong class="me-auto text-success">Success!</strong>
+                <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
+            </div>
+            <div class="toast-body">
+                <div id="toastContentSuccess">
+                </div>
             </div>
         </div>
+    </div>
 
-    </section>
 
+    <x-coomunity_forum :posts="$posts" :user="$user ?? null" />
+    {{-- {{$posts}} --}}
 @endsection
 
 @section('scripts')
     <script>
-        let btnComment;
+        // let btnComment;
 
-        btnComment = document.querySelectorAll('.btn-comment');
+        // btnComment = document.querySelectorAll('.btn-comment');
 
-        for (let i = 0; i < btnComment.length; i++) {
-            btnComment[i].firstElementChild.textContent = btnComment[i].parentNode.nextElementSibling.children.length - 2;
-            btnComment[i].addEventListener('click', () => {
-                btnComment[i].parentNode.nextElementSibling.classList.toggle('comments-visible');
-            })
+        // for (let i = 0; i < btnComment.length; i++) {
+        //     btnComment[i].firstElementChild.textContent = btnComment[i].parentNode.nextElementSibling.children.length - 2;
+        //     btnComment[i].addEventListener('click', () => {
+        //         btnComment[i].parentNode.nextElementSibling.classList.toggle('comments-visible');
+        //     })
+        // }
+        // Example starter JavaScript for disabling form submissions if there are invalid fields
+
+        /**
+         * toast variables
+         */
+        const toastContentSuccess = $('#toastContentSuccess');
+        const toastSuccess = $('#toastSuccess');
+
+        const toastContentError = $('#toastContentError');
+        const toastError = $('#toastError');
+
+        let toastContainer = $('<div>');
+
+        const currentUser = "{{ $user?->first_name . ' ' . $user?->last_name }}";
+
+
+        /**
+         * cloning the post card
+         */
+
+        const postCard = $('#postCard');
+        const postCardClone = postCard.clone(false);
+
+        console.log(postCardClone);
+
+        function latestReply(data,author){
+            let replyCard;
+
+
+            replyCard = `
+                    <div class="p-des__reply">
+                        <h6 class="p-des__reply-author"> <a href="#" class="text-secondary">${author}</a> </h6>
+
+                        <p>${data.comment}</p>
+                        <div class="p-des__reply-info">
+                            <p class="p-des__reply-time">${data.created_at}</p>
+                            <p>id:${data.id} </p>
+                            <span class="p-des__reply-icon"><i class="picon-size fa-solid fa-face-grin-hearts"></i></span>
+                        </div>
+                    </div>`;
+
+            return replyCard;
         }
+
+
+
+
+        (() => {
+            'use strict'
+
+            // Fetch all the forms we want to apply custom Bootstrap validation styles to
+            const forms = document.querySelectorAll('.needs-validation')
+
+
+            // Loop over them and prevent submission
+            Array.from(forms).forEach(form => {
+                form.addEventListener('submit', event => {
+                    if (!form.checkValidity()) {
+                        event.preventDefault()
+                        event.stopPropagation()
+                    } else {
+                        event.preventDefault()
+
+                        const formData = new FormData(form);
+                        console.log(formData);
+
+                        if (formData.get('frmPost') == 'article') {
+
+                            axios.post("{{ route('patient.community.store') }}", formData)
+                                .then(function(response) {
+                                    console.log(response);
+                                    if (response.status == 200) {
+                                        form.reset();
+                                        toastSuccessShow(response.data.success);
+                                        location.reload(true);
+                                    } else {
+                                        alert('Post creation failed');
+                                    }
+
+                                })
+                                .catch(function(error) {
+                                    console.log(error);
+
+                                    const errorList = $('<ul>');
+                                    Object.entries(error.response.data.errors).forEach(element => {
+                                        console.log(element);
+                                        errorList.append($("<li>").text(element[1][0]));
+                                    });
+
+                                    toastErrorShow(errorList);
+                                });
+                        }else if(formData.get('frmComment') == 'comment'){
+                            axios.post("{{ route('patient.store_comment') }}", formData)
+                                .then(function(response) {
+                                    console.log(response);
+                                    if (response.status == 200) {
+                                        const originalDate = new Date(response.data.comment['created_at']);
+                                        let formatDateTime = `${originalDate.getFullYear()}-${originalDate.getMonth()}-${originalDate.getDate()} ${originalDate.getHours()}:${originalDate.getMinutes()}:${originalDate.getSeconds()}`;
+
+                                        response.data.comment['created_at'] = formatDateTime;
+
+                                        $(form).after(latestReply(response.data.comment,currentUser));
+
+                                        form.reset();
+                                        toastSuccessShow(response.data.success);
+                                    } else {
+                                        alert('Post creation failed');
+                                    }
+
+                                })
+                                .catch(function(error) {
+                                    console.log(error);
+                                    const errorList = $('<ul>');
+                                    Object.entries(error.response.data.errors).forEach(element => {
+                                        console.log(element);
+                                        errorList.append($("<li>").text(element[1][0]));
+                                    });
+
+                                    toastErrorShow(errorList);
+                                });
+                        }else{
+                            alert('something went wrong');
+                        }
+
+                    }
+
+                    form.classList.add('was-validated')
+                }, false)
+            })
+        })()
+
+        // bootstrap toast
+        /**
+         * toast success function
+         */
+            function toastSuccessShow(message) {
+            toastContentSuccess.empty();
+            toastContainer = toastContainer.text(message);
+
+            toastContentSuccess.append(toastContainer);
+            const toastBootstrap = bootstrap.Toast.getOrCreateInstance(toastSuccess)
+            toastBootstrap.show()
+        }
+
+        function toastErrorShow(message) {
+            toastContentError.empty();
+            // toastContainer = toastContainer.text(message);
+
+            toastContentError.append(message);
+            const toastBootstrap = bootstrap.Toast.getOrCreateInstance(toastError)
+            toastBootstrap.show()
+        }
+
+
+        /**
+         * post live card
+         */
+        // const postCard = $('#postCard');
+        // postCard.hide();
+
+
+
+
+
+        $(document).ready(function() {
+            const toastTrigger = document.getElementById('liveToastBtn')
+            const toastLiveExample = document.getElementById('liveToast')
+
+            if (toastTrigger) {
+            const toastBootstrap = bootstrap.Toast.getOrCreateInstance(toastLiveExample)
+            toastTrigger.addEventListener('click', () => {
+                toastBootstrap.show()
+            })
+            }
+
+
+            const $btnComment = $('.btn-comment');
+
+            $btnComment.each(function(index) {
+                const $this = $(this);
+                $this.find(':first-child').text($this.parent().next().children().length - 2);
+
+                $this.on('click', function() {
+                    $this.parent().next().toggleClass('comments-visible');
+                });
+            });
+        });
+
     </script>
 @endsection

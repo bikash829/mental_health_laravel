@@ -14,7 +14,7 @@
                 <div class="carousel-item active" data-bs-interval="10000">
                     <img src="{{asset('images/banner/banner_free.jpg')}}" class="d-block w-100" alt="...">
                     <div class="carousel-caption d-none d-md-block">
-                        <h5 class="text-white">YANA</h5>
+                        <h5 class="text-white">Mental Health And Support</h5>
                         <p class="text-white">You Are Not Alone</p>
                     </div>
                 </div>

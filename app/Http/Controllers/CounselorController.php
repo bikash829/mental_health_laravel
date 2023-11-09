@@ -64,7 +64,76 @@ class CounselorController extends Controller
     }
     public function show_dashboard(){
         $user = Auth::user();
-        return view('counselor.dashboard',compact('user'));
+
+
+        $user->load('expert','training','education','experience');
+
+        $countNull = 0;
+        $countColumn = 0;
+
+
+
+        foreach($user->getAttributes() as $column=>$value){
+
+            switch ($column) {
+                case 'additional_phone_code':
+                    break;
+                case 'additional_phone':
+                    break;
+
+                case 'religion':
+                    break;
+
+                case 'blood_group_id':
+                    break;
+
+                case 'remember_token':
+                    break;
+                case 'deleted_at':
+                    break;
+                case 'email_verified_at':
+                    break;
+
+                default:
+                    if($value === null){
+                        $countNull++;
+                    }
+                    $countColumn++;
+                    break;
+
+            }
+
+
+        }
+
+        $countColumn += 4; // for expert table column
+
+        $countColumn += 6;
+        if($user->education->isEmpty()){
+            $countNull += 6;
+        }
+
+        $countColumn += 6;
+        if($user->training->isEmpty()){
+            $countNull += 6;
+        }
+
+        $countColumn += 5;
+        if($user->experience->isEmpty()){
+            $countNull += 5;
+        }
+
+
+
+        $progress =  round((100 - (floatval($countNull) / floatval($countColumn)) * 100)) . '%' ;
+        /**
+         * End account progress here
+         */
+        $page_title = 'Counselor dashboard';
+
+        // return view('doctor.dashboard',compact('user','progress','page_title'));
+        return view('counselor.dashboard',compact('user','progress','page_title'));
+
     }
     public function show_profile(){
         $user = Auth::user();
@@ -73,6 +142,8 @@ class CounselorController extends Controller
 
     public function counselor_profile_wizard_step(){
         $user = Auth::user();
-        return view('wizard_step_form.counselor_form',compact('user'));
+        $country_phone = json_decode(file_get_contents(public_path('data/countries.json')),true);
+        // dd($country_phone);
+        return view('wizard_step_form.counselor_form',compact('user','country_phone'));
     }
 }

@@ -6,7 +6,16 @@
 
 @section('content')
     <div class="container-fluid">
-        <x-admin.progress.account_progress/>
+        @if ($progress == '100%')
+                <div class="alert alert-warning" role="alert">
+                    Your account is not varified yet. Please make an approval request to the admin so that you can be available to provide your service.
+                </div>
+                <div class="text-end"><button class="btn btn-primary" id="btnRequestForVerification" type="button" >Request for verification</button></div>
+
+        @else
+            <x-admin.progress.account_progress :progress="$progress"/>
+        @endif
+        {{-- <x-admin.progress.account_progress/> --}}
         <!-- Page Heading -->
         <div class="d-sm-flex align-items-center justify-content-between my-4">
             <h1 class="h3 mb-0 text-gray-800">Dashboard</h1>

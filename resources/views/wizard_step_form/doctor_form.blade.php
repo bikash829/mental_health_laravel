@@ -158,10 +158,10 @@
                         <label for="marital_status" class="form-label">Martial Status(Optional)</label>
                         <select name="marital_status" id="marital_status" required class="form-select"
                             aria-label="Default select example">
-                            <option disabled @selected($user?->expert?->doc_title == null)>Select One</option>
-                            <option @selected($user?->expert?->doc_title == 1) value="1">Unmarried</option>
-                            <option @selected($user?->expert?->doc_title == 2) value="2">Married</option>
-                            <option @selected($user?->expert?->doc_title == 3) value="3">Divorced</option>
+                            <option disabled @selected($user?->marital_status == null)>Select One</option>
+                            <option @selected($user?->marital_status == 1) value="1">Unmarried</option>
+                            <option @selected($user?->marital_status == 2) value="2">Married</option>
+                            <option @selected($user?->marital_status == 3) value="3">Divorced</option>
                         </select>
 
                     </div>
@@ -251,7 +251,7 @@
                             <option value="" disabled @selected($user?->address->country == null)>Select One</option>
 
                             @foreach ($country_phone as $data)
-                                <option @selected($user?->address->country == $data['en_short_name']) value="{{ $data['en_short_name'] }}">
+                                <option @selected($user?->address?->country == $data['en_short_name']) value="{{ $data['en_short_name'] }}">
                                     {{ $data['en_short_name'] }}</option>
                             @endforeach
                         </select>
@@ -288,7 +288,7 @@
 
                     <div class="col-12 col-lg-2 col-xl-2 col-xxl-2">
                         <label for="additional_phone_code" class="form-label">Phone Code</label>
-                        <select name="additional_phone_code" id="additional_phone_code" required class="form-select"
+                        <select name="additional_phone_code" id="additional_phone_code" class="form-select"
                             aria-label="Default select example">
                             <option value="" disabled @selected($user?->additional_phone_code == null)>Select One</option>
 

@@ -3,9 +3,14 @@
     <!-- post sectoin  -->
     <div class="community__post post">
         <!-- creating new post section  -->
+        @unless ($user)
+        <p class="text-center fs-4 text-danger pt-2">Please Login to comment and create your won post</p>
+
+        @endunless
         <div class="post__card">
             <div class="post__title">
-                {{-- <p class="text-center fs-4 text-danger">Please Login to create a new post</p> --}}
+
+
                 <h3 class="post__author">Create a new post</h3>
             </div>
             <div class="p-des">
@@ -92,7 +97,7 @@
                         @if($post->comments->count() > 0)
                             @foreach($post->comments as $comment)
                                 <div class="p-des__reply">
-                                    <h6 class="p-des__reply-author"> <a href="#" class="text-secondary">{{$comment->user->first_name . ' ' . $comment->user->last_name}}</a> </h6>
+                                    <h6 class="p-des__reply-author"> <a href="#" class="text-secondary">{{$comment->user->first_name != null ? $comment->user->first_name :  $comment->user->getRoleNames()[0]. ' ' . $comment->user->last_name}}</a> </h6>
 
                                     <p>{{$comment->comment}}</p>
                                     <div class="p-des__reply-info">

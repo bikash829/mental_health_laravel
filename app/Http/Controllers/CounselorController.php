@@ -66,10 +66,12 @@ class CounselorController extends Controller
         $user = Auth::user();
 
 
-        $user->load('expert','training','education','experience');
+        $user->load('training','education','experience');
 
         $countNull = 0;
         $countColumn = 0;
+
+        // dd($user->getAttributes());
 
 
 
@@ -93,6 +95,11 @@ class CounselorController extends Controller
                     break;
                 case 'email_verified_at':
                     break;
+                // case 'pp_name':
+                //     break;
+                // case 'pp_location':
+                //     break;
+
 
                 default:
                     if($value === null){
@@ -106,7 +113,7 @@ class CounselorController extends Controller
 
         }
 
-        $countColumn += 4; // for expert table column
+        // $countColumn += 4; // for expert table column
 
         $countColumn += 6;
         if($user->education->isEmpty()){
@@ -137,7 +144,77 @@ class CounselorController extends Controller
     }
     public function show_profile(){
         $user = Auth::user();
-        return view('counselor.profile',compact('user'));
+
+        $user->load('expert','training','education','experience');
+
+        $countNull = 0;
+        $countColumn = 0;
+
+
+
+        foreach($user->getAttributes() as $column=>$value){
+
+            switch ($column) {
+                case 'additional_phone_code':
+                    break;
+                case 'additional_phone':
+                    break;
+
+                case 'religion':
+                    break;
+
+                case 'blood_group_id':
+                    break;
+
+                case 'remember_token':
+                    break;
+                case 'deleted_at':
+                    break;
+                case 'email_verified_at':
+                    break;
+                // case 'pp_name':
+                //     break;
+                // case 'pp_location':
+                //     break;
+
+                default:
+                    if($value === null){
+                        $countNull++;
+                    }
+                    $countColumn++;
+                    break;
+
+            }
+
+
+        }
+
+        // $countColumn += 4; // for expert table column
+
+        $countColumn += 6;
+        if($user->education->isEmpty()){
+            $countNull += 6;
+        }
+
+        $countColumn += 6;
+        if($user->training->isEmpty()){
+            $countNull += 6;
+        }
+
+        $countColumn += 5;
+        if($user->experience->isEmpty()){
+            $countNull += 5;
+        }
+
+
+
+        $progress =  round((100 - (floatval($countNull) / floatval($countColumn)) * 100)) . '%' ;
+        /**
+         * End account progress here
+         */
+        $page_title = 'Counselor Profile';
+
+        return view('counselor.profile',compact('user','progress','page_title'));
     }
 
     public function counselor_profile_wizard_step(){

@@ -43,7 +43,7 @@
                                     <p class="person__description">
                                         Bio
                                     </p>
-{{--                                    {% comment %} social links  {% endcomment %}--}}
+                                   {{-- {% comment %} social links  {% endcomment %} --}}
                                     <div class="specialist__links">
                                         <a href="#" title="click here to visit my facebook wall" class="specialist__icon"><i class="fa-brands fa-facebook"></i></a>
                                         <a href="#" title="click to follow twitter" class="specialist__icon"><i class="fa-brands fa-square-twitter"></i></a>

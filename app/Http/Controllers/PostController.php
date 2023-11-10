@@ -12,10 +12,10 @@ class PostController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index()
+    public function index(Request $request)
     {
-        //
-        // $posts = Post::latest()->paginate(5);
+
+        $posts = Post::latest()->paginate(5);
         $user = Auth::user();
         $posts = Post::with(['comments' => function ($query)
             {
@@ -25,7 +25,15 @@ class PostController extends Controller
             ->get();
 
 
-        return view('doctor.community_forum',compact('user','posts'));
+
+            return match ($request->community) {
+                'counselor' => view('counselor.community_forum',compact('user','posts')),
+                'admin' => view('admin.community_forum',compact('user','posts')),
+                default => view('doctor.community_forum',compact('user','posts')),
+            };
+
+        // return view('doctor.community_forum',compact('user','posts'));
+        // return view('pages.community',compact('user','posts'));
 
     }
 

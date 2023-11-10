@@ -17,7 +17,7 @@ Route::group(['prefix'=>'doctor','name'=>'doctor','as'=>'doctor.'],function (){
     Route::post('/profile_view/fillup_form/delete_experience/',[UserController::class,'delete_experience'])->name('delete_experience');
 
 
-    // make a route for commutnity forum and community forum post
+    // community forum
     Route::resource('community',PostController::class);
     Route::post('/community/post/comment/',[PostController::class,'store_comment'])->name('store_comment');
     // Route::get('/community_forum/',[PostController::class,'show_community_forum'])->name('community_forum');

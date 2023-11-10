@@ -29,7 +29,7 @@
                         @method('PUT')
                         <div class="mb-3">
                             <label for="formFile" class="form-label">choose photo</label>
-                            <input class="form-control" name="profile_picture" type="file" id="formFile">
+                            <input class="form-control" name="profile_picture" type="file" accept=".jpg,.jpeg,.png" id="formFile">
                         </div>
                         <div class="mb-3">
 

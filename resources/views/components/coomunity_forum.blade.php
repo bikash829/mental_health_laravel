@@ -52,8 +52,8 @@
             <div id="postCard" class="post__card">
                 <div class="post__title">
                     <h3 class="post__author">{{ $post->user->first_name . ' ' . $post->user->last_name }}</h3>
-                    <h3 class="post__author">{{ $post->id }}</h3>
-                    <h4 class="post__upload-info">{{ $post->user->getRoleNames()[0] }} | <span
+                    {{-- <h3 class="post__author">{{ $post->id }}</h3> --}}
+                    <h4 class="post__upload-info">{{ $post->user->getRoleNames()[0] == 'Patient' ? 'General User' : $post->user->getRoleNames()[0] }} | <span
                             class="text-muted">{{ $post->created_at }}</span> </h4>
                 </div>
                 <div class="p-des">

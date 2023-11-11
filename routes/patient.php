@@ -5,6 +5,7 @@ use Illuminate\Support\Facades\Route;
 use \App\Http\Controllers\PatientController;
 use \App\Http\Controllers\PostController;
 use App\Models\Post;
+use App\Models\User;
 
 Route::group(['prefix'=>'patient','name'=>'patient','as'=>'patient.'],function (){
     Route::resource('profile',UserController::class);
@@ -14,6 +15,8 @@ Route::group(['prefix'=>'patient','name'=>'patient','as'=>'patient.'],function (
     //edit profile
     Route::get('/edit_basic_info/',[PatientController::class,'edit_basic_info'])->name('edit_basic_info');
     Route::get('/edit_address/',[PatientController::class,'edit_address'])->name('edit_address');
+    Route::get('/edit_contact/',[PatientController::class,'edit_contact'])->name('edit_contact_info');
+    Route::post('/change_email/',[UserController::class,'change_email'])->name('change_email');
 
     Route::resource('community',PostController::class);
     Route::post('/community/comment/',[PostController::class,'store_comment'])->name('store_comment');

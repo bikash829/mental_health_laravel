@@ -36,10 +36,10 @@ class PatientController extends Controller
         return view('patient.edit_basic_info',compact('user','blood_groups'));
     }
 
-//    public function edit_contact(){
-//        $user = Auth::user();
-//        return view('patient.edit_contact',compact('user'));
-//    }
+   public function edit_contact(){
+       $user = Auth::user();
+       return view('patient.edit_contact',compact('user'));
+   }
 //
 //    public function edit_medical_info(){
 //        $user = Auth::user();

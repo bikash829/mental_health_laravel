@@ -20,13 +20,20 @@
     <link rel="stylesheet" type="text/css" href="{{ asset('css/style.css') }}">
     <link rel="stylesheet" type="text/css" href="{{ asset('css/responsive.css') }} ">
 
+    {{-- sweetalert2  --}}
+    <link rel="stylesheet" href="vendor/sweetalert2/sweetalert2.min.css">
+
     <!-- fonts and family -->
     <!-- Google font -->
     <link href="https://fonts.googleapis.com/css?family=Raleway:400,700" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css?family=Passion+One:900" rel="stylesheet">
 
+
+
     <!-- jquery js  -->
     <script src="{{ asset('vendor/jquery/jquery-3.6.3.min.js') }}"></script>
+
+
 
     <!-- Scripts -->
     {{-- @vite(['resources/js/app.js',]) --}}
@@ -209,6 +216,7 @@
 
 {{-- ||||||||||||Modal |||||||||| --}}
 
+{{-- imported axios  --}}
 {{-- <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script> --}}
 <script src="{{ asset('vendor/axios/axios.min.js') }}"></script>
 <!-- fontawesome -->
@@ -233,7 +241,8 @@
 
 <!-- custom js -->
 <script src="{{ asset('js/main.js') }}" type="text/javascript"></script>
-
+{{-- <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script> --}}
+<script src="{{asset('vendor/sweetaltert2/sweetalert2@11.min.js')}}"></script>
 
 
 @yield('scripts')
@@ -243,6 +252,9 @@
     const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]')
     const tooltipList = [...tooltipTriggerList].map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl))
 </script>
+
+
+
 </body>
 
 </html>

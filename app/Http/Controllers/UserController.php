@@ -221,6 +221,7 @@ class UserController extends Controller
         return match ($request->data) {
             'basic_info' => redirect()->route('patient.edit_basic_info'),
             'address_info' => redirect()->route('patient.edit_address'),
+            'contact_info' => redirect()->route('patient.edit_contact_info'),
             default => redirect()->back(),
         };
     }
@@ -230,6 +231,8 @@ class UserController extends Controller
      */
     public function update(Request $request, User $user)
     {
+
+
         $user = Auth::user();
         //        dd($user->address()->updateOrCreate([],$request->all()));
 
@@ -296,10 +299,32 @@ class UserController extends Controller
                 //                $file_extension = $file->getClientOriginalExtension();
                 //                $original_file_name = $file->getClientOriginalName();
                 //                dd($file->getClientOriginalName());
+
+            case 'contact_info':
+                $request->validate([
+                    'phone_code' => ['required',],
+                    'phone' => ['required', 'numeric', 'max_digits:20'],
+                    'additional_phone_code' => ['required'],
+                    'additional_phone' => ['required','numeric', 'max_digits:20',],
+
+                ]);
+                $user->update($request->all());
+
+                // dd($request);
+
+                if ($user->hasRole('Admin')) {
+                    return redirect(route('admin.profile'));
+                } elseif ($user->hasRole('Doctor')) {
+                    return redirect(route('doctor.profile'));
+                } elseif ($user->hasRole('Counselor')) {
+                    return redirect(route('counselor.profile'));
+                } elseif ($user->hasRole('Patient')) {
+                    return redirect(route('patient.profile'))->with('success', 'Contact info updated successfully');
+                } else {
+                    return redirect(route('error404'));
+                }
+
                 break;
-                //            case 'contact_info':
-                //
-                //                break;
                 //            case 'medical_info':
                 //                continue;
                 //                break;
@@ -308,6 +333,20 @@ class UserController extends Controller
                 return redirect(route('error404'));
                 break;
         }
+    }
+
+
+    public function change_email(Request $request){
+        $request->validate([
+            'email' => ['required', 'string', 'email', 'max:255', 'unique:users'],
+        ]);
+
+
+        $user = Auth::user();
+        $user->email = $request->email;
+        $user->save();
+        return response()->json(['message' => 'Email changed successfully']);
+
     }
 
     /**

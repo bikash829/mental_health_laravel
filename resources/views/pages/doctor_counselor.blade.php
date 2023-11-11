@@ -19,6 +19,50 @@
         </div>
 
         <div class="accordion" id="accordionPanelsStayOpenExample">
+             <!-- doctor list  -->
+             <div class="accordion-item">
+                <h2 class="accordion-header" id="panelsStayOpen-headingOne">
+                    <button class="accordion-button accordion-button--custom" type="button" data-bs-toggle="collapse" data-bs-target="#panelsStayOpen-collapseOne" aria-expanded="true" aria-controls="panelsStayOpen-collapseOne">
+                        Doctors
+                    </button>
+                </h2>
+                <div id="panelsStayOpen-collapseOne" class="accordion-collapse collapse show" aria-labelledby="panelsStayOpen-headingOne">
+                    <div class="accordion-body">
+                        <div class="specialist__card-container">
+                            @foreach ( $users as $user)
+                                @if ($user->hasRole('Counselor'))
+                                <div class="specialist__card">
+                                    <div class="specialist__img-con">
+                                        <img class="specialist__img" src="{{asset($user->pp_location . '/' . $user->pp_name)}}" alt="Profile Picture">
+                                    </div>
+
+                                    <div class="specialist__info ">
+                                        <input type="hidden" id='user_id' value="{{--<?= $row['id'] ?>--}}">
+                                        <div class="person">
+                                            <h3 class="person__name">{{$user->first_name . ' ' . $user->last_name }}</h3>
+                                            <h3 class="person__occu">Education Info</h3>
+                                        </div>
+                                        <p class="person__description">
+                                            BIo
+                                        </p>
+
+                                        <div class="specialist__links">
+                                            <a href="{{--<?= $social_row['social_link'] ?>--}}" title="click here to visit my facebook wall" class="specialist__icon"><i class="fa-brands fa-facebook"></i></a>
+
+                                            <a href="{{--<?= $social_row['social_link'] ?>--}}" title="click to follow twitter" class="specialist__icon"><i class="fa-brands fa-square-twitter"></i></a>
+                                            <a href="{{--<?= $social_row['social_link'] ?>--}}" title="click to visit web site" class="specialist__icon"><i class="fa-solid fa-globe"></i></a>
+                                            <a href="{{--<?= $social_row['social_link'] ?>--}}" title="click to visit linkdin profile" class="specialist__icon"><i class="fa-brands fa-linkedin"></i></a>
+                                        </div>
+                                    </div>
+                                    <button id="specialist_view" class="specialist_view">View Info</button>
+                                </div>
+                                @endif
+                            @endforeach
+
+                        </div>
+                    </div>
+                </div>
+            </div>
             <!--\\\\\\\\\\\\\\\\\\ councilor list  ////////////////-->
             <div class="accordion-item">
                 <h2 class="accordion-header " id="panelsStayOpen-headingTwo">
@@ -29,75 +73,58 @@
                 <div id="panelsStayOpen-collapseTwo" class="accordion-collapse collapse" aria-labelledby="panelsStayOpen-headingTwo">
                     <div class="accordion-body">
                         <div class="specialist__card-container">
-                            <div class="specialist__card">
-                                <div class="specialist__img-con">
-                                    <img class="specialist__img" src="#" alt="">
-                                </div>
 
-                                <div class="specialist__info ">
-                                    <input type="hidden" id='user_id' value="{{--<?= $row['id'] ?>--}}">
-                                    <div class="person">
-                                        <h3 class="person__name">Full Name</h3>
-                                        <h3 class="person__occu">Education info</h3>
+                            @foreach ( $users as $user)
+                                @if ($user->hasRole('Counselor'))
+                                    <div class="specialist__card">
+                                        <div class="specialist__img-con">
+                                            <img class="specialist__img" src="#" alt="">
+                                        </div>
+
+                                        <div class="specialist__info ">
+                                            <input type="hidden" id='user_id' value="{{--<?= $row['id'] ?>--}}">
+                                            <div class="person">
+                                                <h3 class="person__name">{{$user->first_name . ' ' . $user->last_name}}</h3>
+                                                <h3 class="person__occu">Education info</h3>
+                                            </div>
+                                            <p class="person__description">
+                                                Bio
+                                            </p>
+                                        {{-- {% comment %} social links  {% endcomment %} --}}
+                                            <div class="specialist__links">
+                                                <a href="#" title="click here to visit my facebook wall" class="specialist__icon"><i class="fa-brands fa-facebook"></i></a>
+                                                <a href="#" title="click to follow twitter" class="specialist__icon"><i class="fa-brands fa-square-twitter"></i></a>
+                                                <a href="#" title="click to visit web site" class="specialist__icon"><i class="fa-solid fa-globe"></i></a>
+                                                <a href="#" title="click to visit linkdin profile" class="specialist__icon"><i class="fa-brands fa-linkedin"></i></a>
+                                            </div>
+                                            <div class="text-warning">Rating : 5</div>
+                                        </div>
+                                        <button name="btn-councilor" value="" class="specialist_view">View Info</button>
                                     </div>
-                                    <p class="person__description">
-                                        Bio
-                                    </p>
-                                   {{-- {% comment %} social links  {% endcomment %} --}}
-                                    <div class="specialist__links">
-                                        <a href="#" title="click here to visit my facebook wall" class="specialist__icon"><i class="fa-brands fa-facebook"></i></a>
-                                        <a href="#" title="click to follow twitter" class="specialist__icon"><i class="fa-brands fa-square-twitter"></i></a>
-                                        <a href="#" title="click to visit web site" class="specialist__icon"><i class="fa-solid fa-globe"></i></a>
-                                        <a href="#" title="click to visit linkdin profile" class="specialist__icon"><i class="fa-brands fa-linkedin"></i></a>
-                                    </div>
-                                    <div class="text-warning">Rating : 5</div>
-                                </div>
-                                <button name="btn-councilor" value="" class="specialist_view">View Info</button>
-                            </div>
+                                @endif
+                            @endforeach
+
+
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- doctor list  -->
-            <div class="accordion-item">
-                <h2 class="accordion-header" id="panelsStayOpen-headingOne">
-                    <button class="accordion-button accordion-button--custom" type="button" data-bs-toggle="collapse" data-bs-target="#panelsStayOpen-collapseOne" aria-expanded="true" aria-controls="panelsStayOpen-collapseOne">
-                        Doctors
-                    </button>
-                </h2>
-                <div id="panelsStayOpen-collapseOne" class="accordion-collapse collapse show" aria-labelledby="panelsStayOpen-headingOne">
-                    <div class="accordion-body">
-                        <div class="specialist__card-container">
-                            <div class="specialist__card">
-                                <div class="specialist__img-con">
-                                    <img class="specialist__img" src="{{--<?= $pp_location ?>--}}" alt="">
-                                </div>
 
-                                <div class="specialist__info ">
-                                    <input type="hidden" id='user_id' value="{{--<?= $row['id'] ?>--}}">
-                                    <div class="person">
-                                        <h3 class="person__name">Dr. Full Name</h3>
-                                        <h3 class="person__occu">Education Info</h3>
-                                    </div>
-                                    <p class="person__description">
-                                        BIo
-                                    </p>
-
-                                    <div class="specialist__links">
-                                        <a href="{{--<?= $social_row['social_link'] ?>--}}" title="click here to visit my facebook wall" class="specialist__icon"><i class="fa-brands fa-facebook"></i></a>
-
-                                        <a href="{{--<?= $social_row['social_link'] ?>--}}" title="click to follow twitter" class="specialist__icon"><i class="fa-brands fa-square-twitter"></i></a>
-                                        <a href="{{--<?= $social_row['social_link'] ?>--}}" title="click to visit web site" class="specialist__icon"><i class="fa-solid fa-globe"></i></a>
-                                        <a href="{{--<?= $social_row['social_link'] ?>--}}" title="click to visit linkdin profile" class="specialist__icon"><i class="fa-brands fa-linkedin"></i></a>
-                                    </div>
-                                </div>
-                                <button id="specialist_view" class="specialist_view">View Info</button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
         </div>
     </section>
+
+@endsection
+
+@section('scripts')
+<script>
+    let specialistCardInfo = '';
+    const specialistCard = $('.specialist__card');
+
+    specialistCard.click(e=>{
+        specialistCardInfo = $(e.currentTarget);
+        console.log(specialistCardInfo);
+    });
+</script>
+
 @endsection

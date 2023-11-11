@@ -8,6 +8,10 @@
         <img class="banner__img" src="{{asset('images/banner/banner3.jpg')}}" alt="{{__('User Profile')}}">
     </div>
 @endsection
+{{--country info--}}
+@php
+    $country_phone = json_decode(file_get_contents(public_path('data/countries.json')), true);
+@endphp
 
 @section('content')
 
@@ -74,7 +78,7 @@
                             <input type="text" name="zip_code" class="form-control" id="zip_code" value="{{$user?->address?->zip_code}}">
                         </div>
 
-                        <div class="col-md-6 col-lg-6">
+                        {{-- <div class="col-md-6 col-lg-6">
                             <label for="country"  class="form-label">Country</label>
                             <select name="country" id="country" class="form-select" aria-label="Default select example">
                                 <option value="null">None</option>
@@ -93,7 +97,7 @@
 {{--                                @endforeach--}}
 
 
-
+{{--
                             </select>
                             <div class="invalid-feedback">
                                 @error('password')
@@ -102,7 +106,21 @@
                                     Select Your Country
                                     @enderror
                             </div>
+                        </div> --}}
+
+                        <div class="col-12 col-lg-6 col-xl-6 col-xxl-6">
+                            <label for="country" class="form-label">Country</label>
+                            <select class="form-select" aria-label="Default select example" name="country" id="country"
+                                required>
+                                <option value="" disabled @selected($user?->address?->country == null)>Select One</option>
+
+                                @foreach ($country_phone as $data)
+                                    <option @selected($user?->address?->country == $data['en_short_name']) value="{{ $data['en_short_name'] }}">
+                                        {{ $data['en_short_name'] }}</option>
+                                @endforeach
+                            </select>
                         </div>
+
 
 
                         <input type="hidden" name="user_id" value="{{$user?->id}}">

@@ -248,7 +248,7 @@
                         <label for="country" class="form-label">Country</label>
                         <select class="form-select" aria-label="Default select example" name="country" id="country"
                             required>
-                            <option value="" disabled @selected($user?->address->country == null)>Select One</option>
+                            <option value="" disabled @selected($user?->address?->country == null)>Select One</option>
 
                             @foreach ($country_phone as $data)
                                 <option @selected($user?->address?->country == $data['en_short_name']) value="{{ $data['en_short_name'] }}">

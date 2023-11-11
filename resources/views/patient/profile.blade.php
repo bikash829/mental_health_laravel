@@ -4,7 +4,7 @@
 
 @section('banner')
     <div class="banner ">
-        <h1 class="banner__title">Hello, {{$user->first_name. ' ' . $user->last_name}}</h1>
+        <h1 class="banner__title">Hello, {{$user?->first_name. ' ' . $user?->last_name}}</h1>
         <img class="banner__img" src="{{asset('images/banner/banner3.jpg')}}" alt="{{__('User Profile')}}">
     </div>
 @endsection
@@ -43,7 +43,7 @@
                                         </div>
                                         <div class="col-md-6 col-lg-6">
                                             <label class="text-muted">Date Of Birth: </label>
-                                            <span>15-02-1996</span>
+                                            <span>{{$user?->date_of_birth}}</span>
                                         </div>
                                         <div class="col-md-6 col-lg-6">
                                             <label class="text-muted">Sex: </label>
@@ -63,7 +63,7 @@
 
                                         <div class="col-md-6 col-lg-6">
                                             <label class="text-muted">Nationality: </label>
-                                            <span>Bangladeshi</span>
+                                            <span>{{$user->nationality}}</span>
                                         </div>
 
                                         <div class="col-md-6 col-lg-6">
@@ -90,7 +90,7 @@
                         </h2>
                         <div id="panelsStayOpen-collapseTwo" class="accordion-collapse collapse">
                             <div class="accordion-body">
-                                <div class="row g-2">
+                                <div class="row g-3">
                                     <div class="col-md-6 col-lg-6">
                                         <label class="text-muted">Address: </label>
                                         <span>{{$user?->address?->address}}</span>
@@ -116,7 +116,7 @@
 
                                     <div class="col-md-6 col-lg-6">
                                         <label class="text-muted">Country: </label>
-                                        <span>Bangladesh</span>
+                                        <span>{{$user?->address?->country}}</span>
                                     </div>
 
                                     <div class="col-md-6 col-lg-6">
@@ -145,7 +145,7 @@
                         </h2>
                         <div id="panelsStayOpen-collapseThree" class="accordion-collapse collapse">
                             <div class="accordion-body">
-                                <div class="row g-2">
+                                <div class="row g-3">
                                     <div class="col-md-6 col-lg-6">
                                         <label class="text-muted">Email Address: </label>
                                         <span>{{$user->email}}</span>

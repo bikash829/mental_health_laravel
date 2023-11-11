@@ -70,6 +70,9 @@ class RegisterController extends Controller
         return User::create([
             'email' => $data['email'],
             'password' => Hash::make($data['password']),
+            'pp_location' => $data['pp_location'],
+            'pp_name' => $data['pp_name'],
+
         ]);
     }
 
@@ -77,6 +80,7 @@ class RegisterController extends Controller
     {
 
         $this->validator($request->all())->validate();
+        $request->merge(['pp_location' => 'images/avatar', 'pp_name' => 'blank-profile-picture.png']);
         event(new Registered($user = $this->create($request->except('role'))));
         $user->assignRole($request->role); #==============================assigning role
 
@@ -85,9 +89,11 @@ class RegisterController extends Controller
 
         // ==============================================================redirect page condition will be here.
         if($user->hasRole('Patient')){
-            return view('patient.profile');
+            // return view('patient.profile');
+            return redirect()->route('patient.profile');
         }elseif($user->hasRole('Counselor')){
-            return view('counselor.dashboard');
+            // return view('counselor.dashboard');
+            return redirect()->route('counselor.dashboard');
         }elseif($user->hasRole('Doctor')){
             return redirect()->route('doctor.dashboard');
         }

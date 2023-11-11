@@ -84,7 +84,6 @@
                         <p>${data.comment}</p>
                         <div class="p-des__reply-info">
                             <p class="p-des__reply-time">${data.created_at}</p>
-                            <p>id:${data.id} </p>
                             <span class="p-des__reply-icon"><i class="picon-size fa-solid fa-face-grin-hearts"></i></span>
                         </div>
                     </div>`;

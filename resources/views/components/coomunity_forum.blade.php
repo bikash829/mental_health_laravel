@@ -97,12 +97,12 @@
                         @if($post->comments->count() > 0)
                             @foreach($post->comments as $comment)
                                 <div class="p-des__reply">
-                                    <h6 class="p-des__reply-author"> <a href="#" class="text-secondary">{{$comment->user->first_name != null ? $comment->user->first_name :  $comment->user->getRoleNames()[0]. ' ' . $comment->user->last_name}}</a> </h6>
+                                    <h6 class="p-des__reply-author"> <a href="#" class="text-secondary">{{$comment->user->first_name != null ? $comment->user->first_name :  $comment->user->getRoleNames()[0] }} {{ ' ' . $comment->user->last_name}}</a> </h6>
 
                                     <p>{{$comment->comment}}</p>
                                     <div class="p-des__reply-info">
                                         <p class="p-des__reply-time">{{$comment->created_at}}</p>
-                                        <p>id: {{$comment->id}}</p>
+                                        {{-- <p>id: {{$comment->id}}</p> --}}
                                         <span class="p-des__reply-icon"><i class="picon-size fa-solid fa-face-grin-hearts"></i></span>
                                     </div>
                                 </div>

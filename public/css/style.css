@@ -658,6 +658,7 @@
     background-color: #fff;
     border-radius: var(--card-radius);
     position: relative;
+    cursor: pointer
 }
 
 .specialist__img-con {

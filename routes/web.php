@@ -4,7 +4,8 @@ use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 use App\Models\Post;
-
+use App\Models\User;
+use Spatie\Permission\Traits\HasRoles;
 
 
 
@@ -35,8 +36,11 @@ Route::get('/',function (){
 })->name('home');
 
 Route::get('doctor&counselor/',function (){
+
+    $users  = User::all();
+
     $data = ['doctor_counselor'=>'active',];
-    return view('pages.doctor_counselor',$data);
+    return view('pages.doctor_counselor',$data,compact('users'));
 })->name('doctor_counselor');
 
 Route::get('community-forum/',function (){

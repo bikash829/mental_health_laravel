@@ -53,7 +53,7 @@ Extra extra large 	xxl 	≥1400 */
 /* applies to medium devices (tablets, less than 992px) */
 @media (max-width: 991.98px) {
   :root {
-    
+
     --button-font-medium: 0.95rem;
   }
   .nav {
@@ -162,6 +162,12 @@ Extra extra large 	xxl 	≥1400 */
   .banner__title{
     font-size: 1.5rem;
   }
+  .community{
+    grid-template-columns: 1fr;
+  }
+  .community__aside{
+    display: none;
+  }
 }
 
 /* applies to x-small devices (portrait phones, less than 576px) */
@@ -170,9 +176,9 @@ Extra extra large 	xxl 	≥1400 */
    :root {
       --segment-x-margin: 2rem;
       --segment-y-margin: 4.125rem;
-  
+
       /* buttons variables  */
-  
+
       --card-widht: 15rem;
       --card-gap: 2em 1rem;
     }

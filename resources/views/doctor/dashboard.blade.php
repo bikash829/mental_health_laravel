@@ -7,10 +7,21 @@
     <div class="container-fluid">
 
         @if ($progress == '100%')
-                <div class="alert alert-warning" role="alert">
+            @if ($user->is_verified == 1)
+                <div class="alert alert-success" id="verificationStatus" role="alert">
+                    Your account is verified. You can create appointment for your patients.
+                </div>
+            @elseif ($user->is_verified == 0 || $user->is_verified == null)
+                <div class="alert alert-warning" id="verificationStatus" role="alert">
                     Your account is not varified yet. Please make an approval request to the admin so that you can create appointment for your patients.
                 </div>
                 <div class="text-end"><button class="btn btn-primary" id="btnRequestForVerification" type="button" >Request for verification</button></div>
+            @elseif ($user->is_verified == 2)
+                <div class="alert alert-info" id="verificationStatus" role="alert">
+                    Your request has been sent to the admin. Please wait for the approval.
+                </div>
+            @endif
+
 
         @else
             <x-admin.progress.account_progress :progress="$progress"/>
@@ -344,4 +355,47 @@
         </div>
 
     </div>
+@endsection
+
+
+@section('scripts')
+<script>
+    $(document).ready(function () {
+
+        const verificationStatus = $('#verificationStatus');
+        const btnRequestForVerification = $('#btnRequestForVerification');
+        console.log(verificationStatus);
+        console.log(btnRequestForVerification);
+
+
+        $('#btnRequestForVerification').click(function (e) {
+            axios.post('{{route('doctor.request_for_verification')}}')
+                .then(function (response) {
+                    console.log(response.data.success);
+                    if (response.status == 200) {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Success',
+                            text: response.data.success,
+                        });
+
+
+                        btnRequestForVerification.hide();
+                        $(verificationStatus).text('Your request has been sent to the admin. Please wait for the approval.');
+                        $(verificationStatus).removeClass('alert-warning').addClass('alert-info');
+
+                    } else {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Oops...',
+                            text: response.data.message,
+                        });
+                    }
+                })
+                .catch(function (error) {
+                    console.log(error);
+                });
+        });
+    });
+</script>
 @endsection

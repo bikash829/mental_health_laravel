@@ -31,7 +31,8 @@
     {{--uikit --}}
     <link href="{{asset('vendor/DataTables/Responsive-2.5.0/uikit/dataTables.uikit.min.css')}} " rel="stylesheet">
     <link href="{{asset('vendor/DataTables/uikit/uikit.min.css')}} " rel="stylesheet">
-
+    {{-- sweetalert2  --}}
+    <link rel="stylesheet" href="vendor/sweetalert2/sweetalert2.min.css">
 
     @vite(['resources/sass/app.scss', 'resources/js/app.js'])
 
@@ -377,6 +378,7 @@
 {{--uikit--}}
 <script src="{{asset('vendor/DataTables/uikit/dataTables.uikit.min.js')}} "></script>
 <script src="{{asset('vendor/DataTables/uikit/jquery.dataTables.min.js')}} "></script>
+<script src="{{asset('vendor/sweetaltert2/sweetalert2@11.min.js')}}"></script>
 
 @yield('scripts')
 

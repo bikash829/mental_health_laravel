@@ -37,7 +37,7 @@ Route::get('/',function (){
 
 Route::get('doctor&counselor/',function (){
 
-    $users  = User::all();
+    $users  = User::where('is_verified', 1)->get();
 
     $data = ['doctor_counselor'=>'active',];
     return view('pages.doctor_counselor',$data,compact('users'));

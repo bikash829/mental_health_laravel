@@ -39,6 +39,7 @@ class User extends Authenticatable
         'blood_group_id',
         'pp_name',
         'pp_location',
+        'is_verified',
 
     ];
     use HasRoles; # from spatie

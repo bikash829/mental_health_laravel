@@ -30,7 +30,7 @@
                     <div class="accordion-body">
                         <div class="specialist__card-container">
                             @foreach ( $users as $user)
-                                @if ($user->hasRole('Counselor'))
+                                @if ($user->hasRole('Doctor'))
                                 <div class="specialist__card">
                                     <div class="specialist__img-con">
                                         <img class="specialist__img" src="{{asset($user->pp_location . '/' . $user->pp_name)}}" alt="Profile Picture">

@@ -103,6 +103,10 @@ class DoctorController extends Controller
                     break;
                 case 'email_verified_at':
                     break;
+                case 'is_verified':
+                    break;
+                case 'is_active':
+                    break;
 
                 default:
                     if($value === null){
@@ -175,6 +179,10 @@ class DoctorController extends Controller
                     break;
                 case 'email_verified_at':
                     break;
+                case 'is_verified':
+                    break;
+                case 'is_active':
+                    break;
 
                 default:
                     if($value === null){
@@ -220,6 +228,24 @@ class DoctorController extends Controller
 
         return view('wizard_step_form.doctor_form',compact('user','country_phone'));
     }
+
+    public function request_for_verification(){
+        $user = Auth::user();
+        $page_title = 'Request for verification';
+
+        $user->update(
+            [
+                'is_verified'=> 2,
+            ]
+        );
+
+
+
+        return  response()->json(['success' => 'Request has been sent wait for response. Our team will let you know the decition in between next 48 hours.', 'user' => $user]);
+    }
+
+
+
 
 
 

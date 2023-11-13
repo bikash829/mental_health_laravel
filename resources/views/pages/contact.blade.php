@@ -35,8 +35,12 @@
             <h2 class="contact-frm__artcle-title">Feel Free To Message Us</h2>
             <p class="contact-frm__artcle">Message us for any information and queries</p>
 
+            <div class="contact-frm__artcle-img-con">
+                <img src="{{asset('images/img/who-we-are.jpg')}}" alt="" class="contact-frm__artcle-img">
+            </div>
+
         </div>
-        <div class="contact-form ">
+        <div class="contact-form d-flex align-items-center">
             @if ($errors->any())
                 <div class="alert alert-warning alert-dismissible fade show" role="alert">
                     <strong>Warning!</strong>
@@ -58,28 +62,62 @@
 
 
 
-            <form action="{{route('send_query')}}"  method="POST">
-                @csrf
-                <div class="contact-form__block c-block">
-                    <input class="input c-block__name" type="text" placeholder="First Name" value="{{Auth::user()?->first_name}}" name="first_name" required>
 
-                    <input class="input c-block__name" type="text" placeholder="Last Name" value="{{Auth::user()?->last_name}}" name="last_name" required>
+                <div class="card p-5">
+                    <form action="{{route('send_query')}}"  method="POST" novalidate class="needs-validation">
+                        @csrf
+                        <div class="row g-4">
+                            <div class="col-md-6 col-lg-6">
+                                <input class="form-control " type="text" placeholder="First Name" value="{{Auth::user()?->first_name}}" name="first_name" required>
+                            </div>
+                            <div class="col-md-6 col-lg-6">
+
+                                <input class="form-control " type="text" placeholder="Last Name" value="{{Auth::user()?->last_name}}" name="last_name" required>
+                            </div>
+
+                            <div class="col-12">
+                                <input class="form-control " type="email" value="{{Auth::user()?->email}}" placeholder="Email" name="email" required>
+                            </div>
+
+                            <div class="col-12">
+                                <textarea class="form-control " rows="4" name="message" required placeholder="Leave Your Comments"></textarea>
+                            </div>
+
+                            <div class="col-12">
+                                {{-- <input name="btn-contact" type="submit" class="button c-block__button" value="Send"> --}}
+                                <div class="d-grid gap-2 col-6">
+                                    <button class="btn btn-primary" name="btn-contact"  value="Send" type="submit">Send</button>
+                                    {{-- <input name="btn-contact" type="submit" class="btn btn-primary" value="Send"> --}}
+
+                                  </div>
+                            </div>
+
+                            {{-- <div class="contact-form__block c-block">
+
+                            </div>
+
+                            <div class="contact-form__block c-block">
+                                <input class="input c-block__email" type="email" value="{{Auth::user()?->email}}" placeholder="Email" name="email" required>
+
+                            </div>
+                            <div class="contact-form__block c-block">
+                                <textarea class="input c-block__comment" name="message" required placeholder="Leave Your Comments"></textarea>
+
+                            </div>
+
+
+                            <div class="contact-form__block c-block">
+                                <input name="btn-contact" type="submit" class="button c-block__button" value="Send">
+                            </div> --}}
+
+                        </div>
+
+                    </form>
+
                 </div>
 
-                <div class="contact-form__block c-block">
-                    <input class="input c-block__email" type="email" value="{{Auth::user()?->email}}" placeholder="Email" name="email" required>
-
-                </div>
-                <div class="contact-form__block c-block">
-                    <textarea class="input c-block__comment" name="message" required placeholder="Leave Your Comments"></textarea>
-
-                </div>
 
 
-                <div class="contact-form__block c-block">
-                    <input name="btn-contact" type="submit" class="button c-block__button" value="Send">
-                </div>
-            </form>
         </div>
 
     </section>

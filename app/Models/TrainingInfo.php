@@ -24,4 +24,12 @@ class TrainingInfo extends Model
     public function user(){
         return $this->belongsTo(User::class);
     }
+
+
+    // sepcialization
+    public function getSpecializationAttribute($value){
+        $specializations = json_decode(file_get_contents(public_path('data/psychology_departments.json')), true);
+        $specialization = $specializations[$value] ?? 'Unknown';
+        return $specialization;
+    }
 }

@@ -83,7 +83,7 @@
 
                         <p>${data.comment}</p>
                         <div class="p-des__reply-info">
-                            <p class="p-des__reply-time">${data.created_at}</p>
+                            <p class="p-des__reply-time">${(data.created_at)}</p>
                             <span class="p-des__reply-icon"><i class="picon-size fa-solid fa-face-grin-hearts"></i></span>
                         </div>
                     </div>`;
@@ -144,9 +144,9 @@
                                     console.log(response);
                                     if (response.status == 200) {
                                         const originalDate = new Date(response.data.comment['created_at']);
-                                        let formatDateTime = `${originalDate.getFullYear()}-${originalDate.getMonth()}-${originalDate.getDate()} ${originalDate.getHours()}:${originalDate.getMinutes()}:${originalDate.getSeconds()}`;
+                                        // let formatDateTime = `${originalDate.getFullYear()}-${originalDate.getMonth()}-${originalDate.getDate()} ${originalDate.getHours()}:${originalDate.getMinutes()}:${originalDate.getSeconds()}`;
 
-                                        response.data.comment['created_at'] = formatDateTime;
+                                        response.data.comment['created_at'] = originalDate.toISOString().slice(0, 10);
 
                                         $(form).after(latestReply(response.data.comment,currentUser));
 

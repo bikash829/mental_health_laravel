@@ -38,6 +38,9 @@ return new class extends Migration
             $table->string('pp_name')->nullable();
             $table->string('pp_location')->nullable();
             $table->string('religion')->nullable();
+            $table->string('is_active')->nullable()->comment('1=active,0 or null = inactive, 2 = blocked');
+            $table->string('is_verified')->nullable()->comment('1=verified,0 or null = not verified , 2 = pending, 3 = rejected' );
+
 
 
 

@@ -22,4 +22,8 @@ Route::group(['prefix'=>'patient','name'=>'patient','as'=>'patient.'],function (
     Route::post('/community/comment/',[PostController::class,'store_comment'])->name('store_comment');
 //    Route::get('/edit_medical_info/',[PatientController::class,'edit_medical_info'])->name('edit_medical_info');
 //    Route::get('/edit_contact/',[PatientController::class,'edit_contact'])->name('edit_contact_info');
+
+
+    // show specialist profile info
+    Route::get('/specialist_profile/{user_id}',[PatientController::class,'show_user_profile'])->name('show_user_profile');
 });

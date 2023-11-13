@@ -67,6 +67,39 @@ class User extends Authenticatable
         'password' => 'hashed',
     ];
 
+
+    // 1=passport,2=NID
+    public function getIdentityTypeAttribute($value)
+    {
+        switch ($value) {
+            case 1:
+                return 'passport';
+            case 2:
+                return 'NID';
+            default:
+                return 'NID';
+        }
+    }
+
+    //'1=Unmarried, 2=Married, 3=Divorced'
+    public function getMaritalStatusAttribute($value)
+    {
+        switch ($value) {
+            case 1:
+                return 'Unmarried';
+            case 2:
+                return 'Married';
+            case 3:
+                return 'Divorced';
+            default:
+                return 'Unmarried';
+        }
+    }
+
+
+
+
+
     public function bloodGroup(){
         return $this->belongsTo(BloodGroup::class);
     }

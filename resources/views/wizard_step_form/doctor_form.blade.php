@@ -18,7 +18,7 @@
                 <div class="toast-header">
                     {{-- <img src="..." class="rounded me-2" alt="..."> --}}
                     <strong class="me-auto text-danger">Warning!</strong>
-                    <small>11 mins ago</small>
+                    {{-- <small>11 mins ago</small> --}}
                     <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
                 </div>
                 <div class="toast-body">
@@ -73,11 +73,14 @@
 
                         <select id="doc_title" name="doc_title" required class="form-select"
                             aria-label="Default select example">
+                            {{-- '1=Professor Dr. ,2=Assistant Professor Dr., 3=Associate Professor Dr., 4 = Distinguished Professor Dr., 5 = Dr. ' --}}
 
                             <option value="" disabled @selected($user?->expert?->doc_title == null)>Select title</option>
-                            <option @selected($user?->expert?->doc_title == 1) value="1">Prof. Dr.</option>
-                            <option @selected($user?->expert?->doc_title == 2) value="2">Asso. Prof. Dr.</option>
-                            <option @selected($user?->expert?->doc_title == 3) value="3">Assis. Prof. Dr.</option>
+                            <option @selected($user?->expert?->doc_title == 1) value="1">Professor Dr.</option>
+                            <option @selected($user?->expert?->doc_title == 2) value="2">Assistant Professor Dr.</option>
+                            <option @selected($user?->expert?->doc_title == 3) value="3">Associate Professor Dr.</option>
+                            <option @selected($user?->expert?->doc_title == 4) value="4">Distinguished Professor Dr.</option>
+                            <option @selected($user?->expert?->doc_title == 5) value="5">Dr.</option>
                         </select>
                     </div>
 
@@ -459,7 +462,7 @@
                     <div class="col-12 my-4">
                         <div class="text-center">
                             <button class="btn btn-outline-primary" id="btnPersonalInfo" name="btnSaveForm"
-                                value="personalInfo" type="submit">Continue</button>
+                                value="personalInfo" type="submit">Next</button>
                         </div>
                     </div>
                 </form>
@@ -508,15 +511,21 @@
                                 placeholder="Institute Name" required>
                         </div>
 
+
+                        @php
+                            $specializations = json_decode(file_get_contents(public_path('data/psychology_departments.json')), true);
+                        @endphp
+
                         <div class="col-12 group-input">
                             <label for="specialization" class="form-label">Specialization</label>
                             <select id="specialization" name="specialization" required class="form-select form-field"
                                 aria-label="Default select example">
                                 <option value="" disabled selected>Select One</option>
-                                <option value="1">Subject 1</option>
-                                <option value="2">Subject 2</option>
-                                <option value="3">Subject 3</option>
-                                <option value="4">Subject 4</option>
+                                @foreach ($specializations as $key => $value)
+                                    <option value="{{ $key }}">{{ $value }}</option>
+                                @endforeach
+
+
                             </select>
                         </div>
 
@@ -546,7 +555,7 @@
 
                     <div class="col-6 my-3 d-grid mx-auto">
                         <button type="submit" id="btnAddMoreEdu" name="btnSaveForm" value="saveEdu"
-                            class="btn btn-outline-secondary"><span><i class="fa-solid fa-plus"></i> Save & add
+                            class="btn btn-outline-sucsess"><span><i class="fa-solid fa-plus"></i> Save & add
                                 more</span></button>
                     </div>
 
@@ -554,7 +563,7 @@
                         <div class="text-center">
                             <button class="btn btn-outline-info" type="button" name="back">Previous</button>
                             <button class="btn btn-outline-primary" id="btnEduNextPage" name="btnSaveEducationInfo"
-                                type="button">Continue</button>
+                                type="button">Next</button>
                         </div>
                     </div>
 
@@ -609,10 +618,9 @@
                             <select id="specialization" name="specialization" required class="form-select form-field"
                                 aria-label="Default select example">
                                 <option value="" disabled selected>Select One</option>
-                                <option value="1">Subject 1</option>
-                                <option value="2">Subject 2</option>
-                                <option value="3">Subject 3</option>
-                                <option value="4">Subject 4</option>
+                                @foreach ($specializations as $key => $value)
+                                    <option value="{{ $key }}">{{ $value }}</option>
+                                @endforeach
                             </select>
                         </div>
 
@@ -642,7 +650,7 @@
 
                     <div class="col-6 my-3 d-grid mx-auto">
                         <button type="submit" id="btnAddMoreTrain" name="btnSaveForm" value="AddTraining"
-                            class="btn btn-outline-secondary"><span><i class="fa-solid fa-plus"></i> Save & Add
+                            class="btn btn-outline-success"><span><i class="fa-solid fa-plus"></i> Save & Add
                                 More</span></button>
                     </div>
 
@@ -650,7 +658,7 @@
                         <div class="text-center">
                             <button class="btn btn-outline-info" type="button" name="back">Previous</button>
                             <button class="btn btn-outline-primary" id="btnTrainingNextPage" name="btnSaveTraining"
-                                type="button">Continue</button>
+                                type="button">Next</button>
 
                         </div>
                     </div>
@@ -708,18 +716,21 @@
 
                         <div class="col-12">
                             <label for="department" class="form-label">Department</label>
-                            <select id="department" name="department" required class="form-select  form-field"
+                            {{-- <select id="department" name="department" required class="form-select  form-field"
                                 aria-label="Default select example">
                                 <option value="" disabled selected>Select One</option>
                                 <option value="1">Department 1</option>
                                 <option value="2">Department 2</option>
                                 <option value="3">Department 3</option>
                                 <option value="4">Department 4</option>
-                            </select>
+                            </select> --}}
+                            <input type="text" class="form-control  form-field" name="department" id="department"
+                                placeholder="Department" required>
+
                         </div>
 
                         <div class="col-12">
-                            <label for="position" class="form-label">Position</label>
+                            <label for="position" class="form-label">Designation</label>
                             <input type="text" class="form-control  form-field" name="position" id="position"
                                 placeholder="" required>
                         </div>
@@ -751,7 +762,7 @@
 
                     <div class="col-6 my-3 d-grid mx-auto">
                         <button type="submit" id="btnAddMoreExperience" name="btnSaveForm" value="saveExperienceInfo"
-                            class="btn btn-outline-secondary"><span><i class="fa-solid fa-plus"></i>Save & Add
+                            class="btn btn-outline-success"><span><i class="fa-solid fa-plus"></i>Save & Add
                                 More</span></button>
                     </div>
 
@@ -781,6 +792,37 @@
 
     <script type="text/javascript">
         $(document).ready(function() {
+
+            // date validation
+            // let ageGuard = document.getElementById('user_dob');
+            // let currentDate = new Date();
+
+            // let currentDay, currentMonth, currentYear;
+            // currentDay = currentDate.getDate() < 10 ? `0${currentDate.getDate()}` : currentDate.getDate();
+            // currentMonth = currentDate.getMonth() < 10 ? `0${currentDate.getMonth()}` : currentDate.getMonth();
+            // currentYear = currentDate.getFullYear();
+
+            // let minYear = `${currentYear-10}-${currentMonth}-${currentDay}`;
+
+            // ageGuard.max = minYear;
+
+
+
+            // date validation
+            let ageGuard = $('#date_of_birth');
+            let currentDate = new Date();
+
+            // Subtract 10 years from the current date
+            currentDate.setFullYear(currentDate.getFullYear() - 20);
+
+            // Get the date part of the ISO string (YYYY-MM-DD)
+            let minYear = currentDate.toISOString().slice(0, 10);
+            let minYear2 = currentDate.toISOString();
+
+            ageGuard.attr('max', minYear);
+
+
+
             // form container
             const personalInfoContainer = $("#personal_info_container");
             const educationInfoContainer = $("#education_info_container");
@@ -1092,7 +1134,8 @@
                             let formDataTransport = new FormData();
 
                             if (event.currentTarget.id ===
-                                'form_personal_info') { // ==========================personal information
+                                'form_personal_info'
+                            ) { // ==========================personal information
 
                                 const rawPersonalInfo = new FormOperation(event.target.elements,
                                     personalInfoContainer);
@@ -1189,7 +1232,8 @@
 
 
                             } else if (event.currentTarget.id ===
-                                'form_education') { //======================= education information
+                                'form_education'
+                            ) { //======================= education information
                                 const rawEducationInfo = new FormOperation(event.target
                                     .elements, educationInfoContainer);
 
@@ -1413,7 +1457,7 @@
                                     frmExperience[0].reset();
                                     $('#dataTableExperience tbody tr').remove();
                                     (response.data.experiences).forEach((value,
-                                    key) => {
+                                        key) => {
                                         let currentJobStatus;
 
                                         if (value.job_status == 'true') {

@@ -264,9 +264,10 @@ class UserController extends Controller
                 }
                 break;
             case 'imageUpload':
+                // dd($request);
 
                 $request->validate([
-                    'profile_picture' => ['required', 'image', 'mimes:jpeg,png,gif', 'max:2048'],
+                    'profile_picture' => ['required', 'image', 'mimes:jpg,jpeg,png,gif', 'max:2048'],
                 ]);
 
                 $file = $request->file('profile_picture');
@@ -388,5 +389,16 @@ class UserController extends Controller
         $row = ExperienceInfo::find($request->id);
         $row->delete();
         return response()->json(['message' => 'Record deleted',]);
+    }
+
+
+
+
+    // show profile
+    public function show_profile($user_id)
+    {
+        $user_details = User::find($user_id);
+        $user = Auth::user();
+        return view('pages.user_profile', compact('user_details','user'));
     }
 }

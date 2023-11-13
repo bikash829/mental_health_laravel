@@ -13,8 +13,8 @@ return new class extends Migration
     {
         Schema::create('experts', function (Blueprint $table) {
             $table->id();
-            $table->integer('doc_title',)->nullable()->comment('1=Prof. Dr.,2=Asso. Prof. Dr., 3=Assis. Prof. Dr.');
-            $table->string('license_no',50)->nullable();
+            $table->integer('doc_title',)->nullable()->comment('1=Professor Dr. ,2=Assistant Professor Dr., 3=Associate Professor Dr., 4 = Distinguished Professor Dr., 5 = Dr. ');
+            $table->string('license_no', 50)->nullable();
             $table->string('license_attachment')->nullable();
             $table->string('license_attachment_location')->nullable();
             $table->foreignId('user_id')->constrained();

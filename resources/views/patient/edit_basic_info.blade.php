@@ -30,7 +30,7 @@
                                 value="{{ $user->first_name }}" required>
 
                             <div class="invalid-feedback">
-                                @error('password')
+                                @error('first_name')
                                     {{ $message }}
                                 @else
                                     Please enter your first name
@@ -42,7 +42,7 @@
                             <input type="text" name="last_name" class="form-control" id="validationCustom02"
                                 value="{{ $user->last_name }}" required>
                             <div class="invalid-feedback">
-                                @error('password')
+                                @error('last_name')
                                     {{ $message }}
                                 @else
                                     Please enter your last name

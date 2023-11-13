@@ -6,6 +6,7 @@ use App\Models\BloodGroup;
 use Faker\Core\Blood;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use App\Models\User;
 
 class PatientController extends Controller
 {
@@ -45,4 +46,10 @@ class PatientController extends Controller
 //        $user = Auth::user();
 //        return view('patient.edit_medical_info',compact('user'));
 //    }
+
+
+    public function show_user_profile($user_id){
+        // $user_details = User::find($user_id);
+        return redirect()->route('show_prfile',with(['user_id'=>$user_id]));
+    }
 }

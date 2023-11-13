@@ -78,6 +78,9 @@ Route::get('error404/',function (){
 
 //========================================external routes
 
+// show user profiel
+Route::get('/profile/{user_id}',[UserController::class,'show_profile'])->name('show_prfile');
+
 
 // =========================patient
 

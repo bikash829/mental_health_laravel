@@ -350,7 +350,8 @@
 </div>
 
 
-
+<!-- fontawesome -->
+<script src="{{ asset('vendor/fontawesome-free-6.2.1-web/js/all.js') }}" type="text/javascript"></script>
 <!-- Bootstrap core JavaScript-->
 
 <script src="{{asset('admin/vendor/jquery/jquery.min.js')}}"></script>

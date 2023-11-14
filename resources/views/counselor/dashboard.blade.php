@@ -1,19 +1,58 @@
 @extends('layouts.admin.app')
 
-{{--@section('sidebar')--}}
-{{--    <x-admin.sidebar.counselor />--}}
-{{--@endsection--}}
+{{-- @section('sidebar') --}}
+{{--    <x-admin.sidebar.counselor /> --}}
+{{-- @endsection --}}
 
 @section('content')
     <div class="container-fluid">
+
+        {{-- @if ($progress == '100%')
+            @if ($user->is_verified == 1)
+                <div class="alert alert-success" id="verificationStatus" role="alert">
+                    Your account is verified. You can create appointment for your patients.
+                </div>
+            @elseif ($user->is_verified == 0 || $user->is_verified == null)
+                <div class="alert alert-warning" id="verificationStatus" role="alert">
+                    Your account is not varified yet. Please make an approval request to the admin so that you can create
+                    appointment for your patients.
+                </div>
+                <div class="text-end"><button class="btn btn-primary" id="btnRequestForVerification" type="button">Request for
+                        verification</button></div>
+            @elseif ($user->is_verified == 2)
+                <div class="alert alert-info" id="verificationStatus" role="alert">
+                    Your request has been sent to the admin. Please wait for the approval.
+                </div>
+            @endif
+        @else
+            <x-admin.progress.account_progress :progress="$progress" />
+        @endif --}}
+
+
         @if ($progress == '100%')
-                <div class="alert alert-warning" role="alert">
+            {{-- <div class="alert alert-warning" role="alert">
                     Your account is not varified yet. Please make an approval request to the admin so that you can be available to provide your service.
                 </div>
-                <div class="text-end"><button class="btn btn-primary" id="btnRequestForVerification" type="button" >Request for verification</button></div>
+                <div class="text-end"><button class="btn btn-primary" id="btnRequestForVerification" type="button" >Request for verification</button></div> --}}
 
+            @if ($user->is_verified == 1)
+                <div class="alert alert-success"  role="alert">
+                    Your account is verified. You can provide your service anytime.
+                </div>
+            @elseif ($user->is_verified == 0 || $user->is_verified == null)
+                <div class="alert alert-warning" role="alert" id="verificationStatus">
+                    Your account is not varified yet. Please make an approval request to the admin so that you can provide
+                    your service.
+                </div>
+                <div class="text-end"><button class="btn btn-primary" id="btnRequestForVerification" type="button">Request
+                        for verification</button></div>
+            @elseif ($user->is_verified == 2)
+                <div class="alert alert-info" role="alert">
+                    Your request has been sent to the admin. Please wait for the approval.
+                </div>
+            @endif
         @else
-            <x-admin.progress.account_progress :progress="$progress"/>
+            <x-admin.progress.account_progress :progress="$progress" />
         @endif
         {{-- <x-admin.progress.account_progress/> --}}
         <!-- Page Heading -->
@@ -74,9 +113,8 @@
                                     </div>
                                     <div class="col">
                                         <div class="progress progress-sm mr-2">
-                                            <div class="progress-bar bg-info" role="progressbar"
-                                                 style="width: 50%" aria-valuenow="50" aria-valuemin="0"
-                                                 aria-valuemax="100"></div>
+                                            <div class="progress-bar bg-info" role="progressbar" style="width: 50%"
+                                                aria-valuenow="50" aria-valuemin="0" aria-valuemax="100"></div>
                                         </div>
                                     </div>
                                 </div>
@@ -116,16 +154,15 @@
             <div class="col-xl-8 col-lg-7">
                 <div class="card shadow mb-4">
                     <!-- Card Header - Dropdown -->
-                    <div
-                        class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+                    <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
                         <h6 class="m-0 font-weight-bold text-primary">Earnings Overview</h6>
                         <div class="dropdown no-arrow">
                             <a class="dropdown-toggle" href="#" role="button" id="dropdownMenuLink"
-                               data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                                 <i class="fas fa-ellipsis-v fa-sm fa-fw text-gray-400"></i>
                             </a>
                             <div class="dropdown-menu dropdown-menu-right shadow animated--fade-in"
-                                 aria-labelledby="dropdownMenuLink">
+                                aria-labelledby="dropdownMenuLink">
                                 <div class="dropdown-header">Dropdown Header:</div>
                                 <a class="dropdown-item" href="#">Action</a>
                                 <a class="dropdown-item" href="#">Another action</a>
@@ -147,16 +184,15 @@
             <div class="col-xl-4 col-lg-5">
                 <div class="card shadow mb-4">
                     <!-- Card Header - Dropdown -->
-                    <div
-                        class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+                    <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
                         <h6 class="m-0 font-weight-bold text-primary">Revenue Sources</h6>
                         <div class="dropdown no-arrow">
                             <a class="dropdown-toggle" href="#" role="button" id="dropdownMenuLink"
-                               data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                                 <i class="fas fa-ellipsis-v fa-sm fa-fw text-gray-400"></i>
                             </a>
                             <div class="dropdown-menu dropdown-menu-right shadow animated--fade-in"
-                                 aria-labelledby="dropdownMenuLink">
+                                aria-labelledby="dropdownMenuLink">
                                 <div class="dropdown-header">Dropdown Header:</div>
                                 <a class="dropdown-item" href="#">Action</a>
                                 <a class="dropdown-item" href="#">Another action</a>
@@ -171,15 +207,15 @@
                             <canvas id="myPieChart"></canvas>
                         </div>
                         <div class="mt-4 text-center small">
-                                        <span class="mr-2">
-                                            <i class="fas fa-circle text-primary"></i> Direct
-                                        </span>
                             <span class="mr-2">
-                                            <i class="fas fa-circle text-success"></i> Social
-                                        </span>
+                                <i class="fas fa-circle text-primary"></i> Direct
+                            </span>
                             <span class="mr-2">
-                                            <i class="fas fa-circle text-info"></i> Referral
-                                        </span>
+                                <i class="fas fa-circle text-success"></i> Social
+                            </span>
+                            <span class="mr-2">
+                                <i class="fas fa-circle text-info"></i> Referral
+                            </span>
                         </div>
                     </div>
                 </div>
@@ -198,35 +234,30 @@
                         <h6 class="m-0 font-weight-bold text-primary">Projects</h6>
                     </div>
                     <div class="card-body">
-                        <h4 class="small font-weight-bold">Server Migration <span
-                                class="float-right">20%</span></h4>
+                        <h4 class="small font-weight-bold">Server Migration <span class="float-right">20%</span></h4>
                         <div class="progress mb-4">
-                            <div class="progress-bar bg-danger" role="progressbar" style="width: 20%"
-                                 aria-valuenow="20" aria-valuemin="0" aria-valuemax="100"></div>
+                            <div class="progress-bar bg-danger" role="progressbar" style="width: 20%" aria-valuenow="20"
+                                aria-valuemin="0" aria-valuemax="100"></div>
                         </div>
-                        <h4 class="small font-weight-bold">Sales Tracking <span
-                                class="float-right">40%</span></h4>
+                        <h4 class="small font-weight-bold">Sales Tracking <span class="float-right">40%</span></h4>
                         <div class="progress mb-4">
                             <div class="progress-bar bg-warning" role="progressbar" style="width: 40%"
-                                 aria-valuenow="40" aria-valuemin="0" aria-valuemax="100"></div>
+                                aria-valuenow="40" aria-valuemin="0" aria-valuemax="100"></div>
                         </div>
-                        <h4 class="small font-weight-bold">Customer Database <span
-                                class="float-right">60%</span></h4>
+                        <h4 class="small font-weight-bold">Customer Database <span class="float-right">60%</span></h4>
                         <div class="progress mb-4">
-                            <div class="progress-bar" role="progressbar" style="width: 60%"
-                                 aria-valuenow="60" aria-valuemin="0" aria-valuemax="100"></div>
+                            <div class="progress-bar" role="progressbar" style="width: 60%" aria-valuenow="60"
+                                aria-valuemin="0" aria-valuemax="100"></div>
                         </div>
-                        <h4 class="small font-weight-bold">Payout Details <span
-                                class="float-right">80%</span></h4>
+                        <h4 class="small font-weight-bold">Payout Details <span class="float-right">80%</span></h4>
                         <div class="progress mb-4">
-                            <div class="progress-bar bg-info" role="progressbar" style="width: 80%"
-                                 aria-valuenow="80" aria-valuemin="0" aria-valuemax="100"></div>
+                            <div class="progress-bar bg-info" role="progressbar" style="width: 80%" aria-valuenow="80"
+                                aria-valuemin="0" aria-valuemax="100"></div>
                         </div>
-                        <h4 class="small font-weight-bold">Account Setup <span
-                                class="float-right">Complete!</span></h4>
+                        <h4 class="small font-weight-bold">Account Setup <span class="float-right">Complete!</span></h4>
                         <div class="progress">
                             <div class="progress-bar bg-success" role="progressbar" style="width: 100%"
-                                 aria-valuenow="100" aria-valuemin="0" aria-valuemax="100"></div>
+                                aria-valuenow="100" aria-valuemin="0" aria-valuemax="100"></div>
                         </div>
                     </div>
                 </div>
@@ -311,10 +342,10 @@
                     <div class="card-body">
                         <div class="text-center">
                             <img class="img-fluid px-3 px-sm-4 mt-3 mb-4" style="width: 25rem;"
-                                 src="img/undraw_posting_photo.svg" alt="...">
+                                src="img/undraw_posting_photo.svg" alt="...">
                         </div>
-                        <p>Add some quality, svg illustrations to your project courtesy of <a
-                                target="_blank" rel="nofollow" href="https://undraw.co/">unDraw</a>, a
+                        <p>Add some quality, svg illustrations to your project courtesy of <a target="_blank"
+                                rel="nofollow" href="https://undraw.co/">unDraw</a>, a
                             constantly updated collection of beautiful svg images that you can use
                             completely free and without attribution!</p>
                         <a target="_blank" rel="nofollow" href="https://undraw.co/">Browse Illustrations on
@@ -340,4 +371,49 @@
         </div>
 
     </div>
+@endsection
+
+
+@section('scripts')
+    <script>
+        $(document).ready(function() {
+
+            const verificationStatus = $('#verificationStatus');
+            const btnRequestForVerification = $('#btnRequestForVerification');
+            console.log(verificationStatus);
+            console.log(btnRequestForVerification);
+
+
+            $('#btnRequestForVerification').click(function(e) {
+                axios.post('{{ route('counselor.request_for_verification') }}')
+                    .then(function(response) {
+                        console.log(response.data.success);
+                        if (response.status == 200) {
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Success',
+                                text: response.data.success,
+                            });
+
+
+                            btnRequestForVerification.hide();
+                            $(verificationStatus).text(
+                                'Your request has been sent to the admin. Please wait for the approval.'
+                                );
+                            $(verificationStatus).removeClass('alert-warning').addClass('alert-info');
+
+                        } else {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Oops...',
+                                text: response.data.message,
+                            });
+                        }
+                    })
+                    .catch(function(error) {
+                        console.log(error);
+                    });
+            });
+        });
+    </script>
 @endsection

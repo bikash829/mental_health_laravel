@@ -343,21 +343,6 @@
                             @enderror
                         </div>
                     </div>
-
-                    {{-- <div class="col-12 col-lg-4 col-xl-4 col-xxl-4">
-                        <label for="identity_proof" class="form-label">Identity Proof(img,pdf)</label>
-                        <input class="form-control" type="file" name="identity_proof" accept=".pdf,.jpg,.jpeg,.png"
-                            id="identity_proof" required>
-                        <div class="invalid-feedback">
-                            @error('identity_proof')
-                                {{ $message }}
-                            @else
-                                Please upload an attachment of your identity
-                            @enderror
-                        </div>
-                    </div> --}}
-
-
                     @isset($user->identity_proof)
                         <div class="col-12 col-lg-6 col-xl-6 col-xxl-6">
                             <label for="identity_proof" class="form-label">Identity Proof(image/pdf)</label>
@@ -389,71 +374,13 @@
                         </div>
                     @endisset
 
-                    <!-- license  -->
-{{--
-                    <div class="col-12 col-lg-6 col-xl-6 col-xxl-6">
-                        <label for="license_no" class="form-label">License Number(<span class="text-danger">if
-                                any</span>)</label>
-                        <input type="text" class="form-control" value="{{ $user?->expert?->license_no }}"
-                            name="license_no" id="license_no" placeholder="1245XXXXXX" max="50" minlength="6">
-                        <div class="invalid-feedback">
-                            @error('license_no')
-                                {{ $message }}
-                            @else
-                                Please enter your license number
-                            @enderror
-                        </div>
-                    </div>
 
-
-                    @isset($user->expert->license_attachment)
-                        <div class="col-12 col-lg-6 col-xl-6 col-xxl-6">
-                            <label for="license_attachment" class="form-label">License Attachment</label>
-                            <div>
-                                <div class="btn-group" role="group" aria-label="Basic outlined example">
-                                    <a href="#" class="btn btn-outline-secondary btn-sm text-primary">View uploaded
-                                        license</a>
-                                    <input id="license_attachment" name="license_attachment" accept=".pdf,.jpg,.jpeg,.png"
-                                        type="file" class="btn btn-outline-secondary btn-sm" data-bs-toggle="tooltip"
-                                        data-bs-placement="top" data-bs-title="Change current attachment">
-                                </div>
-                            </div>
-
-                        </div>
-                    @else
-                        <div class="col-12 col-lg-6 col-xl-6 col-xxl-6">
-                            <label for="license_attachment" class="form-label">License Attachment</label>
-                            <input type="file" class="form-control" name="license_attachment"
-                                accept=".pdf,.jpg,.jpeg,.png" id="license_attachment" placeholder="">
-                            <div class="invalid-feedback">
-                                @error('license_attachment')
-                                    {{ $message }}
-
-                                    Please upload you license attachment
-                                @enderror
-                            </div>
-                        </div>
-                    @endisset --}}
-
-
-                    <div class="col-12">
-                        <div class="form-check">
-                            <input class="form-check-input" type="checkbox" value="condition_checked"
-                                name="terms_condition" id="termsCondition" required>
-                            <label class="form-check-label" for="termsCondition">
-                                Agree to terms and conditions
-                            </label>
-                            <div class="invalid-feedback">
-                                You must agree before submitting.
-                            </div>
-                        </div>
-                    </div>
 
 
                     <div class="col-12 my-4">
                         <div class="text-center">
                             <button class="btn btn-outline-primary" id="btnPersonalInfo" name="btnSaveForm"
-                                value="personalInfo" type="submit">Continue</button>
+                                value="personalInfo" type="submit">Next</button>
                         </div>
                     </div>
                 </form>
@@ -502,15 +429,17 @@
                                 placeholder="Institute Name" required>
                         </div>
 
+                        @php
+                            $specializations = json_decode(file_get_contents(public_path('data/psychology_departments.json')), true);
+                        @endphp
                         <div class="col-12 group-input">
                             <label for="specialization" class="form-label">Specialization</label>
                             <select id="specialization" name="specialization" required class="form-select form-field"
                                 aria-label="Default select example">
                                 <option value="" disabled selected>Select One</option>
-                                <option value="1">Subject 1</option>
-                                <option value="2">Subject 2</option>
-                                <option value="3">Subject 3</option>
-                                <option value="4">Subject 4</option>
+                                @foreach ($specializations as $key => $value)
+                                    <option value="{{ $key }}">{{ $value }}</option>
+                                @endforeach
                             </select>
                         </div>
 
@@ -548,7 +477,7 @@
                         <div class="text-center">
                             <button class="btn btn-outline-info" type="button" name="back">Previous</button>
                             <button class="btn btn-outline-primary" id="btnEduNextPage" name="btnSaveEducationInfo"
-                                type="button">Continue</button>
+                                type="button">Next</button>
                         </div>
                     </div>
 
@@ -603,10 +532,9 @@
                             <select id="specialization" name="specialization" required class="form-select form-field"
                                 aria-label="Default select example">
                                 <option value="" disabled selected>Select One</option>
-                                <option value="1">Subject 1</option>
-                                <option value="2">Subject 2</option>
-                                <option value="3">Subject 3</option>
-                                <option value="4">Subject 4</option>
+                                @foreach ($specializations as $key => $value)
+                                    <option value="{{ $key }}">{{ $value }}</option>
+                                @endforeach
                             </select>
                         </div>
 
@@ -644,7 +572,7 @@
                         <div class="text-center">
                             <button class="btn btn-outline-info" type="button" name="back">Previous</button>
                             <button class="btn btn-outline-primary" id="btnTrainingNextPage" name="btnSaveTraining"
-                                type="button">Continue</button>
+                                type="button">Next</button>
 
                         </div>
                     </div>
@@ -702,31 +630,27 @@
 
                         <div class="col-12">
                             <label for="department" class="form-label">Department</label>
-                            <select id="department" name="department" required class="form-select  form-field"
-                                aria-label="Default select example">
-                                <option value="" disabled selected>Select One</option>
-                                <option value="1">Department 1</option>
-                                <option value="2">Department 2</option>
-                                <option value="3">Department 3</option>
-                                <option value="4">Department 4</option>
-                            </select>
+
+                            {{-- department input  --}}
+                            <input type="text" class="form-control  form-field" name="department" id="department"
+                            placeholder="Department" required>
                         </div>
 
                         <div class="col-12">
-                            <label for="position" class="form-label">Position</label>
+                            <label for="position" class="form-label">Designation/Position</label>
                             <input type="text" class="form-control  form-field" name="position" id="position"
+                                placeholder="ex# psychologist" required>
+                        </div>
+
+                        <div class="col-12 col-lg-4 col-xl-4 col-xxl-4">
+                            <label for="jobJoinDate" class="form-label">From</label>
+                            <input type="date" class="form-control  form-field" name="from_date" id="jobJoinDate"
                                 placeholder="" required>
                         </div>
 
                         <div class="col-12 col-lg-4 col-xl-4 col-xxl-4">
-                            <label for="from_date" class="form-label">From</label>
-                            <input type="date" class="form-control  form-field" name="from_date" id="from_date"
-                                placeholder="" required>
-                        </div>
-
-                        <div class="col-12 col-lg-4 col-xl-4 col-xxl-4">
-                            <label for="to_date" class="form-label">To</label>
-                            <input type="date" class="form-control  form-field" name="to_date" id="to_date"
+                            <label for="jobResignedDate" class="form-label">To</label>
+                            <input type="date" class="form-control  form-field" name="to_date" id="jobResignedDate"
                                 placeholder="" data-job-condition="resign_date" required>
                         </div>
 
@@ -763,6 +687,91 @@
         </div>
 
     </div>
+
+
+    <!-- Modal terms and conditions-->
+    <div class="modal fade" id="staticBackdrop" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1"
+        aria-labelledby="staticBackdropLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h1 class="modal-title fs-5" id="staticBackdropLabel">Mental Help And Support Counselor Registration
+                        Terms and Conditions</h1>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"
+                        id="closeModalButton"></button>
+                </div>
+                <div class="modal-body">
+                    <ol>
+                        <li>
+                            <h3 class="h4"> Acceptance of Terms</h3>
+                            <p class="text-muted">By registering an account on Mental Help And Support, you agree to comply
+                                with and be bound by the terms and conditions outlined herein. If you do not agree with any
+                                part of these terms, you may not use our services.</p>
+                        </li>
+                        <li>
+                            <h3 class="h4"> Eligibility</h3>
+                            <p>You must be a licensed and qualified healthcare professional in the field of psychology or
+                                psychiatry to register on Mental Help And Support. You agree to provide accurate and
+                                up-to-date information about your credentials, licensing, and professional qualifications
+                                during the registration process.</p>
+                        </li>
+                        <li>
+                            <h3 class="h4"> Professional Conduct</h3>
+                            <p>You agree to conduct yourself in a professional manner when using Mental Help And Support.
+                                This includes adhering to ethical standards and maintaining the confidentiality and privacy
+                                of patient information.</p>
+                        </li>
+                        <li>
+                            <h3 class="h4"> Patient Care</h3>
+                            <p>As a registered healthcare professional, you understand and acknowledge that you are solely
+                                responsible for the quality and appropriateness of the services you provide to patients on
+                                Mental Help And Support.</p>
+                        </li>
+                        <li>
+                            <h3 class="h4"> Compliance with Laws and Regulations</h3>
+                            <p>You agree to comply with all applicable international laws and regulations related to your
+                                practice and the provision of online psychological services. This includes, but is not
+                                limited to, obtaining any necessary licenses or permits required by international law.</p>
+                        </li>
+                        <li>
+                            <h3 class="h4"> User Account Security</h3>
+                            <p>You are responsible for maintaining the confidentiality of your account credentials. You
+                                agree to notify us immediately of any unauthorized use of your account or any other breach
+                                of security.</p>
+                        </li>
+                        <li>
+                            <h3 class="h4"> Termination of Account</h3>
+                            <p>We reserve the right to terminate or suspend your account at any time for any reason,
+                                including but not limited to a violation of these terms or unethical behavior. Upon
+                                termination, you will no longer have access to the platform, and any patient information
+                                associated with your account will be handled in accordance with our privacy policy.</p>
+                        </li>
+                        <li>
+                            <h3 class="h4"> Changes to Terms</h3>
+                            <p>We reserve the right to update or modify these terms and conditions at any time without prior
+                                notice. It is your responsibility to review these terms periodically for changes.</p>
+                        </li>
+                        <li>
+                            <h3 class="h4"> Governing Law</h3>
+                            <p>These terms and conditions shall be governed by and construed in accordance with
+                                international laws.</p>
+                        </li>
+                    </ol>
+
+                    <p class="text-muted">
+                        By registering on Mental Help And Support, you acknowledge that you have read, understood, and agree
+                        to be bound by these terms and conditions.
+                    </p>
+
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-danger" data-bs-dismiss="modal"
+                        id="declineButton">Decline</button>
+                    <button type="button" class="btn btn-primary" id="btnAgreedTerms">Understood</button>
+                </div>
+            </div>
+        </div>
+    </div>
 @endsection
 
 
@@ -773,6 +782,95 @@
     <script src="{{ asset('wizard_form/js/wizard_step.js') }}"></script>
 
     <script type="text/javascript">
+        $(document).ready((e)=>{
+
+            /**
+             * Date validation ||||||||||||||||||||||||||||||||||
+             */
+            //variable section
+            let currentDate, minYear;
+
+
+            // age validation ====================
+            const ageGuard = $('#date_of_birth');
+            currentDate = new Date();
+
+            // Subtract 10 years from the current date
+            currentDate.setFullYear(currentDate.getFullYear() - 15);
+
+            // Get the date part of the ISO string (YYYY-MM-DD)
+            minYear = currentDate.toISOString().slice(0, 10);
+            ageGuard.attr('max', minYear);
+
+            // education passing year ==================
+            const passingYear = $('#passing_year');
+            currentDate = new Date();
+            // currentDate.setMonth(currentDate.getMonth() - 1);
+            currentDate.setDate(currentDate.getDate() - 1);
+            minYear = currentDate.toISOString().slice(0, 10);
+            passingYear.attr('max', minYear);
+
+
+
+            // training ===========================
+            const trainingJoinDate = $('#from_date');
+            const trainingCompleteDate = $('#to_date');
+
+
+            currentDate = new Date();
+            currentDate.setDate(currentDate.getDate() - 1);
+            minYear = currentDate.toISOString().slice(0, 10);
+            trainingJoinDate.attr('max', minYear);
+
+
+
+            currentDate = new Date();
+            currentDate.setDate(currentDate.getDate() - 1);
+            minYear = currentDate.toISOString().slice(0, 10);
+            trainingCompleteDate.attr('max', minYear);
+
+
+
+
+            trainingJoinDate.on('change', function() {
+                trainingCompleteDate.attr('min', this.value);
+            });
+
+            trainingCompleteDate.on('change', function() {
+                trainingJoinDate.attr('max', this.value);
+            });
+
+            // experiences ==========================
+            const jobJoinDate = $('#jobJoinDate');
+            const jobResignedDate = $('#jobResignedDate');
+
+            currentDate = new Date();
+            currentDate.setDate(currentDate.getDate() - 1);
+            minYear = currentDate.toISOString().slice(0, 10);
+            jobJoinDate.attr('max', minYear);
+
+
+
+            currentDate = new Date();
+            currentDate.setDate(currentDate.getDate() - 1);
+            minYear = currentDate.toISOString().slice(0, 10);
+            jobResignedDate.attr('max', minYear);
+
+            jobJoinDate.on('change', function() {
+                jobResignedDate.attr('min', this.value);
+            });
+
+            jobResignedDate.on('change', function() {
+                jobJoinDate.attr('max', this.value);
+            });
+
+            /**
+             * End date validation ||||||||||||||||||||||||||||
+             */
+
+        })
+
+
         $(document).ready(function() {
             // form container
             const personalInfoContainer = $("#personal_info_container");
@@ -1587,6 +1685,35 @@
             "searching": false, // Disable search bar
             "paging": false, // Disable pagination
             "info": false
+        });
+
+
+        // termsw and conditions ;
+        $(document).ready(function() {
+            let termsStatus = {{ $user->terms }};
+            if (termsStatus === 0) {
+                $('#staticBackdrop').modal('show');
+            }
+
+
+            $('#declineButton, #closeModalButton').on('click', function() {
+                window.history.back();
+            });
+
+            // btnAgreedTerms
+            $('#btnAgreedTerms').on('click', function() {
+                let formDataTransport = new FormData();
+                formDataTransport.append('terms', 1);
+                formDataTransport.append('from_terms', 'true');
+                axios.post('{{ route('counselor.profile.store') }}', formDataTransport)
+                    .then(function(response) {
+                        console.log(response);
+                        $('#staticBackdrop').modal('hide');
+                    }).catch(function(error) {
+                        console.log(error);
+                    });
+            });
+
         });
     </script>
 @endsection

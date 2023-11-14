@@ -15,6 +15,15 @@ Route::group(['prefix'=>'counselor','name'=>'counselor','as'=>'counselor.'],func
     Route::post('/profile_view/fillup_form/delete_training/',[UserController::class,'delete_training'])->name('delete_training');
     Route::post('/profile_view/fillup_form/delete_experience/',[UserController::class,'delete_experience'])->name('delete_experience');
 
+    // change_email
+    Route::post('/change_email/',[UserController::class,'change_email'])->name('change_email');
+
+
+
+
+    // request_for_verification
+    Route::post('/request_for_verification/',[CounselorController::class,'request_for_verification'])->name('request_for_verification');
+
 
     // community forum
     Route::resource('community',PostController::class);

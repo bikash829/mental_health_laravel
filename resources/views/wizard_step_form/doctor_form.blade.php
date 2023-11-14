@@ -11,8 +11,6 @@
 @section('content')
     <div class="">
 
-        {{--          <button type="button" class="btn btn-primary" id="liveToastBtn">Show live toast</button> --}}
-
         <div class="toast-container position-fixed top-0 end-0 p-3">
             <div id="liveToast" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
                 <div class="toast-header">
@@ -27,7 +25,7 @@
                 </div>
             </div>
         </div>
-        {{--            toast success --}}
+        {{-- toast success --}}
         <div class="toast-container position-fixed top-0 end-0 p-3">
             <div id="toastSuccess" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
                 <div class="toast-header">
@@ -44,15 +42,7 @@
 
 
         <div class="row justify-content-center " id="doctor_register_container">
-            <div class="toast align-items-center" role="alert" aria-live="assertive" aria-atomic="true">
-                <div class="d-flex">
-                    <div class="toast-body">
-                        Hello, world! This is a toast message.
-                    </div>
-                    <button type="button" class="btn-close me-2 m-auto" data-bs-dismiss="toast"
-                        aria-label="Close"></button>
-                </div>
-            </div>
+
             <!-- tab area  -->
             <div class="col-12 col-lg-10 col-xxl-8 col-xl-10 my-4">
                 <div class="tab_container">
@@ -118,8 +108,8 @@
                         <label for="" class="form-label">Gender</label>
                         <div class="input-group">
                             <div class="form-check form-check-inline">
-                                <input class="form-check-input" type="radio" @checked($user->gender == 'male')
-                                    name="gender" id="male" value="male" required>
+                                <input class="form-check-input" type="radio" @checked($user->gender == 'male') name="gender"
+                                    id="male" value="male" required>
                                 <label class="form-check-label" for="male">Male</label>
                             </div>
                             <div class="form-check form-check-inline">
@@ -639,7 +629,7 @@
                         <div class="col-12 col-lg-6 col-xl-6 col-xxl-6">
                             <label for="training_certificate" class="form-label">Upload certificate(image/pdf)</label>
                             <input type="file" class="form-control form-field" name="training_certificate"
-                                id="training_certificate" placeholder="" required  accept=".pdf,.jpg,.jpeg,.png">
+                                id="training_certificate" placeholder="" required accept=".pdf,.jpg,.jpeg,.png">
                         </div>
                         <div class="col-12 col-lg-6 col-xl-6 col-xxl-6">
                             <label for="training_title" class="form-label">Certificate Title</label>
@@ -736,14 +726,14 @@
                         </div>
 
                         <div class="col-12 col-lg-4 col-xl-4 col-xxl-4">
-                            <label for="from_date" class="form-label">From</label>
-                            <input type="date" class="form-control  form-field" name="from_date" id="from_date"
+                            <label for="jobJoinDate" class="form-label">From</label>
+                            <input type="date" class="form-control  form-field" name="from_date" id="jobJoinDate"
                                 placeholder="" required>
                         </div>
 
                         <div class="col-12 col-lg-4 col-xl-4 col-xxl-4">
-                            <label for="to_date" class="form-label">To</label>
-                            <input type="date" class="form-control  form-field" name="to_date" id="to_date"
+                            <label for="jobResignedDate" class="form-label">To</label>
+                            <input type="date" class="form-control  form-field" name="to_date" id="jobResignedDate"
                                 placeholder="" data-job-condition="resign_date" required>
                         </div>
 
@@ -879,33 +869,91 @@
     <script type="text/javascript">
         $(document).ready(function() {
 
-            // date validation
-            // let ageGuard = document.getElementById('user_dob');
-            // let currentDate = new Date();
 
-            // let currentDay, currentMonth, currentYear;
-            // currentDay = currentDate.getDate() < 10 ? `0${currentDate.getDate()}` : currentDate.getDate();
-            // currentMonth = currentDate.getMonth() < 10 ? `0${currentDate.getMonth()}` : currentDate.getMonth();
-            // currentYear = currentDate.getFullYear();
-
-            // let minYear = `${currentYear-10}-${currentMonth}-${currentDay}`;
-
-            // ageGuard.max = minYear;
+            /**
+             * Date validation ||||||||||||||||||||||||||||||||||
+             */
+            //variable section
+            let currentDate, minYear;
 
 
-
-            // date validation
-            let ageGuard = $('#date_of_birth');
-            let currentDate = new Date();
+            // age validation ====================
+            const ageGuard = $('#date_of_birth');
+            currentDate = new Date();
 
             // Subtract 10 years from the current date
             currentDate.setFullYear(currentDate.getFullYear() - 20);
 
             // Get the date part of the ISO string (YYYY-MM-DD)
-            let minYear = currentDate.toISOString().slice(0, 10);
-            let minYear2 = currentDate.toISOString();
-
+            minYear = currentDate.toISOString().slice(0, 10);
             ageGuard.attr('max', minYear);
+
+            // education passing year ==================
+            const passingYear = $('#passing_year');
+            currentDate = new Date();
+            // currentDate.setMonth(currentDate.getMonth() - 1);
+            currentDate.setDate(currentDate.getDate() - 1);
+            minYear = currentDate.toISOString().slice(0, 10);
+            passingYear.attr('max', minYear);
+
+
+
+            // training ===========================
+            const trainingJoinDate = $('#from_date');
+            const trainingCompleteDate = $('#to_date');
+
+
+            currentDate = new Date();
+            currentDate.setDate(currentDate.getDate() - 1);
+            minYear = currentDate.toISOString().slice(0, 10);
+            trainingJoinDate.attr('max', minYear);
+
+
+
+            currentDate = new Date();
+            currentDate.setDate(currentDate.getDate() - 1);
+            minYear = currentDate.toISOString().slice(0, 10);
+            trainingCompleteDate.attr('max', minYear);
+
+
+
+
+            trainingJoinDate.on('change', function() {
+                trainingCompleteDate.attr('min', this.value);
+            });
+
+            trainingCompleteDate.on('change', function() {
+                trainingJoinDate.attr('max', this.value);
+            });
+
+            // experiences ==========================
+            const jobJoinDate = $('#jobJoinDate');
+            const jobResignedDate = $('#jobResignedDate');
+
+            currentDate = new Date();
+            currentDate.setDate(currentDate.getDate() - 1);
+            minYear = currentDate.toISOString().slice(0, 10);
+            jobJoinDate.attr('max', minYear);
+
+
+
+            currentDate = new Date();
+            currentDate.setDate(currentDate.getDate() - 1);
+            minYear = currentDate.toISOString().slice(0, 10);
+            jobResignedDate.attr('max', minYear);
+
+            jobJoinDate.on('change', function() {
+                jobResignedDate.attr('min', this.value);
+            });
+
+            jobResignedDate.on('change', function() {
+                jobJoinDate.attr('max', this.value);
+            });
+
+            /**
+             * End date validation ||||||||||||||||||||||||||||
+             */
+
 
 
 

@@ -239,8 +239,6 @@ class DoctorController extends Controller
             ]
         );
 
-
-
         return  response()->json(['success' => 'Request has been sent wait for response. Our team will let you know the decition in between next 48 hours.', 'user' => $user]);
     }
 

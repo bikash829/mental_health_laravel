@@ -379,6 +379,9 @@
     @enderror
 
     <script>
+        /**
+         *  Change email address
+         */
         $(document).ready(function() {
             const changeEmail = $('#btnChangeEmail');
             changeEmail.click(e => {

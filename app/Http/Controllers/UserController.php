@@ -42,7 +42,7 @@ class UserController extends Controller
         // if(){
 
         // }
-        if($request->from_terms == 'true'){
+        if ($request->from_terms == 'true') {
             $user = Auth::user();
             $user->update($request->all());
             return response()->json(['message' => 'Data saved successfully']);
@@ -53,7 +53,7 @@ class UserController extends Controller
         $user = Auth::user();
         switch ($request->btnSaveForm) {
             case "personalInfo": //=============case personal info
-                if($request->dataFrom == 'counselor'){
+                if ($request->dataFrom == 'counselor') {
                     $request->validate([
                         // 'doc_title' => ['required', 'integer'],
                         'first_name' => ['required', 'string', 'max:50'],
@@ -79,7 +79,7 @@ class UserController extends Controller
                         'license_attachment_file' => ['mimes:jpeg,jpg,png,pdf', 'max:2048'],
                         'religion' => ['string', 'max:10'],
                     ]);
-                }else{
+                } else {
                     $request->validate([
                         'doc_title' => ['required', 'integer'],
                         'first_name' => ['required', 'string', 'max:50'],
@@ -133,7 +133,7 @@ class UserController extends Controller
                 $user->update($request->all());
                 $user->address()->updateOrCreate([], $request->all());
 
-                if($request->dataFrom !== 'counselor'){
+                if ($request->dataFrom !== 'counselor') {
                     $user->expert()->updateOrCreate([], $request->all());
                 }
 
@@ -316,7 +316,7 @@ class UserController extends Controller
                     'phone_code' => ['required',],
                     'phone' => ['required', 'numeric', 'max_digits:20'],
                     'additional_phone_code' => ['required'],
-                    'additional_phone' => ['required','numeric', 'max_digits:20',],
+                    'additional_phone' => ['required', 'numeric', 'max_digits:20',],
 
                 ]);
                 $user->update($request->all());
@@ -347,7 +347,8 @@ class UserController extends Controller
     }
 
 
-    public function change_email(Request $request){
+    public function change_email(Request $request)
+    {
         $request->validate([
             'email' => ['required', 'string', 'email', 'max:255', 'unique:users'],
         ]);
@@ -357,7 +358,6 @@ class UserController extends Controller
         $user->email = $request->email;
         $user->save();
         return response()->json(['message' => 'Email changed successfully']);
-
     }
 
     /**
@@ -409,6 +409,6 @@ class UserController extends Controller
     {
         $user_details = User::find($user_id);
         $user = Auth::user();
-        return view('pages.user_profile', compact('user_details','user'));
+        return view('pages.user_profile', compact('user_details', 'user'));
     }
 }

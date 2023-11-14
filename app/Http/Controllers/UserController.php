@@ -39,6 +39,16 @@ class UserController extends Controller
      */
     public function store(Request $request)
     {
+        // if(){
+
+        // }
+        if($request->from_terms == 'true'){
+            $user = Auth::user();
+            $user->update($request->all());
+            return response()->json(['message' => 'Data saved successfully']);
+        }
+        // terms and condition
+
 
         $user = Auth::user();
         switch ($request->btnSaveForm) {

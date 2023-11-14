@@ -40,6 +40,8 @@ class User extends Authenticatable
         'pp_name',
         'pp_location',
         'is_verified',
+        'is_active',
+        'terms',
 
     ];
     use HasRoles; # from spatie

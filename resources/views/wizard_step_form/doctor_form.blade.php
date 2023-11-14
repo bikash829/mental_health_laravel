@@ -445,7 +445,7 @@
                     @endisset
 
 
-                    <div class="col-12">
+                    {{-- <div class="col-12">
                         <div class="form-check">
                             <input class="form-check-input" type="checkbox" value="condition_checked"
                                 name="terms_condition" id="termsCondition" required>
@@ -456,7 +456,7 @@
                                 You must agree before submitting.
                             </div>
                         </div>
-                    </div>
+                    </div> --}}
 
 
                     <div class="col-12 my-4">
@@ -555,7 +555,7 @@
 
                     <div class="col-6 my-3 d-grid mx-auto">
                         <button type="submit" id="btnAddMoreEdu" name="btnSaveForm" value="saveEdu"
-                            class="btn btn-outline-sucsess"><span><i class="fa-solid fa-plus"></i> Save & add
+                            class="btn btn-outline-success"><span><i class="fa-solid fa-plus"></i> Save & add
                                 more</span></button>
                     </div>
 
@@ -591,7 +591,7 @@
                                 <tr>
                                     <td>{{ $traingInfo?->institute }}</td>
                                     <td>{{ $traingInfo?->specialization }}</td>
-                                    <td>{{ $traingInfo?->from_date }} Hour</td>
+                                    <td>{{ $traingInfo?->from_date }}</td>
                                     <td>{{ $traingInfo?->to_date }}</td>
                                     <td>{{ $traingInfo?->training_title }}</td>
                                     {{-- <td><a class="btn btn-danger" href="{{route('doctor.profile.delete_education')}}"></i></a></td> --}}
@@ -639,7 +639,7 @@
                         <div class="col-12 col-lg-6 col-xl-6 col-xxl-6">
                             <label for="training_certificate" class="form-label">Upload certificate(image/pdf)</label>
                             <input type="file" class="form-control form-field" name="training_certificate"
-                                id="training_certificate" placeholder="" required>
+                                id="training_certificate" placeholder="" required  accept=".pdf,.jpg,.jpeg,.png">
                         </div>
                         <div class="col-12 col-lg-6 col-xl-6 col-xxl-6">
                             <label for="training_title" class="form-label">Certificate Title</label>
@@ -686,7 +686,7 @@
                                 <tr>
                                     <td>{{ $xp?->org_name }}</td>
                                     <td>{{ $xp?->department }}</td>
-                                    <td>{{ $xp?->position }} Hour</td>
+                                    <td>{{ $xp?->position }}</td>
                                     <td>{{ $xp?->from_date }}</td>
                                     <td>
 
@@ -779,6 +779,92 @@
             </div>
         </div>
 
+    </div>
+    <!-- Button trigger modal -->
+
+
+    <!-- Modal terms and conditions-->
+    <div class="modal fade" id="staticBackdrop" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1"
+        aria-labelledby="staticBackdropLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h1 class="modal-title fs-5" id="staticBackdropLabel">Mental Help And Support Doctor Registration
+                        Terms and Conditions</h1>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"
+                        id="closeModalButton"></button>
+                </div>
+                <div class="modal-body">
+                    <ol>
+                        <li>
+                            <h3 class="h4"> Acceptance of Terms</h3>
+                            <p class="text-muted">By registering an account on Mental Help And Support, you agree to comply
+                                with and be bound by the terms and conditions outlined herein. If you do not agree with any
+                                part of these terms, you may not use our services.</p>
+                        </li>
+                        <li>
+                            <h3 class="h4"> Eligibility</h3>
+                            <p>You must be a licensed and qualified healthcare professional in the field of psychology or
+                                psychiatry to register on Mental Help And Support. You agree to provide accurate and
+                                up-to-date information about your credentials, licensing, and professional qualifications
+                                during the registration process.</p>
+                        </li>
+                        <li>
+                            <h3 class="h4"> Professional Conduct</h3>
+                            <p>You agree to conduct yourself in a professional manner when using Mental Help And Support.
+                                This includes adhering to ethical standards and maintaining the confidentiality and privacy
+                                of patient information.</p>
+                        </li>
+                        <li>
+                            <h3 class="h4"> Patient Care</h3>
+                            <p>As a registered healthcare professional, you understand and acknowledge that you are solely
+                                responsible for the quality and appropriateness of the services you provide to patients on
+                                Mental Help And Support.</p>
+                        </li>
+                        <li>
+                            <h3 class="h4"> Compliance with Laws and Regulations</h3>
+                            <p>You agree to comply with all applicable international laws and regulations related to your
+                                practice and the provision of online psychological services. This includes, but is not
+                                limited to, obtaining any necessary licenses or permits required by international law.</p>
+                        </li>
+                        <li>
+                            <h3 class="h4"> User Account Security</h3>
+                            <p>You are responsible for maintaining the confidentiality of your account credentials. You
+                                agree to notify us immediately of any unauthorized use of your account or any other breach
+                                of security.</p>
+                        </li>
+                        <li>
+                            <h3 class="h4"> Termination of Account</h3>
+                            <p>We reserve the right to terminate or suspend your account at any time for any reason,
+                                including but not limited to a violation of these terms or unethical behavior. Upon
+                                termination, you will no longer have access to the platform, and any patient information
+                                associated with your account will be handled in accordance with our privacy policy.</p>
+                        </li>
+                        <li>
+                            <h3 class="h4"> Changes to Terms</h3>
+                            <p>We reserve the right to update or modify these terms and conditions at any time without prior
+                                notice. It is your responsibility to review these terms periodically for changes.</p>
+                        </li>
+                        <li>
+                            <h3 class="h4"> Governing Law</h3>
+                            <p>These terms and conditions shall be governed by and construed in accordance with
+                                international laws.</p>
+                        </li>
+                    </ol>
+
+                    <p class="text-muted">
+                        By registering on Mental Help And Support, you acknowledge that you have read, understood, and agree
+                        to be bound by these terms and conditions.
+                    </p>
+
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-danger" data-bs-dismiss="modal"
+                        id="declineButton">Decline</button>
+                    <button type="button" class="btn btn-primary" id="btnAgreedTerms">Understood</button>
+                </div>
+            </div>
+        </div>
     </div>
 @endsection
 
@@ -1629,6 +1715,34 @@
             "searching": false, // Disable search bar
             "paging": false, // Disable pagination
             "info": false
+        });
+
+        // termsw and conditions ;
+        $(document).ready(function() {
+            let termsStatus = {{ $user->terms }};
+            if (termsStatus === 0) {
+                $('#staticBackdrop').modal('show');
+            }
+
+
+            $('#declineButton, #closeModalButton').on('click', function() {
+                window.history.back();
+            });
+
+            // btnAgreedTerms
+            $('#btnAgreedTerms').on('click', function() {
+                let formDataTransport = new FormData();
+                formDataTransport.append('terms', 1);
+                formDataTransport.append('from_terms', 'true');
+                axios.post('{{ route('doctor.profile.store') }}', formDataTransport)
+                    .then(function(response) {
+                        console.log(response);
+                        $('#staticBackdrop').modal('hide');
+                    }).catch(function(error) {
+                        console.log(error);
+                    });
+            });
+
         });
     </script>
 @endsection

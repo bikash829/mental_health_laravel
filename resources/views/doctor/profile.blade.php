@@ -2,6 +2,8 @@
 
 @section('link')
     <x-vendor.bootstrap_css />
+       {{-- <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN" crossorigin="anonymous"> --}}
+
 @endsection
 
 @section('content')
@@ -22,6 +24,7 @@
                         Photo</a></p>
 
             </div>
+            <h3 class="text-center mb-3"> {{ $user->expert->doc_title }} {{$user?->first_name . ' ' . $user?->last_name }}</h3>
 
 
 
@@ -45,10 +48,16 @@
                                 @csrf
 
                                 <div class="row g-3">
-                                    <div class="col-12">
+                                    <div class="col-6">
                                         <label class="text-muted">Full Name: </label>
                                         <span><strong> {{ $user?->first_name . ' ' . $user?->last_name }}</strong></span>
                                     </div>
+
+                                    <div class="col-6">
+                                        <label class="text-muted">Title </label>
+                                        <span><strong> {{ $user->expert->doc_title }}</strong></span>
+                                    </div>
+
                                     <div class="col-md-6 col-lg-6">
                                         <label class="text-muted">Date Of Birth: </label>
                                         <span>{{ $user->date_of_birth }}</span>
@@ -159,9 +168,11 @@
                                     <label class="text-muted">Mobile: </label>
                                     <span>{{ $user?->phone_code }} {{ $user?->phone }}</span>
                                 </div>
+                                {{-- email address  --}}
                                 <div class="col-md-6 col-lg-6">
                                     <label class="text-muted">Email Address: </label>
-                                    <span>{{ $user->email }}</span>
+                                    <span><a href="#" id="btnChangeEmail" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Tooltip on top">{{ $user->email }}</a> </span>
+
                                 </div>
                                 @isset($user->additional_phone)
                                     <div class="col-md-6 col-lg-6">
@@ -320,10 +331,7 @@
                                         </label>
                                         {{-- <span>{{$data->from_date}}</span> --}}
                                     </div>
-                                    {{-- <div class="col-md-12 col-lg-12">
-                                    <label class="text-muted">End Date: </label>
-                                    <span>{{$data->to_date}}</span>
-                                </div> --}}
+
 
                                     <hr>
                                 @endforeach
@@ -346,33 +354,19 @@
 @endsection
 
 @section('scripts')
-    {{-- <script type="text/javascript" src="{{asset('vendor/bootstrap-5.3.0-alpha1-dist/js/bootstrap.bundle.min.js')}}"></script> --}}
-
     @error('profile_picture')
-        {{-- <div class="toast" role="alert" aria-live="assertive" aria-atomic="true">
-            <div class="toast-header">
-                <strong class="mr-auto">Error</strong>
-                <button type="button" class="ml-2 mb-1 close" data-dismiss="toast" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                </button>
-            </div>
-            <div class="toast-body">
-                {{ $message }}
-            </div>
-        </div> --}}
-        <!-- Flexbox container for aligning the toasts -->
         <div class="toast-container position-fixed top-0 end-0 p-3">
             <div id="liveToast" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
-              <div class="toast-header">
+                <div class="toast-header">
 
-                <strong class="me-auto"> Warning! </strong>
-                <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
-              </div>
-              <div class="toast-body text-danger">
-                <strong>{{ $message }}</strong>
-              </div>
+                    <strong class="me-auto"> Warning! </strong>
+                    <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
+                </div>
+                <div class="toast-body text-danger">
+                    <strong>{{ $message }}</strong>
+                </div>
             </div>
-          </div>
+        </div>
 
         <script>
             $(document).ready(function() {
@@ -383,4 +377,67 @@
             });
         </script>
     @enderror
+
+    <script>
+        $(document).ready(function() {
+            const changeEmail = $('#btnChangeEmail');
+            changeEmail.click(e => {
+                e.preventDefault();
+                console.log(e);
+
+                Swal.fire({
+                    title: "Do you want to change your email?",
+                    text: "You won't be able to revert this!",
+                    icon: "warning",
+                    showCancelButton: true,
+                    confirmButtonColor: "#3085d6",
+                    cancelButtonColor: "#d33",
+                    confirmButtonText: "Yes!"
+                }).then((result) => {
+
+                    if (result.isConfirmed) {
+                        (async () => {
+                            const {
+                                value: email
+                            } = await Swal.fire({
+                                title: "Input email address",
+                                input: "email",
+                                inputLabel: "Your email address",
+                                inputPlaceholder: "Enter your email address"
+                            });
+                            if (email) {
+                                // Swal.fire(`Entered email: ${email}`);
+                                let newEmail = email;
+                                axios.post('{{ route('doctor.change_email') }}', {
+                                        email: newEmail,
+                                    })
+                                    .then(function(response) {
+                                        Swal.fire({
+                                            text: response.data.message,
+                                            icon: "success"
+                                        });
+                                        $(changeEmail).text(newEmail);
+                                    })
+                                    .catch(function(error) {
+                                        Swal.fire({
+                                            title: "Error!",
+                                            text: error.response.data.message,
+                                            icon: "error"
+                                        })
+
+                                    });
+                            }
+                        })()
+
+                    }
+                });
+                // const email = changeEmail.text();
+                // changeEmail.text('');
+                // changeEmail.append(`<input type="email" name="email" value="${email}">`);
+                // changeEmail.append(`<button type="submit" class="btn btn-primary">Save</button>`);
+            });
+
+        });
+    </script>
+
 @endsection

@@ -31,6 +31,7 @@ class DatabaseSeeder extends Seeder
             // "last_name" => 'Doy',
             "email" => 'admin@email.com',
             "password" => Hash::make('admin'),
+            'is_active' => 1,
         ]);
 
         $admin->assignRole('Admin'); #assigning role
@@ -46,6 +47,7 @@ class DatabaseSeeder extends Seeder
                 "email" => 'patient@email.com',
                 'blood_group_id' => 5,
                 "password" => Hash::make('patient'),
+                'is_active' => 1,
 
             ],
         );
@@ -58,6 +60,7 @@ class DatabaseSeeder extends Seeder
                 //                "first_name"=>'Counselor',
                 "email" => 'counselor@email.com',
                 "password" => Hash::make('counselor'),
+                'is_active' => 1,
             ],
         );
 
@@ -70,6 +73,7 @@ class DatabaseSeeder extends Seeder
                 //                "first_name"=>'Doctor',
                 "email" => 'doctor@email.com',
                 "password" => Hash::make('doctor'),
+                'is_active' => 1,
             ],
         );
 

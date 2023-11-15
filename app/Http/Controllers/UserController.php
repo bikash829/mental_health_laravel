@@ -253,6 +253,8 @@ class UserController extends Controller
                     'last_name' => ['required', 'string', 'max:50'],
                 ]);
 
+
+                $request->merge(['is_verified' => 1]);
                 if ($user->update($request->all())) {
                     return redirect(route('patient.profile'));
                 } else {

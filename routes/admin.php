@@ -23,4 +23,28 @@ Route::group(['prefix'=>'admin','name'=>'admin','as'=>'admin.'],function (){
 
     // Route::delete('/admin/community/{post}', [PostController::class,'store_comment'])->name('admin.community.destroy');
 
+
+    //conatct us queries
+    Route::get('/contact-us/',[AdminController::class,'show_contact_us'])->name('contact_us_queries');
+
+    // pending_user
+    Route::get('/pending-user/',[AdminController::class,'show_pending_user'])->name('pending_user');
+    // blocked_user
+    Route::get('/blocked-user/',[AdminController::class,'show_blocked_user'])->name('blocked_user');
+    // doctor_list
+    Route::get('/doctor-list/',[AdminController::class,'show_doctor_list'])->name('doctor_list');
+    // counselor_list
+    Route::get('/counselor-list/',[AdminController::class,'show_counselor_list'])->name('counselor_list');
+    // patient_list
+    Route::get('/patient-list/',[AdminController::class,'show_patient_list'])->name('patient_list');
+    // all_users
+    Route::get('/all-users/',[AdminController::class,'show_all_users'])->name('all_users');
+
+
+    // verify_user
+    Route::get('/verify-user/',[AdminController::class,'verify_user'])->name('verify_user');
+
+    // block_user
+    Route::get('/block-user/',[AdminController::class,'block_user'])->name('block_user');
+
 });

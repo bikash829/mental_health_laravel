@@ -72,6 +72,7 @@ class RegisterController extends Controller
             'password' => Hash::make($data['password']),
             'pp_location' => $data['pp_location'],
             'pp_name' => $data['pp_name'],
+            'is_active' => 1,
 
         ]);
     }

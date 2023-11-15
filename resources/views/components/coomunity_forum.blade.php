@@ -1,11 +1,9 @@
-
 <section class="segment-margin community">
     <!-- post sectoin  -->
     <div class="community__post post">
         <!-- creating new post section  -->
         @unless ($user)
-        <p class="text-center fs-4 text-danger pt-2">Please Login to comment and create your won post</p>
-
+            <p class="text-center fs-4 text-danger pt-2">Please Login to comment and create your won post</p>
         @endunless
         <div class="post__card">
             <div class="post__title">
@@ -20,8 +18,8 @@
                             @csrf
                             {{-- <input type="hidden" name="user_id" value=""> --}}
                             <div class="form-group py-2">
-                                <input type="text" name="title" required class="form-control" placeholder="Post Title"
-                                    maxlength="256">
+                                <input type="text" name="title" required class="form-control"
+                                    placeholder="Post Title" maxlength="256">
 
                                 {{-- <input type="text" name="post_title" required class="form-control" placeholder="Post Title" maxlength="256"> --}}
                             </div>
@@ -51,15 +49,28 @@
         @foreach ($posts as $post)
             <div id="postCard" class="post__card">
                 <div class="post__title">
-                    <h3 class="post__author">{{ $post->user->first_name . ' ' . $post->user->last_name }}</h3>
+                    <div class="row ">
+                        <div class="col-6">
+                            <h3 class="post__author text-start">
+                                {{ $post->user->first_name . ' ' . $post->user->last_name }}</h3>
+                        </div>
+                        <div class="col-6">
+                            <div class="text-end">
+                                <button value="{{$post->id}}" class="btn btn-link link-danger btn-deletePost">Delete</button>
+                            </div>
+                        </div>
+
+
+                    </div>
                     {{-- <h3 class="post__author">{{ $post->id }}</h3> --}}
-                    <h4 class="post__upload-info">{{ $post->user->getRoleNames()[0] == 'Patient' ? 'General User' : $post->user->getRoleNames()[0] }} | <span
-                            class="text-muted">{{ $post->created_at }}</span> </h4>
+                    <h4 class="post__upload-info">
+                        {{ $post->user->getRoleNames()[0] == 'Patient' ? 'General User' : $post->user->getRoleNames()[0] }}
+                        | <span class="text-muted">{{ $post->created_at }}</span> </h4>
                 </div>
                 <div class="p-des">
-                    <h5>{{$post->title}}</h5>
+                    <h5>{{ $post->title }}</h5>
                     <p class="p-des__article">
-                        {{$post->description}}
+                        {{ $post->description }}
                     </p>
                     <div class="p-des__react-info" id="blah">
                         <div class="p-des__comment btn-comment"><span id="commnetsCount"
@@ -75,12 +86,14 @@
                         <!-- comments form  -->
                         <!-- comments form  -->
                         <fieldset @disabled($user == null)>
-                            <form  method="POST" class="mb-2 needs-validation" novalidate >
+                            <form method="POST" class="mb-2 needs-validation" novalidate>
                                 @csrf
-                                <h6 class="p-des__reply-author py-2"> <a href="#" class="text-secondary">{{$user?->first_name . ' ' . $user?->last_name}}</a> </h6>
+                                <h6 class="p-des__reply-author py-2"> <a href="#"
+                                        class="text-secondary">{{ $user?->first_name . ' ' . $user?->last_name }}</a>
+                                </h6>
 
-                                <input type="hidden" name="user_id" value="{{$user?->id}}">
-                                <input type="hidden" name="post_id" value="{{$post->id}}">
+                                <input type="hidden" name="user_id" value="{{ $user?->id }}">
+                                <input type="hidden" name="post_id" value="{{ $post->id }}">
 
                                 <div class="">
                                     <textarea name="comment" required rows="2" class="form-control " placeholder="Leave a Comment"></textarea>
@@ -88,22 +101,36 @@
                                 </div>
                                 <div class="text-end">
                                     {{-- <input class="btn btn-sm btn-secondary mt-1" type="submit" value="reply" name="btn-comment"> --}}
-                                    <button id="btnComment" class="btn btn-sm btn-secondary mt-1" type="submit" name="bnt-comment" value="reply">reply</button>
+                                    <button id="btnComment" class="btn btn-sm btn-secondary mt-1" type="submit"
+                                        name="bnt-comment" value="reply">reply</button>
                                 </div>
                             </form>
                         </fieldset>
 
 
-                        @if($post->comments->count() > 0)
-                            @foreach($post->comments as $comment)
+                        @if ($post->comments->count() > 0)
+                            @foreach ($post->comments as $comment)
                                 <div class="p-des__reply">
-                                    <h6 class="p-des__reply-author"> <a href="#" class="text-secondary">{{$comment->user->first_name != null ? $comment->user->first_name :  $comment->user->getRoleNames()[0] }} {{ ' ' . $comment->user->last_name}}</a> </h6>
+                                    <div class="row">
+                                        <div class="col-6">
+                                            <h6 class="p-des__reply-author"> <a href="#"
+                                                    class="text-secondary">{{ $comment->user->first_name != null ? $comment->user->first_name : $comment->user->getRoleNames()[0] }}
+                                                    {{ ' ' . $comment->user->last_name }}</a> </h6>
+                                            {{-- <h3 class="post__author text-start">{{ $post->user->first_name . ' ' . $post->user->last_name }}</h3> --}}
+                                        </div>
+                                        <div class="col-6">
+                                            <div class="text-end">
+                                                <button  value="{{$comment->id}}" class="btn btn-link link-danger btn-deleteComment">Delete</button>
+                                            </div>
+                                        </div>
+                                    </div>
 
-                                    <p>{{$comment->comment}}</p>
+                                    <p>{{ $comment->comment }}</p>
                                     <div class="p-des__reply-info">
-                                        <p class="p-des__reply-time">{{$comment->created_at}}</p>
+                                        <p class="p-des__reply-time">{{ $comment->created_at }}</p>
                                         {{-- <p>id: {{$comment->id}}</p> --}}
-                                        <span class="p-des__reply-icon"><i class="picon-size fa-solid fa-face-grin-hearts"></i></span>
+                                        <span class="p-des__reply-icon"><i
+                                                class="picon-size fa-solid fa-face-grin-hearts"></i></span>
                                     </div>
                                 </div>
                             @endforeach
@@ -138,7 +165,7 @@
         <h3 class="com-aside__title">Popular Posts</h3>
         <div class="com-aside__update aside-update">
             <h4 class="aside-update__header">&Lorem ipsum dolor, sit amet consectetur adipisicing elit.</h4>
-            <p class="aside-update__author">Post by Mayesha</p>
+            <p class="aside-update__author">Posted by Mayesha</p>
         </div>
     </div>
 

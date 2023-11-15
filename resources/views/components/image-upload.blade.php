@@ -22,14 +22,12 @@
                     @role('Patient')
                         {{route('patient.profile.update',[$slot,'form'=>'imageUpload'])}}
                     @endrole
-
-
                     "  id="frm_profile_picture" enctype="multipart/form-data">
                         @csrf
                         @method('PUT')
                         <div class="mb-3">
                             <label for="formFile" class="form-label">choose photo</label>
-                            <input class="form-control" name="profile_picture" type="file" accept=".jpg,.jpeg,.png" id="formFile">
+                            <input class="form-control" name="profile_picture" type="file" accept=".gif,.jpg,.jpeg,.png" id="formFile">
                         </div>
                         <div class="mb-3">
 

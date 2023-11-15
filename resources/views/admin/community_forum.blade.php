@@ -6,6 +6,7 @@
 @endsection
 
 @section('content')
+    {{-- toast warning  --}}
     <div class="toast-container position-fixed top-0 end-0 p-3">
         <div id="toastError" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
             <div class="toast-header">
@@ -37,13 +38,11 @@
 
 
     <div class="m-2">
-        <x-coomunity_forum :posts="$posts" :user="$user"/>
+        <x-coomunity_forum :posts="$posts" :user="$user" />
     </div>
-
 @endsection
 
 @section('scripts')
-
     <x-vendor.bootstrap_js />
 
 
@@ -61,8 +60,10 @@
 
         let toastContainer = $('<div>');
 
-        const currentUser = " {{ $user->first_name != null ? $user->first_name : $user->getRoleNames()[0] . ' ' . $user->last_name }}";
-
+        const currentUser = {
+            user_name: " {{ $user->first_name != null ? $user->first_name : $user->getRoleNames()[0] . ' ' . $user->last_name }}",
+            user_id: " {{ $user->id }}",
+        }
 
         /**
          * cloning the post card
@@ -71,15 +72,23 @@
         const postCard = $('#postCard');
         const postCardClone = postCard.clone(false);
 
-        console.log(postCardClone);
 
-        function latestReply(data,author){
+        function latestReply(data, author) {
             let replyCard;
 
 
             replyCard = `
                     <div class="p-des__reply">
-                        <h6 class="p-des__reply-author"> <a href="#" class="text-secondary">${author}</a> </h6>
+                        <div class="row">
+                            <div class="col-6">
+                                <h6 class="p-des__reply-author"> <a href="#" class="text-secondary">${author.user_name}</a> </h6>
+                            </div>
+                            <div class="col-6">
+                                <div class="text-end">
+                                    <button value="${data.id}" class="btn btn-link link-danger btn-deleteComment">Delete</button>
+                                </div>
+                            </div>
+                        </div>
 
                         <p>${data.comment}</p>
                         <div class="p-des__reply-info">
@@ -138,20 +147,36 @@
 
                                     toastErrorShow(errorList);
                                 });
-                        }else if(formData.get('frmComment') == 'comment'){
+                        } else if (formData.get('frmComment') == 'comment') {
                             axios.post("{{ route('admin.store_comment') }}", formData)
                                 .then(function(response) {
                                     console.log(response);
                                     if (response.status == 200) {
-                                        const originalDate = new Date(response.data.comment['created_at']);
-                                        let formatDateTime = `${originalDate.getFullYear()}-${originalDate.getMonth()}-${originalDate.getDate()} ${originalDate.getHours()}:${originalDate.getMinutes()}:${originalDate.getSeconds()}`;
+                                        const originalDate = new Date(response.data.comment[
+                                            'created_at']);
+                                        let formatDateTime =
+                                            `${originalDate.getFullYear()}-${originalDate.getMonth()}-${originalDate.getDate()} ${originalDate.getHours()}:${originalDate.getMinutes()}:${originalDate.getSeconds()}`;
 
                                         response.data.comment['created_at'] = formatDateTime;
 
-                                        $(form).after(latestReply(response.data.comment,currentUser));
+                                        $(form).after(latestReply(response.data.comment,
+                                            currentUser));
 
                                         form.reset();
                                         toastSuccessShow(response.data.success);
+                                        deleteRecord($('.btn-deletePost'),
+                                            '{{ route('admin.delete_post') }}', '.post__card');
+                                        deleteRecord($('.btn-deleteComment'),
+                                            '{{ route('admin.delete_comment') }}',
+                                            '.p-des__reply');
+
+
+                                        let commentCountElement = $(form).closest('.post__card')
+                                            .find('.comment-count');
+                                        let currentCount = parseInt(commentCountElement.text());
+                                        commentCountElement.text(currentCount + 1);
+
+
                                     } else {
                                         alert('Post creation failed');
                                     }
@@ -167,7 +192,7 @@
 
                                     toastErrorShow(errorList);
                                 });
-                        }else{
+                        } else {
                             alert('something went wrong');
                         }
 
@@ -182,7 +207,7 @@
         /**
          * toast success function
          */
-            function toastSuccessShow(message) {
+        function toastSuccessShow(message) {
             toastContentSuccess.empty();
             toastContainer = toastContainer.text(message);
 
@@ -201,6 +226,33 @@
         }
 
 
+        function deleteRecord(btnTriggerd, url, deleteContent) {
+
+            btnTriggerd.each(function(index) {
+                const $this = $(this);
+
+                $this.on('click', function() {
+                    const postId = $this.val();
+
+
+                    console.log(postId);
+                    let formDataTransport = new FormData();
+
+                    formDataTransport.append('id', postId);
+                    axios.post(url, formDataTransport)
+                        .then(function(response) {
+                            $this.closest(deleteContent).remove();
+                            toastSuccessShow(response.data.success);
+
+                        }).catch(function(error) {
+                            console.log(error);
+                        });
+
+
+                });
+            });
+        }
+
         /**
          * post live card
          */
@@ -216,23 +268,38 @@
             const toastLiveExample = document.getElementById('liveToast')
 
             if (toastTrigger) {
-            const toastBootstrap = bootstrap.Toast.getOrCreateInstance(toastLiveExample)
-            toastTrigger.addEventListener('click', () => {
-                toastBootstrap.show()
-            })
+                const toastBootstrap = bootstrap.Toast.getOrCreateInstance(toastLiveExample)
+                toastTrigger.addEventListener('click', () => {
+                    toastBootstrap.show()
+                })
             }
 
 
-            const $btnComment = $('.btn-comment');
 
-            $btnComment.each(function(index) {
+            $('.p-des__comments').hide();
+
+            $('.btn-comment').each(function(index) {
                 const $this = $(this);
                 $this.find(':first-child').text($this.parent().next().children().length - 2);
 
                 $this.on('click', function() {
-                    $this.parent().next().toggleClass('comments-visible');
+                    $this.parent().siblings('.p-des__comments').toggle();
                 });
             });
+        });
+
+
+
+        /**
+         * delete post
+         */
+
+        $(document).ready(() => {
+            deleteRecord($('.btn-deletePost'), '{{ route('admin.delete_post') }}', '.post__card');
+
+
+            deleteRecord($('.btn-deleteComment'), '{{ route('admin.delete_comment') }}', '.p-des__reply');
+
         });
     </script>
 @endsection

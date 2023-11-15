@@ -8,6 +8,7 @@ use Faker\Core\Blood;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
 use Carbon\Carbon;
+
 class DatabaseSeeder extends Seeder
 {
     /**
@@ -25,25 +26,26 @@ class DatabaseSeeder extends Seeder
             RoleSeeder::class,
         ]);
 
-        $admin = User::firstOrCreate(["email"=> 'admin@email.com',],[
-//                    "first_name"=>'Admin',
-                    "email"=> 'admin@email.com',
-                    "password"=> Hash::make('admin'),
-                ]);
+        $admin = User::firstOrCreate(["email" => 'admin@email.com',], [
+            "first_name" => 'Admin',
+            // "last_name" => 'Doy',
+            "email" => 'admin@email.com',
+            "password" => Hash::make('admin'),
+        ]);
 
         $admin->assignRole('Admin'); #assigning role
 
         $patient = User::firstOrCreate(
-            ["email"=>'patient@email.com',],
+            ["email" => 'patient@email.com',],
             [
-                "first_name"=>'Patient',
-                "last_name" => 'Chowdhury',
-                "religion"=>'Muslim',
+                "first_name" => 'Jhon',
+                "last_name" => 'Doy',
+                "religion" => 'Muslim',
                 'gender' => 'male',
-                "date_of_birth"=> Carbon::createFromDate(1990, 5, 15),
-                "email"=> 'patient@email.com',
+                "date_of_birth" => Carbon::createFromDate(1990, 5, 15),
+                "email" => 'patient@email.com',
                 'blood_group_id' => 5,
-                "password"=> Hash::make('patient'),
+                "password" => Hash::make('patient'),
 
             ],
         );
@@ -51,11 +53,11 @@ class DatabaseSeeder extends Seeder
         $patient->assignRole('Patient'); #assigning role
 
         $counselor = User::firstOrCreate(
-            ["email"=>'counselor@email.com',],
+            ["email" => 'counselor@email.com',],
             [
-//                "first_name"=>'Counselor',
-                "email"=> 'counselor@email.com',
-                "password"=> Hash::make('counselor'),
+                //                "first_name"=>'Counselor',
+                "email" => 'counselor@email.com',
+                "password" => Hash::make('counselor'),
             ],
         );
 
@@ -63,11 +65,11 @@ class DatabaseSeeder extends Seeder
 
 
         $doctor = User::firstOrCreate(
-            ["email"=>'doctor@email.com',],
+            ["email" => 'doctor@email.com',],
             [
-//                "first_name"=>'Doctor',
-                "email"=> 'doctor@email.com',
-                "password"=> Hash::make('doctor'),
+                //                "first_name"=>'Doctor',
+                "email" => 'doctor@email.com',
+                "password" => Hash::make('doctor'),
             ],
         );
 
@@ -75,7 +77,7 @@ class DatabaseSeeder extends Seeder
 
 
 
-//        \App\Models\User::factory(10)->create();
+        //        \App\Models\User::factory(10)->create();
 
         // \App\Models\User::factory()->create([
         //     'name' => 'Test User',

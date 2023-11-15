@@ -92,7 +92,12 @@ class PostController extends Controller
      */
     public function destroy(Post $post)
     {
-        //
+        return $post;
+
+        // $post->delete();
+        // return redirect()->back()->with('success','Post deleted successfully');
+
+
     }
 
     // community forum section
@@ -119,5 +124,20 @@ class PostController extends Controller
 
         // return redirect()->back()->with('success','Post created successfully');
         return response()->json(['success'=>'Comment posted','comment'=>$latestComment]);
+    }
+
+    public function delete_post(Request $request){
+
+        $post = Post::find($request->id);
+        $post->comments()->delete();
+        $post->delete();
+        return response()->json(['success'=>'Post deleted successfully']);
+    }
+
+    // delete_comment
+    public function delete_comment(Request $request){
+        $comment = Comment::find($request->id);
+        $comment->delete();
+        return response()->json(['success'=>'Comment deleted successfully']);
     }
 }

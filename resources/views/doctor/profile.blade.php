@@ -28,7 +28,10 @@
 
 
 
+            {{-- @error('profile_picture')
 
+            {{ $message }}
+            @enderror --}}
 
 
             <div class="accordion" id="accordionPanelsStayOpenExample">

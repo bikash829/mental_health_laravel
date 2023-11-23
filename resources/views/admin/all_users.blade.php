@@ -40,7 +40,7 @@
                             {{-- <i class="fa-solid fa-angle-down" style="color: #ffffff;"> --}}
                         </button>
                         <ul class="dropdown-menu">
-                          <li><a class="dropdown-item" href="#"><i class="fa-solid fa-eye" style="color: #008000;"></i> View</a></li>
+                          <li><a class="dropdown-item"  href="{{ route('admin.show_user_profile', ['id' => $user->id]) }}" ><i class="fa-solid fa-eye" style="color: #008000;"></i> View</a></li>
                           {{-- <li><a class="dropdown-item" href="#"><i class="fa-solid fa-circle-check" style="color: #008000;"></i> Accept</a></li> --}}
                           <li><a class="dropdown-item" href="#"><i class="fa-solid fa-trash-can" style="color: #f10101;"></i> Delete</a></li>
                         </ul>

@@ -6,29 +6,6 @@
 
 @section('content')
     <div class="container-fluid">
-
-        {{-- @if ($progress == '100%')
-            @if ($user->is_verified == 1)
-                <div class="alert alert-success" id="verificationStatus" role="alert">
-                    Your account is verified. You can create appointment for your patients.
-                </div>
-            @elseif ($user->is_verified == 0 || $user->is_verified == null)
-                <div class="alert alert-warning" id="verificationStatus" role="alert">
-                    Your account is not varified yet. Please make an approval request to the admin so that you can create
-                    appointment for your patients.
-                </div>
-                <div class="text-end"><button class="btn btn-primary" id="btnRequestForVerification" type="button">Request for
-                        verification</button></div>
-            @elseif ($user->is_verified == 2)
-                <div class="alert alert-info" id="verificationStatus" role="alert">
-                    Your request has been sent to the admin. Please wait for the approval.
-                </div>
-            @endif
-        @else
-            <x-admin.progress.account_progress :progress="$progress" />
-        @endif --}}
-
-
         @if ($progress == '100%')
             {{-- <div class="alert alert-warning" role="alert">
                     Your account is not varified yet. Please make an approval request to the admin so that you can be available to provide your service.
@@ -105,23 +82,13 @@
                     <div class="card-body">
                         <div class="row no-gutters align-items-center">
                             <div class="col mr-2">
-                                <div class="text-xs font-weight-bold text-info text-uppercase mb-1">Tasks
-                                </div>
-                                <div class="row no-gutters align-items-center">
-                                    <div class="col-auto">
-                                        <div class="h5 mb-0 mr-3 font-weight-bold text-gray-800">50%</div>
+                                <div class="col mr-2">
+                                    <div class="text-xs font-weight-bold text-info text-uppercase mb-1">Total Patients
                                     </div>
-                                    <div class="col">
-                                        <div class="progress progress-sm mr-2">
-                                            <div class="progress-bar bg-info" role="progressbar" style="width: 50%"
-                                                aria-valuenow="50" aria-valuemin="0" aria-valuemax="100"></div>
-                                        </div>
-                                    </div>
+                                    <div class="h5 mb-0 font-weight-bold text-gray-800">Hre you go</div>
                                 </div>
                             </div>
-                            <div class="col-auto">
-                                <i class="fas fa-clipboard-list fa-2x text-gray-300"></i>
-                            </div>
+
                         </div>
                     </div>
                 </div>

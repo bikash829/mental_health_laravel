@@ -55,7 +55,7 @@
                 <div class="s-card__icon-container">
                     <img class="s-card__icon" src="{{asset('images/divpics/doctor.png')}}" alt="Loading">
                 </div>
-                <h3 class="s-card__heading">Talk to Doctors</h3>
+                <h3 class="s-card__heading">Talk to Doctors </h3>
                 <p class="s-card__para">Need to talk to a psychiatrist? Make an appointment and get treatment from home!</p>
             </div>
 
@@ -194,30 +194,45 @@
             </p>
         </div>
 
-        <div class="specialist__card-container">
-            <div class="specialist__card" style="max-width:20rem;">
-                <div class="specialist__img-con">
-                    <img class="specialist__img" src="{{asset('images/profile_pic/blank-profile-picturepng.png')}} " alt="Doctor">
-                </div>
 
+    <div class="specialist__card-container">
+        @foreach ($doctorSchedule as $data)
+        <div class="specialist__card" style="max-width:20rem;">
+         
+
+            <a href="{{route('patient.appointment.set',$data->id)}}" style="text-decoration: none;">
                 <div class="specialist__info ">
-                    <div class="person">
-                        <h3 class="person__name">Full Name</h3>
-                        <h3 class="person__occu">Education</h3>
-                    </div>
-                    <p class="person__description">
-                        Bio
-                    </p>
+                <div class="person">
+                    <h3 class="person__name">{{$data->set_date}}</h3>
+                    <h3 class="person__occu">{{$data->department->doctor_department}}</h3>
+                </div>
+                <p class="person__description">
+                    {{$data->specialist}}
+                </p>
+                <p class="person__description">
+                    @if($data->patient_qty >0)
+                    Limit: {{$data->patient_qty}}
+                    @else
+                    <span class="text-danger">Appoinment Limit: full</span>
+                    @endif
+                </p>
 
-                    <div class="specialist__links">
-                        <a href="#" title="click here to visit my facebook wall" class="specialist__icon"><i class="fa-brands fa-facebook-f"></i></a>
-                        <a href="#" title="click to follow twitter" class="specialist__icon"><i class="fa-brands fa-twitter"></i></a>
-                        <a href="#" title="click to visit web site" class="specialist__icon"><i class="fa-solid fa-globe"></i></a>
-                        <a href="#" title="click to visit linkdin profile" class="specialist__icon"><i class="fa-brands fa-linkedin-in"></i></a>
-                    </div>
+                <div class="specialist__links">
+                    <a href="#" title="click here to visit my facebook wall" class="specialist__icon"><i class="fa-brands fa-facebook-f"></i></a>
+                    <a href="#" title="click to follow twitter" class="specialist__icon"><i class="fa-brands fa-twitter"></i></a>
+                    <a href="#" title="click to visit web site" class="specialist__icon"><i class="fa-solid fa-globe"></i></a>
+                    <a href="#" title="click to visit linkdin profile" class="specialist__icon"><i class="fa-brands fa-linkedin-in"></i></a>
                 </div>
             </div>
+            </a>
+                
+
+           
         </div>
+        @endforeach
+
+    </div>
+
 
     </section>
     <!-- ------------our specialist end------------ -->

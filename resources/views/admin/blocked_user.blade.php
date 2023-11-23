@@ -40,9 +40,14 @@
                             {{-- <i class="fa-solid fa-angle-down" style="color: #ffffff;"> --}}
                         </button>
                         <ul class="dropdown-menu">
-                          <li><a class="dropdown-item" href="#"><i class="fa-solid fa-eye" style="color: #008000;"></i> View</a></li>
-                          <li><a class="dropdown-item" href="#"><i class="fa-solid fa-circle-check" style="color: #008000;"></i> Accept</a></li>
+                          <li><a class="dropdown-item" href="{{ route('admin.show_user_profile', ['id' => $user->id]) }}" ><i class="fa-solid fa-eye" style="color: #008000;"></i> View</a></li>
+                          <li><a class="dropdown-item btnUnblock" href="#" data-user-id="{{ $user->id }}"
+                            data-url="{{ route('admin.unblock_user', ['id' => $user->id]) }}"><i class="fa-solid fa-lock-open"></i> Unblock</a></li>
                           <li><a class="dropdown-item" href="#"><i class="fa-solid fa-trash-can" style="color: #f10101;"></i> Delete</a></li>
+
+                          {{-- <li><a class="dropdown-item btnBlock" href="#" data-user-id="{{ $user->id }}"
+                            data-url="{{ route('admin.block_user', ['id' => $user->id]) }}"><i
+                                class="fa-solid fa-lock" style="color: #f10101;"></i> Block</a></li> --}}
                         </ul>
                       </div>
                 </td>
@@ -66,6 +71,29 @@
             // "searching": false, // Disable search bar
             "paging": false, // Disable pagination
             // "info": false
+        });
+
+
+        $('.btnUnblock').on('click', function(e) {
+            e.preventDefault();
+
+            var url = $(this).data('url'); // Get the URL from the data attribute
+            console.log(url);
+
+            Swal.fire({
+                title: 'Are you sure?',
+                text: "You want to Unblock this user?",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#3085d6',
+                cancelButtonColor: '#d33',
+                confirmButtonText: 'Yes, Unblock it!'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    // Redirect to the controller
+                    window.location.href = url;
+                }
+            })
         });
 
     });

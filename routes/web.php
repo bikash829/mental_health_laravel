@@ -32,15 +32,18 @@ Route::get('test/',function (){
 
 Route::get('/',function (){
     $data = ['home'=>'active',];
-    return view('pages.index',$data);
+    $doctorSchedule =App\Models\DoctorSchedule::where('status',1)->get();
+    return view('pages.index',compact('data','doctorSchedule'));
 })->name('home');
 
 Route::get('doctor&counselor/',function (){
 
     $users  = User::where('is_verified', 1)->get();
+    $doctorSchedule =App\Models\DoctorSchedule::where('status',1)->get();
+
 
     $data = ['doctor_counselor'=>'active',];
-    return view('pages.doctor_counselor',$data,compact('users'));
+    return view('pages.doctor_counselor',$data,compact('users','doctorSchedule'));
 })->name('doctor_counselor');
 
 Route::get('community-forum/',function (){

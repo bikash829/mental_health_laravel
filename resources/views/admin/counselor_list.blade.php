@@ -40,7 +40,7 @@
                                     {{-- <i class="fa-solid fa-angle-down" style="color: #ffffff;"> --}}
                                 </button>
                                 <ul class="dropdown-menu">
-                                    <li><a class="dropdown-item" href="#"><i class="fa-solid fa-eye"
+                                    <li><a class="dropdown-item" href="{{ route('admin.show_user_profile', ['id' => $user->id]) }}" ><i class="fa-solid fa-eye"
                                                 style="color: #008000;"></i> View</a></li>
                                     <li><a class="dropdown-item btnBlock" href="#" data-user-id="{{ $user->id }}"
                                             data-url="{{ route('admin.block_user', ['id' => $user->id]) }}"><i

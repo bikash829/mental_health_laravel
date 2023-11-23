@@ -26,4 +26,14 @@ Route::group(['prefix'=>'patient','name'=>'patient','as'=>'patient.'],function (
 
     // show specialist profile info
     Route::get('/specialist_profile/{user_id}',[PatientController::class,'show_user_profile'])->name('show_user_profile');
+    Route::get('/appointment/set/{id}',[PatientController::class,'appointmentSet'])->name('appointment.set');
+    Route::post('/appointment/add',[PatientController::class,'appointmentAdd'])->name('appointment.add');
+    Route::get('/doctor/appoinment/payment',[PatientController::class,'paymentMethod'])->name('appointment.payment');
+    Route::post('/doctor/appoinment/payment/{id}',[PatientController::class,'paymentMethodUpdate'])->name('appointment.payment.update');
+    Route::get('/patient/appointment',[PatientController::class,'patientAppointment'])->name('patient_appointment');
+    Route::post('/patient/appointment/update/{id}',[PatientController::class,'patientAppointmentUpdate'])->name('patient_appointment.update');
+    Route::get('/patient/appointment/view/{id}',[PatientController::class,'patientAppointmentView'])->name('patient_appointment.view');
+    Route::get('/patient/appointment/delete/{id}',[PatientController::class,'patientAppointmentDelete'])->name('patient_appointment.delete');
+    Route::get('/patient/appointment/edit/{id}',[PatientController::class,'patientAppointmentEdit'])->name('patient_appointment.edit');
+    Route::post('/patient/rating/update/{id}',[PatientController::class,'AppointmentRatingUpadate'])->name('rating.update');
 });

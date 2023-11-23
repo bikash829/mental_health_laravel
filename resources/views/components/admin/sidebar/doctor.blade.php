@@ -103,10 +103,18 @@
     </li>
 
     <!-- Nav Item - Tables -->
+    <div class="sidebar-heading">
+        Set Doctor Schedule
+    </div>
     <li class="nav-item">
-        <a class="nav-link" href="tables.html">
+        <a class="nav-link" href="{{route('doctor.schedule')}}">
             <i class="fas fa-fw fa-table"></i>
-            <span>Tables</span></a>
+            <span>Set Schedule</span></a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link" href="{{route('doctor.schedule.manage')}}">
+            <i class="fas fa-fw fa-table"></i>
+            <span>Manage Schedule</span></a>
     </li>
 
     <!-- Divider -->

@@ -99,7 +99,7 @@
                             @role('Patient')
                                 <li><a class="dropdown-item" href="{{ route('patient.profile') }}">View Profile</a></li>
                                 <li><a class="dropdown-item" href="./edit_user.php">Edit Profile</a></li>
-                                <li><a class="dropdown-item" href="./patient_appointments.php">My Appointments</a></li>
+                                <li><a class="dropdown-item" href="{{route('patient.patient_appointment')}}">My Appointments</a></li>
                             @endrole
                             @role('Doctor')
                                 <li><a class="dropdown-item" href="{{ route('doctor.dashboard') }}">Dashboard</a></li>
@@ -247,11 +247,16 @@
 
 @yield('scripts')
 
+
 <script type="text/javascript">
+
+
     // tooltip code
     const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]')
     const tooltipList = [...tooltipTriggerList].map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl))
 </script>
+
+
 
 
 

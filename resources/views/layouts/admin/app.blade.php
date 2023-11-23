@@ -34,10 +34,7 @@
     {{-- sweetalert2  --}}
     <link rel="stylesheet" href="vendor/sweetalert2/sweetalert2.min.css">
 
-    @vite(['resources/sass/app.scss', 'resources/js/app.js'])
-
-
-
+    {{-- @vite(['resources/sass/app.scss', 'resources/js/app.js']) --}}
 </head>
 
 
@@ -350,6 +347,9 @@
 </div>
 
 
+{{-- axios  --}}
+<script src="{{ asset('vendor/axios/axios.min.js') }}"></script>
+
 <!-- fontawesome -->
 <script src="{{ asset('vendor/fontawesome-free-6.2.1-web/js/all.js') }}" type="text/javascript"></script>
 <!-- Bootstrap core JavaScript-->
@@ -357,8 +357,10 @@
 <script src="{{asset('admin/vendor/jquery/jquery.min.js')}}"></script>
 
 {{--<script src="{{asset('vendor/bootstrap-5.3.0-alpha1-dist/js/bootstrap.min.js')}}"></script>--}}
+{{-- <script src="{{asset('vendor/bootstrap-5.3.0-alpha1-dist/js/bootstrap.min.js')}}"></script> --}}
 <script src="{{asset('vendor/popper/popper.min.js')}}"></script>
 <script src="{{asset('admin/vendor/bootstrap/js/bootstrap.min.js')}}"></script>
+
 
 <!-- Core plugin JavaScript-->
 <script src="{{asset('admin/vendor/jquery-easing/jquery.easing.min.js')}}"></script>

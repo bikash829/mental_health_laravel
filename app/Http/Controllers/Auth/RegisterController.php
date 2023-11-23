@@ -72,7 +72,8 @@ class RegisterController extends Controller
             'password' => Hash::make($data['password']),
             'pp_location' => $data['pp_location'],
             'pp_name' => $data['pp_name'],
-            'is_active' => 1,
+            'is_active' => $data['is_active'],
+            'terms' => $data['terms'],
 
         ]);
     }
@@ -81,7 +82,8 @@ class RegisterController extends Controller
     {
 
         $this->validator($request->all())->validate();
-        $request->merge(['pp_location' => 'images/avatar', 'pp_name' => 'blank-profile-picture.png']);
+        $request->merge(['pp_location' => 'images/avatar', 'pp_name' => 'blank-profile-picture.png','is_active' => 1,'terms' => 0,]);
+        // $request->merge(['is_active' => 1,]);
         event(new Registered($user = $this->create($request->except('role'))));
         $user->assignRole($request->role); #==============================assigning role
 

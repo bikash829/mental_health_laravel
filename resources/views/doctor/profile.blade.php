@@ -24,7 +24,7 @@
                         Photo</a></p>
 
             </div>
-            <h3 class="text-center mb-3"> {{ $user->expert->doc_title }} {{$user?->first_name . ' ' . $user?->last_name }}</h3>
+            <h3 class="text-center mb-3"> {{ $user?->expert?->doc_title }} {{$user?->first_name . ' ' . $user?->last_name }}</h3>
 
 
 
@@ -58,7 +58,7 @@
 
                                     <div class="col-6">
                                         <label class="text-muted">Title </label>
-                                        <span><strong> {{ $user->expert->doc_title }}</strong></span>
+                                        <span><strong> {{ $user?->expert?->doc_title }}</strong></span>
                                     </div>
 
                                     <div class="col-md-6 col-lg-6">
@@ -380,6 +380,7 @@
             });
         </script>
     @enderror
+    <x-vendor.bootstrap_js />
 
     <script>
         /**

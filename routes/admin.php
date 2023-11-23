@@ -47,4 +47,28 @@ Route::group(['prefix'=>'admin','name'=>'admin','as'=>'admin.'],function (){
     // block_user
     Route::get('/block-user/',[AdminController::class,'block_user'])->name('block_user');
 
+    // unblock_user
+    Route::get('/unblock-user/',[AdminController::class,'unblock_user'])->name('unblock_user');
+
+    // show_user_profile
+    Route::get('/show-user-profile/',[AdminController::class,'show_user_profile'])->name('show_user_profile');
+
+
+    // active_appointment
+    Route::get('/active-appointment/',[AdminController::class,'active_appointment'])->name('active_appointment');
+    Route::get('/admin/appointment/delete/{id}',[AdminController::class,'patientAppointmentDelete'])->name('patient_appointment.delete');
+    Route::get('/admin/appointment/view/{id}',[AdminController::class,'patientAppointmentView'])->name('patient_appointment.view');
+    Route::get('/admin/spacific/schedule/appointment/{id}',[AdminController::class,'spacificScheduleAppointment'])->name('spacific.schedule.appointment');
+    // active_schedule
+    Route::get('/active-schedule/',[AdminController::class,'active_schedule'])->name('active_schedule');
+    Route::get('/doctor/schedule/status/{id}',[AdminController::class,'changestatus'])->name('schedule.status');
+    Route::get('/doctor/schedule/delete/{id}',[AdminController::class,'doctorScheduleDelete'])->name('schedule.delete');
+
+
+
+    // past_appointment
+    Route::get('/past-appointment/',[AdminController::class,'past_appointment'])->name('past_appointment');
+
+
+
 });

@@ -257,6 +257,12 @@
                         <select name="phone_code" id="phone_code" required class="form-select"
                             aria-label="Default select example">
                             <option value="" disabled @selected($user?->phone_code == null)>Select One</option>
+                            @php
+                                usort($country_phone, function ($a, $b) {
+                                    return $a['num_code'] <=> $b['num_code'];
+                                });
+                            @endphp
+
 
                             @foreach ($country_phone as $data)
                                 <option @selected($user?->phone_code == $data['num_code']) value="{{ $data['num_code'] }}">
@@ -284,6 +290,11 @@
                         <select name="additional_phone_code" id="additional_phone_code" class="form-select"
                             aria-label="Default select example">
                             <option value="" disabled @selected($user?->additional_phone_code == null)>Select One</option>
+                            @php
+                                usort($country_phone, function ($a, $b) {
+                                    return $a['num_code'] <=> $b['num_code'];
+                                });
+                            @endphp
 
                             @foreach ($country_phone as $data)
                                 <option @selected($user?->additional_phone_code == $data['num_code']) value="{{ $data['num_code'] }}">
@@ -859,8 +870,10 @@
 @endsection
 
 @section('scripts')
-    {{--          <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script> --}}
-    {{--          <script src="https://unpkg.com/axios/dist/axios.min.js"></script> --}}
+
+    {{-- <x-vendor.bootstrap_bundle_js /> --}}
+    {{-- <script src="{{ asset('vendor/bootstrap-5.3.0-alpha1-dist/js/bootstrap.js') }}"></script> --}}
+
     <x-vendor.bootstrap_bundle_js />
     <script src="{{ asset('vendor/bootstrap-5.3.0-alpha1-dist/js/bootstrap.js') }}"></script>
 
@@ -1717,18 +1730,6 @@
             })
 
 
-
-            // let formSubmit = {
-            //     column : $("#dataTable tbody tr td"),
-            //     btnSubmit : btnEducationSubmit,
-            //     containerToHide : educationInfoContainer,
-            //     containerToShow : trainingInfoContainer,
-            //     formActive : 'trainingInfo',
-            //     tabSetList : 'tabTraining',
-            //     tabToSet : tabTraining,
-            // }
-
-
             /**
              * deleting live record
              */
@@ -1767,7 +1768,9 @@
 
         // termsw and conditions ;
         $(document).ready(function() {
+            // $('#staticBackdrop').modal('show');
             let termsStatus = {{ $user->terms }};
+            // console.log(termsStatus);
             if (termsStatus === 0) {
                 $('#staticBackdrop').modal('show');
             }

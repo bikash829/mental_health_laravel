@@ -73,7 +73,7 @@ class AdminController extends Controller
     {
         $user = Auth::user();
         $users = User::role(['Patient','Doctor','Counselor']) // Only get users with 'Doctor' or 'Counselor' role
-        ->where('is_verified',1)
+        // ->where('is_verified',1)
         ->where('is_active',1)
         ->get();
 
@@ -131,7 +131,7 @@ class AdminController extends Controller
 
         $users = User::role(['Doctor']) // Only get users with 'Doctor' or 'Counselor' role
         ->where('is_verified',1)
-        ->where('is_active',1)
+        // ->where('is_active',1)
         ->get();
 
         return view('admin.doctor_list', compact('users','user'));
@@ -145,7 +145,7 @@ class AdminController extends Controller
 
         $users = User::role(['Counselor']) // Only get users with 'Doctor' or 'Counselor' role
         ->where('is_verified',1)
-        ->where('is_active',1)
+        // ->where('is_active',1)
         ->get();
 
         return view('admin.counselor_list', compact('users','user'));
@@ -170,8 +170,8 @@ class AdminController extends Controller
         $user = Auth::user();
 
         $users = User::role(['Patient','Doctor','Counselor']) // Only get users with 'Doctor' or 'Counselor' role
-        ->where('is_verified',1)
-        ->where('is_active',1)
+        // ->where('is_verified',1)
+        // ->where('is_active',1)
         ->get();
 
         return view('admin.all_users', compact('users','user'));
@@ -221,7 +221,7 @@ class AdminController extends Controller
     public function active_appointment()
     {
         $patientData =DoctorAppointment::orderBy('id', 'DESC')->get();
-        
+
         $user = Auth::user();
         return view('admin.active_appointment', compact('user','patientData'));
     }
@@ -229,7 +229,7 @@ class AdminController extends Controller
     public function spacificScheduleAppointment($id)
     {
         $patientData =DoctorAppointment::where('doctor_schedule_id',$id)->orderBy('id', 'DESC')->get();
-        
+
         $user = Auth::user();
         return view('admin.spacific_schedule_appointment', compact('user','patientData'));
     }
@@ -249,36 +249,36 @@ class AdminController extends Controller
 
     function patientAppointmentView($id){
         $data =DoctorAppointment::findOrFail($id);
-    
+
         return view('admin.appointmentDetails',compact('data'));
-    
-    
+
+
     }
         // active_schedule
         public function active_schedule()
         {
             $scheduleData= DoctorSchedule::orderBy('id', 'DESC')->get();
 
-            
+
             $user = Auth::user();
             return view('admin.active_schedule', compact('user','scheduleData'));
         }
-    // doctor Schedule Delete part 
-        
+    // doctor Schedule Delete part
+
     function doctorScheduleDelete($id){
         // Check if there are related appointments
         $appointmentsCount = DoctorAppointment::where('doctor_schedule_id', $id)->count();
-    
+
         if ($appointmentsCount > 0) {
             return redirect()->back()->with('error', 'Cannot delete the schedule because it has related appointments.');
         }
-    
+
         // No related appointments, proceed with deletion
         DoctorSchedule::destroy($id);
-    
+
         return redirect()->back()->with('success', 'Schedule deleted successfully');
-   
-      
+
+
     }
 // schedule status change
         function changestatus($id){

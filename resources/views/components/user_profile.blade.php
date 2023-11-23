@@ -1,13 +1,16 @@
 <div>
     <div class="row justify-content-center">
-        @if ($user->is_active == 1)
-
+        @if ($user->is_active == 'active')
             <div class="alert alert-success" role="alert">
                 <span>Account Status : <span class="strong">Active <i class="fa-solid fa-circle-check"></i></span></span>
             </div>
+        @elseif($user->is_active == 'blocked')
+            <div class="alert alert-danger" role="alert">
+                <span>Account Status : <span class="strong">Blocked  <i class="fa-solid fa-user-lock"></i></span></span>
+            </div>
         @else
             <div class="alert alert-danger" role="alert">
-                <span>Account Status : <span class="strong">Blocked <i class="fa-solid fa-lock"></i></span></span>
+                <span>Account Status : <span class="strong">Inactive <i class="fa-solid fa-user-slash"></i></span></span>
             </div>
         @endif
 

@@ -18,6 +18,9 @@
             <th>Contact No</th>
             <th>Gender</th>
             <th>Country</th>
+            <th>Status</th>
+            <th>Is Verified</th>
+            <th>Joined At</th>
             <th>Action</th>
             {{-- <th>Actions</th> --}}
         </tr>
@@ -34,6 +37,9 @@
                 {{-- <td>{{ $user->phone }}</td> --}}
                 <td>{{ ucfirst($user->gender) }}</td>
                 <td>{{ $user?->address?->country }}</td>
+                <td ><span class="text-white bg-info">{{ Str::ucfirst($user->is_active) }}</span> </td>
+                <td ><span class=" text-white bg-info"> {{ Str::ucfirst($user?->is_verified) }}</span></td>
+                <td>{{ Str::ucfirst($user?->created_at) }}</td>
                 <td>
                     <div class="dropdown">
                         <button class="btn btn-warning dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">

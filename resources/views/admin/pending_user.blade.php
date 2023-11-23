@@ -63,6 +63,8 @@
 
 
 @section('scripts')
+{{-- <x-vendor.bootstrap_js/> --}}
+{{-- <x-vendor.bootstrap_bundle_js/> --}}
     <script>
         $(document).ready(function() {
             $('#dataTable').DataTable({
@@ -95,9 +97,6 @@
                     }
                 })
             });
-
-
-
 
         });
     </script>

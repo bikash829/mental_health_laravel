@@ -11,25 +11,29 @@
     <div class="container-fluid">
 
         @if ($progress == '100%')
-            @if ($user->is_verified == 1)
-                <div class="alert alert-success"  role="alert">
-                    Your account is verified. You can create appointment for your patients.
-                </div>
-            @elseif ($user->is_verified == 0 || $user->is_verified == null)
-                <div class="alert alert-warning" role="alert" id="verificationStatus">
-                    Your account is not varified yet. Please make an approval request to the admin so that you can create appointment for your patients.
-                </div>
-                <div class="text-end"><button class="btn btn-primary" id="btnRequestForVerification" type="button" >Request for verification</button></div>
-            @elseif ($user->is_verified == 2)
-                <div class="alert alert-info"  role="alert">
-                    Your request has been sent to the admin. Please wait for the approval.
-                </div>
-            @endif
-
-
+        @if ($user->is_verified == 'verified')
+            <div class="alert alert-success" role="alert">
+                Your account is verified. You can create appointment for your patients.
+            </div>
+        @elseif ($user->is_verified == 'unverified' || $user->is_verified == null)
+            <div class="alert alert-warning" role="alert" id="verificationStatus">
+                Your account is not varified yet. Please make an approval request to the admin so that you can create
+                appointment for your patients.
+            </div>
+            <div class="text-end"><button class="btn btn-primary" id="btnRequestForVerification" type="button">Request for
+                    verification</button></div>
+        @elseif ($user->is_verified == 'pending')
+            <div class="alert alert-info" role="alert">
+                Your request has been sent to the admin. Please wait for the approval.
+            </div>
         @else
-            <x-admin.progress.account_progress :progress="$progress"/>
+            <div class="alert alert-info" role="alert">
+                Sorry your request has been rejected. Please contact with the admin.
+            </div>
         @endif
+    @else
+        <x-admin.progress.account_progress :progress="$progress" />
+    @endif
 
 
 

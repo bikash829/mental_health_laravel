@@ -98,8 +98,33 @@ class User extends Authenticatable
         }
     }
 
+    // 1=active,0 or null = inactive, 2 = blocked
+    public function getIsActiveAttribute($value)
+    {
+        switch ($value) {
+            case 1:
+                return 'active';
+            case 2:
+                return 'blocked';
+            default:
+                return 'inactive';
+        }
+    }
 
-
+    // '1=verified, 0 = unverified , 2 = pending, 3 = rejected'
+    public function getIsVerifiedAttribute($value)
+    {
+        switch ($value) {
+            case 1:
+                return 'verified';
+            case 2:
+                return 'pending';
+            case 3:
+                return 'rejected';
+            default:
+                return 'unverified';
+        }
+    }
 
 
     public function bloodGroup(){

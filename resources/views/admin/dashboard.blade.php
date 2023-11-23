@@ -21,7 +21,7 @@
 
                 $counselorCount = $users
                     ->filter(function ($user) {
-                        return $user->hasRole('Counselor');
+                        return $user->hasRole('Counselor') && $user->is_verified == 'verified';
                     })
                     ->count();
             @endphp
@@ -47,7 +47,7 @@
 
                 $doctorCount = $users
                     ->filter(function ($user) {
-                        return $user->hasRole('Doctor');
+                        return $user->hasRole('Doctor')  && $user->is_verified == 'verified';
                     })
                     ->count();
             @endphp

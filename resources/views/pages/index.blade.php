@@ -12,21 +12,21 @@
             </div>
             <div class="carousel-inner">
                 <div class="carousel-item active" data-bs-interval="10000">
-                    <img src="{{asset('images/banner/banner_free.jpg')}}" class="d-block w-100" alt="...">
+                    <img src="{{asset('images/banner/slider1.avif')}}" class="d-block w-100" alt="...">
                     <div class="carousel-caption d-none d-md-block">
                         <h5 class="text-white">Mental Health And Support</h5>
                         <p class="text-white">You Are Not Alone</p>
                     </div>
                 </div>
                 <div class="carousel-item" data-bs-interval="2000">
-                    <img src="{{asset('images/banner/banner_2.jpg')}} " class="d-block w-100" alt="...">
+                    <img src="{{asset('images/banner/slider2.jpg')}} " class="d-block w-100" alt="...">
                     <div class="carousel-caption d-none d-md-block">
                         <h5>GET HELP</h5>
                         <p>You Are Not Alone</p>
                     </div>
                 </div>
                 <div class="carousel-item">
-                    <img src="{{asset('images/banner/banner_3.jpg')}}" class="d-block w-100" alt="...">
+                    <img src="{{asset('images/banner/slider3.avif')}}" class="d-block w-100" alt="...">
                     <div class="carousel-caption d-none d-md-block">
                         <h5 class="text-white">Talk to Professionals</h5>
                         <p class="text-white">We Are Here For You</p>
@@ -198,7 +198,7 @@
     <div class="specialist__card-container">
         @foreach ($doctorSchedule as $data)
         <div class="specialist__card" style="max-width:20rem;">
-         
+
 
             <a href="{{route('patient.appointment.set',$data->id)}}" style="text-decoration: none;">
                 <div class="specialist__info ">
@@ -225,9 +225,9 @@
                 </div>
             </div>
             </a>
-                
 
-           
+
+
         </div>
         @endforeach
 

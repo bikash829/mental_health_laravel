@@ -1,10 +1,10 @@
 @extends('layouts.app')
 
-@section('title') Community forum @endsection
+@section('title') Blog @endsection
 
 @section('banner')
     <div class="banner ">
-        <h1 class="banner__title">Community Forum</h1>
+        <h1 class="banner__title">Blog Post</h1>
         <img class="banner__img" src="{{asset('images/banner/banner3.jpg')}}" alt="{{__('Community Forum')}}">
     </div>
 @endsection

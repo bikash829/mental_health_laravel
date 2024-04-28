@@ -60,7 +60,7 @@
             <!-- navigation menu bar  -->
             <ul class="nav__menu">
                 <li class="nav__item"><a class="nav__link {{ $home ?? '' }}" href="{{ route('home') }}">Home</a></li>
-                <li class="nav__item nav__dropdown--item"><a class="nav__link {{ $doctor_counselor ?? '' }}"
+                <li class="nav__item nav__dropdown--item d-none"><a class="nav__link {{ $doctor_counselor ?? '' }}"
                         href="{{ route('doctor_counselor') }}">Services <i class="fa-solid fa-caret-down"></i></a>
 
                     <ul class="nav__dropdown">
@@ -72,9 +72,16 @@
                     </ul>
 
                 </li>
+                <li class="nav__item "><a class="nav__link {{ $doctor_counselor ?? '' }}"
+                        href="{{ route('doctor_counselor') }}">Services </a>
+
+
+
+                </li>
                 <li class="nav__item"><a class="nav__link {{ $community ?? '' }}"
-                        href="{{ route('community') }}">Community Forum</a></li>
+                        href="{{ route('community') }}">Blog</a></li>
                 <li class="nav__item"><a class="nav__link {{ $about ?? '' }}" href="{{ route('about') }}">About</a>
+                </li> <li class="nav__item"><a class="nav__link {{ $faq ?? '' }}" href="{{ '' }}">FAQ</a>
                 </li>
                 <li class="nav__item"><a class="nav__link {{ $contact ?? '' }}"
                         href="{{ route('contact') }}">Contact</a></li>

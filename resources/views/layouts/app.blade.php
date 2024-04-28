@@ -96,18 +96,16 @@
                             @endisset
                         </li>
                         <ul class="dropdown-menu">
-                            @role('Patient')
+                            @role('user')
                                 <li><a class="dropdown-item" href="{{ route('patient.profile') }}">View Profile</a></li>
-                                <li><a class="dropdown-item" href="./edit_user.php">Edit Profile</a></li>
+                                <li><a class="dropdown-item" href="{{ route('patient.profile') }}">Edit Profile</a></li>
                                 <li><a class="dropdown-item" href="{{route('patient.patient_appointment')}}">My Appointments</a></li>
                             @endrole
-                            @role('Doctor')
+                            @role('vendor')
                                 <li><a class="dropdown-item" href="{{ route('doctor.dashboard') }}">Dashboard</a></li>
                             @endrole
-                            @role('Counselor')
-                                <li><a class="dropdown-item" href="{{ route('counselor.dashboard') }}">Dashboard</a></li>
-                            @endrole
-                            @role('Admin')
+
+                            @role('admin')
                                 <li><a class="dropdown-item" href="{{ route('admin.dashboard') }}">Dashboard</a></li>
                             @endrole
                             <li>

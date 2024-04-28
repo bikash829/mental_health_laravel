@@ -41,7 +41,7 @@ Route::get('/', function () {
 Route::get('doctor&counselor/', function () {
 
     // $users  = User::where('is_verified', 1)->get();
-    $users = User::role(['Counselor', 'Doctor']) // Using Spatie's role method
+    $users = User::role(['vendor']) // Using Spatie's role method
         ->where('is_verified', 1)
         ->where('is_active', 1)
         ->get();

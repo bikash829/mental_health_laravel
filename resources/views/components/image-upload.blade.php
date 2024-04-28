@@ -10,16 +10,14 @@
                 </div>
                 <div class="modal-body">
                     <form method="POST" action="
-                    @role('Admin')
+                    @role('admin')
                         {{route('admin.profile.update',[$slot,'form'=>'imageUpload'])}}
                     @endrole
-                    @role('Doctor')
+                    @role('vendor')
                         {{route('doctor.profile.update',[$slot,'form'=>'imageUpload'])}}
                     @endrole
-                    @role('Counselor')
-                        {{route('counselor.profile.update',[$slot,'form'=>'imageUpload'])}}
-                    @endrole
-                    @role('Patient')
+
+                    @role('user')
                         {{route('patient.profile.update',[$slot,'form'=>'imageUpload'])}}
                     @endrole
                     "  id="frm_profile_picture" enctype="multipart/form-data">

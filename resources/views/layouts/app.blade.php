@@ -96,18 +96,19 @@
                             @endisset
                         </li>
                         <ul class="dropdown-menu">
-                            @role('Patient')
-                                <li><a class="dropdown-item" href="{{ route('patient.profile') }}">View Profile</a></li>
-                                <li><a class="dropdown-item" href="./edit_user.php">Edit Profile</a></li>
-                                <li><a class="dropdown-item" href="{{route('patient.patient_appointment')}}">My Appointments</a></li>
+                            @role('user')
+                                <li><a class="dropdown-item" href="{{ route('user.profile') }}">View Profile</a></li>
+                                <li><a class="dropdown-item" href="{{ route('user.profile') }}">Edit Profile</a></li>
+                                <li><a class="dropdown-item" href="{{ route('user.patient_appointment') }}">My
+                                        Appointments</a></li>
                             @endrole
                             @role('Doctor')
                                 <li><a class="dropdown-item" href="{{ route('doctor.dashboard') }}">Dashboard</a></li>
                             @endrole
-                            @role('Counselor')
-                                <li><a class="dropdown-item" href="{{ route('counselor.dashboard') }}">Dashboard</a></li>
+                            @role('vendor')
+                                <li><a class="dropdown-item" href="{{ route('vendor.dashboard') }}">Dashboard</a></li>
                             @endrole
-                            @role('Admin')
+                            @role('admin')
                                 <li><a class="dropdown-item" href="{{ route('admin.dashboard') }}">Dashboard</a></li>
                             @endrole
                             <li>
@@ -242,15 +243,13 @@
 <!-- custom js -->
 <script src="{{ asset('js/main.js') }}" type="text/javascript"></script>
 {{-- <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script> --}}
-<script src="{{asset('vendor/sweetaltert2/sweetalert2@11.min.js')}}"></script>
+<script src="{{ asset('vendor/sweetaltert2/sweetalert2@11.min.js') }}"></script>
 
 
 @yield('scripts')
 
 
 <script type="text/javascript">
-
-
     // tooltip code
     const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]')
     const tooltipList = [...tooltipTriggerList].map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl))

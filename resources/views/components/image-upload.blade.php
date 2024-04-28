@@ -9,25 +9,28 @@
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
-                    <form method="POST" action="
-                    @role('Admin')
-                        {{route('admin.profile.update',[$slot,'form'=>'imageUpload'])}}
+                    <form method="POST"
+                        action="
+                    @role('admin')
+                        {{ route('admin.profile.update', [$slot, 'form' => 'imageUpload']) }}
                     @endrole
                     @role('Doctor')
-                        {{route('doctor.profile.update',[$slot,'form'=>'imageUpload'])}}
+                        {{ route('doctor.profile.update', [$slot, 'form' => 'imageUpload']) }}
                     @endrole
-                    @role('Counselor')
-                        {{route('counselor.profile.update',[$slot,'form'=>'imageUpload'])}}
+                    @role('vendor')
+                        {{ route('vendor.profile.update', [$slot, 'form' => 'imageUpload']) }}
                     @endrole
-                    @role('Patient')
-                        {{route('patient.profile.update',[$slot,'form'=>'imageUpload'])}}
+                    @role('user')
+                        {{ route('user.profile.update', [$slot, 'form' => 'imageUpload']) }}
                     @endrole
-                    "  id="frm_profile_picture" enctype="multipart/form-data">
+                    "
+                        id="frm_profile_picture" enctype="multipart/form-data">
                         @csrf
                         @method('PUT')
                         <div class="mb-3">
                             <label for="formFile" class="form-label">choose photo</label>
-                            <input class="form-control" name="profile_picture" type="file" accept=".gif,.jpg,.jpeg,.png" id="formFile">
+                            <input class="form-control" name="profile_picture" type="file"
+                                accept=".gif,.jpg,.jpeg,.png" id="formFile">
                         </div>
                         <div class="mb-3">
 
@@ -43,5 +46,3 @@
 
 
 </div>
-
-

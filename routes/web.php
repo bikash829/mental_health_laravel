@@ -41,7 +41,7 @@ Route::get('/', function () {
 Route::get('doctor&counselor/', function () {
 
     // $users  = User::where('is_verified', 1)->get();
-    $users = User::role(['Counselor', 'Doctor']) // Using Spatie's role method
+    $users = User::role(['vendor']) // Using Spatie's role method
         ->where('is_verified', 1)
         ->where('is_active', 1)
         ->get();
@@ -61,9 +61,11 @@ Route::get('upcoming_appointments/', function () {
 
 Route::get('community-forum/', function () {
     $user = Auth::user();
-    $posts = Post::with(['comments' => function ($query) {
-        $query->orderBy('id', 'desc');
-    }])
+    $posts = Post::with([
+        'comments' => function ($query) {
+            $query->orderBy('id', 'desc');
+        }
+    ])
         ->orderBy('id', 'desc')
         ->get();
     $data = ['community' => 'active',];
@@ -105,7 +107,7 @@ Route::get('experts-profile/', function (Request $request) {
 
     $user = User::find($request->id);
     $doctorSchedule = App\Models\DoctorSchedule::where('status', 1)
-    ->where('user_id', $request->id)
-    ->get();
-    return view('pages.experts_profile',compact('user','doctorSchedule'));
+        ->where('user_id', $request->id)
+        ->get();
+    return view('pages.experts_profile', compact('user', 'doctorSchedule'));
 })->name('show_expert_profile');

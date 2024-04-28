@@ -79,7 +79,7 @@
 
                                 </div>
                                 <div class="d-grid pt-2 col-6 mx-auto">
-                                    <a href="{{ route('patient.profile.edit', [$user, 'data' => 'basic_info']) }}"
+                                    <a href="{{ route('user.profile.edit', [$user, 'data' => 'basic_info']) }}"
                                         class="btn btn-primary">Edit</a>
                                 </div>
 
@@ -135,7 +135,7 @@
 
                                 <div class="d-grid pt-2 col-6 mx-auto">
                                     <button
-                                        onclick="window.location.href='{{ route('patient.profile.edit', [$user, 'data' => 'address_info']) }}'"
+                                        onclick="window.location.href='{{ route('user.profile.edit', [$user, 'data' => 'address_info']) }}'"
                                         class="btn btn-primary" type="button">Edit</button>
                                 </div>
                                 <div class="d-grid pt-2 col-6 mx-auto">
@@ -164,11 +164,11 @@
                                     </div>
                                     <div class="col-md-12 col-lg-12">
                                         <label class="text-muted">Contact No: </label>
-                                        <span>{{$user->phone_code . ' ' . $user->phone}}</span>
+                                        <span>{{ $user->phone_code . ' ' . $user->phone }}</span>
                                     </div>
                                     <div class="col-md-12 col-lg-12">
                                         <label class="text-muted">Emmergency Contact No: </label>
-                                        <span>{{$user->additional_phone_code . ' ' . $user->additional_phone}}</span>
+                                        <span>{{ $user->additional_phone_code . ' ' . $user->additional_phone }}</span>
                                     </div>
 
                                     <div class="col-md-6 col-lg-6">
@@ -185,7 +185,7 @@
                                 </div>
                                 <div class="d-grid pt-2 col-6 mx-auto">
                                     <button
-                                        onclick="window.location.href='{{ route('patient.profile.edit', [$user, 'data' => 'contact_info']) }}'"
+                                        onclick="window.location.href='{{ route('user.profile.edit', [$user, 'data' => 'contact_info']) }}'"
                                         class="btn btn-primary" href="">Edit</button>
                                 </div>
                             </div>
@@ -210,7 +210,7 @@
                                 </div>
                                 <div class="d-grid pt-2 g-3 col-6 mx-auto">
                                     <button class="btn btn-primary"
-                                        onclick="window.location.href='{{ route('patient.profile.edit', [$user->id, 'data' => 'medical_info']) }}'"
+                                        onclick="window.location.href='{{ route('user.profile.edit', [$user->id, 'data' => 'medical_info']) }}'"
                                         type="button">Edit</button>
                                 </div>
                             </div>
@@ -236,7 +236,7 @@
         //
         // }))
         let successMessage = "{{ session('success') }}";
-        if(successMessage != ''){
+        if (successMessage != '') {
             swal.fire({
                 text: successMessage,
                 icon: "success"
@@ -320,7 +320,7 @@
                             if (email) {
                                 // Swal.fire(`Entered email: ${email}`);
                                 let newEmail = email;
-                                axios.post('{{ route('patient.change_email') }}', {
+                                axios.post('{{ route('user.change_email') }}', {
                                         email: newEmail,
                                     })
                                     .then(function(response) {

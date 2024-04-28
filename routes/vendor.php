@@ -5,7 +5,7 @@ use App\Http\Controllers\UserController;
 use App\Http\Controllers\PostController;
 use Illuminate\Support\Facades\Route;
 
-Route::group(['prefix'=>'counselor','name'=>'counselor','as'=>'counselor.'],function (){
+Route::group(['prefix'=>'vendor','name'=>'vendor','as'=>'vendor.'],function (){
     Route::resource('profile',UserController::class);
 
     Route::get('/dashboard/',[CounselorController::class,'show_dashboard'])->name('dashboard');

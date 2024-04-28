@@ -9,7 +9,7 @@ use App\Models\Post;
 use App\Models\User;
 
 
-Route::group(['prefix'=>'patient','name'=>'patient','as'=>'patient.'],function (){
+Route::group(['prefix'=>'user','name'=>'user','as'=>'user.'],function (){
     Route::resource('profile',UserController::class);
 
     Route::get('/profile_view/',[PatientController::class,'show_profile'])->name('profile');

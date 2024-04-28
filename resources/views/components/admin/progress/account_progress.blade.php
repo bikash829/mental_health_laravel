@@ -10,10 +10,8 @@
     </div>
     <div class="col-2">
         <a href="
-        @role('Counselor')
-        {{route('counselor.counselor_form')}}
-        @endrole
-        @role('Doctor')
+
+        @role('vendor')
         {{route('doctor.doctor_form')}}
         @endrole
 

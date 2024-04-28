@@ -46,7 +46,7 @@ return new class extends Migration
             $table->integer('terms')->default('0')->nullable()->comment('0 or null = declined, 1 = accepted terms condition');
             $table->integer('online')->default(1)->nullable()->comment('1=online,0 or null = offline');
 
-            $table->text('contact_link')->nullable();
+            $table->text('contact_link')->default('link');
 
 //            $table->unsignedBigInteger('blood_group_id')->nullable();
 //            $table->foreign('blood_group_id')

@@ -66,7 +66,7 @@
 
     <!-- Heading -->
     <div class="sidebar-heading">
-        Community Forum
+        Blog Post
     </div>
 
     <!-- Nav Item - Pages Collapse Menu -->
@@ -94,7 +94,7 @@
     <li class="nav-item">
         <a class="nav-link" href="{{route('doctor.community.index',['community'=>'doctor'])}}">
             <i class="fa-solid fa-users"></i>
-            <span>Community Forum</span></a>
+            <span>Blog Post</span></a>
     </li>
     {{-- <li class="nav-item">
         <a class="nav-link" href="charts.html">
@@ -109,12 +109,12 @@
     <li class="nav-item">
         <a class="nav-link" href="{{route('doctor.schedule')}}">
             <i class="fas fa-fw fa-table"></i>
-            <span>Set Schedule</span></a>
+            <span>Create Service</span></a>
     </li>
     <li class="nav-item">
         <a class="nav-link" href="{{route('doctor.schedule.manage')}}">
             <i class="fas fa-fw fa-table"></i>
-            <span>Manage Schedule</span></a>
+            <span>Manage Service</span></a>
     </li>
 
     <!-- Divider -->

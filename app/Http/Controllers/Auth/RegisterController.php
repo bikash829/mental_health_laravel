@@ -53,7 +53,7 @@ class RegisterController extends Controller
     protected function validator(array $data)
     {
         return Validator::make($data, [
-            'role' => ['required', 'string', 'max:10','in:Patient,Doctor,Counselor'],
+            'role' => ['required', 'string', 'max:10','in:user,vendor'],
             'email' => ['required', 'string', 'email', 'max:255', 'unique:users'],
             'password' => ['required', 'string', 'min:8', 'confirmed'],
         ]);
@@ -91,13 +91,10 @@ class RegisterController extends Controller
 
 
         // ==============================================================redirect page condition will be here.
-        if($user->hasRole('Patient')){
+        if($user->hasRole('user')){
             // return view('patient.profile');
             return redirect()->route('patient.profile');
-        }elseif($user->hasRole('Counselor')){
-            // return view('counselor.dashboard');
-            return redirect()->route('counselor.dashboard');
-        }elseif($user->hasRole('Doctor')){
+        }elseif($user->hasRole('vendor')){
             return redirect()->route('doctor.dashboard');
         }
 

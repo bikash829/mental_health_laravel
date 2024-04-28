@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title') Mental Health @endsection
+@section('title') Event Mastering @endsection
 
 @section('banner')
     <div class="hero-container">

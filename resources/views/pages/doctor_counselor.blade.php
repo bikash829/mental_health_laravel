@@ -13,8 +13,9 @@
 
 @section('content')
     <section class="specialist segment-margin-side">
-        <div class="d-grid gap-2 mb-4"><a href="./upcomming_appointment.php" class="btn btn-lg btn-primary">Upcoming
+        <div class="d-grid gap-2 mb-4"><a href="{{ route('view_appointments') }}" class="btn btn-lg btn-primary">Upcoming
                 Appointments</a></div>
+
         <div class="section-heading">
             <h3 class="section-heading__title">
                 Experts And Counselors
@@ -34,43 +35,47 @@
                 <div id="panelsStayOpen-collapseOne" class="accordion-collapse collapse show"
                     aria-labelledby="panelsStayOpen-headingOne">
                     <div class="accordion-body">
-                        <div class="specialist__card-container">
-                            @foreach ($doctorSchedule as $data)
-                            <div class="specialist__card" style="max-width:20rem;">
-                             
-                    
-                                <a href="{{route('patient.appointment.set',$data->id)}}" style="text-decoration: none;">
-                                    <div class="specialist__info ">
-                                    <div class="person">
-                                        <h3 class="person__name">{{$data->set_date}}</h3>
-                                        <h3 class="person__occu">{{$data->department->doctor_department}}</h3>
-                                    </div>
-                                    <p class="person__description">
-                                        {{$data->specialist}}
-                                    </p>
-                                    <p class="person__description">
-                                        @if($data->patient_qty >0)
-                                        Limit: {{$data->patient_qty}}
-                                        @else
-                                        <span class="text-danger">Appoinment Limit: full</span>
-                                        @endif
-                                    </p>
-                    
-                                    <div class="specialist__links">
-                                        <a href="#" title="click here to visit my facebook wall" class="specialist__icon"><i class="fa-brands fa-facebook-f"></i></a>
-                                        <a href="#" title="click to follow twitter" class="specialist__icon"><i class="fa-brands fa-twitter"></i></a>
-                                        <a href="#" title="click to visit web site" class="specialist__icon"><i class="fa-solid fa-globe"></i></a>
-                                        <a href="#" title="click to visit linkdin profile" class="specialist__icon"><i class="fa-brands fa-linkedin-in"></i></a>
-                                    </div>
+                        <div class="row row-cols-2 row-cols-md-3 row-cols-lg-4  row-cols-xl-4  g-2 g-lg-3">
+
+                            @foreach ($users as $data)
+                            @if ($data->hasRole('Doctor'))
+                                <div class="col">
+                                    <a class="text-dark text-decoration-none" href="{{route('show_expert_profile', ['id' => $data->id])}}">
+                                        <div class="card">
+                                            <img src="{{$data->pp_location.'/'.$data->pp_name}}" class="card-img-top" alt="...">
+                                            <div class="card-body">
+                                            <h5 class="card-title">{{$data->expert->doc_title . ' ' . $data->first_name . ' ' . $data->last_name}}</h5>
+
+
+                                            @foreach ($data->experience as $item )
+                                            @if ($item->job_status == 'true')
+                                                <h5>Working At</h5>
+                                                <h6>{{$item->org_name}} <br> <span class="text-muted">{{$item->position}}</span></h6>
+                                                @break
+                                            @else
+                                                <h5>Worked At</h5>
+                                                <h6>{{$item->org_name}} <br> <span class="text-muted">{{$item->position}}</span></h6>
+                                                @break
+
+                                            @endif
+
+
+
+
+                                            @endforeach
+                                            <h6 class="text-muted">Rating : </h6>
+                                            </div>
+                                        </div>
+
+
+                                    </a>
                                 </div>
-                                </a>
-                                    
-                    
-                               
-                            </div>
+                            @endif
                             @endforeach
 
-                        </div>
+                          </div>
+
+
                     </div>
                 </div>
             </div>
@@ -86,46 +91,41 @@
                 <div id="panelsStayOpen-collapseTwo" class="accordion-collapse collapse"
                     aria-labelledby="panelsStayOpen-headingTwo">
                     <div class="accordion-body">
-                        <div class="specialist__card-container">
+                        <div class="row row-cols-2 row-cols-md-3 row-cols-lg-4  row-cols-xl-4  g-2 g-lg-3">
 
-                            @foreach ($users as $user)
-                                @if ($user->hasRole('Counselor'))
-                                    <div class="specialist__card">
-                                        <div class="specialist__img-con">
-                                            <img class="specialist__img" src="#" alt="">
+                            @foreach ($users as $data)
+                            @if ($data->hasRole('Counselor') && $data->online == 1)
+                                <div class="col">
+                                    <a class="text-dark text-decoration-none" href="{{route('show_expert_profile', ['id' => $data->id])}}">
+                                        <div class="card">
+                                            <img src="{{$data->pp_location.'/'.$data->pp_name}}" class="card-img-top" alt="...">
+                                            <div class="card-body">
+                                            <h5 class="card-title">{{$data->first_name . ' ' . $data->last_name}}</h5>
+                                            @foreach ($data->experience as $item )
+                                            @if ($item->job_status == 'true')
+                                                <h5>Working At</h5>
+                                                <h6>{{$item->org_name}} <br> <span class="text-muted">{{$item->position}}</span></h6>
+                                                @break
+                                            @else
+                                                <h5>Worked At</h5>
+                                                <h6>{{$item->org_name}} <br> <span class="text-muted">{{$item->position}}</span></h6>
+                                                @break
+
+                                            @endif
+
+                                            @endforeach
+
+                                            <h6 class="text-muted">Rating : </h6>
+                                            </div>
                                         </div>
 
-                                        <div class="specialist__info ">
-                                            <input type="hidden" id='user_id' value="{{$user->id}}">
-                                            <div class="person">
-                                                <h3 class="person__name">{{ $user->first_name . ' ' . $user->last_name }}
-                                                </h3>
-                                                <h3 class="person__occu">Education info</h3>
-                                            </div>
-                                            <p class="person__description">
-                                                Bio
-                                            </p>
-                                            {{-- {% comment %} social links  {% endcomment %} --}}
-                                            <div class="specialist__links">
-                                                <a href="#" title="click here to visit my facebook wall"
-                                                    class="specialist__icon"><i class="fa-brands fa-facebook"></i></a>
-                                                <a href="#" title="click to follow twitter"
-                                                    class="specialist__icon"><i class="fa-brands fa-square-twitter"></i></a>
-                                                <a href="#" title="click to visit web site"
-                                                    class="specialist__icon"><i class="fa-solid fa-globe"></i></a>
-                                                <a href="#" title="click to visit linkdin profile"
-                                                    class="specialist__icon"><i class="fa-brands fa-linkedin"></i></a>
-                                            </div>
-                                            <div class="text-warning">Rating : 5</div>
-                                        </div>
-                                        <button name="btn-councilor" value="" class="specialist_view">View
-                                            Info</button>
-                                    </div>
-                                @endif
+
+                                    </a>
+                                </div>
+                            @endif
                             @endforeach
 
-
-                        </div>
+                          </div>
                     </div>
                 </div>
             </div>
@@ -148,7 +148,7 @@
 
         const specialistCard = $('.specialist__card');
 
-        let baseUrl = "{{ route('patient.show_user_profile', ['user_id' => 'PLACEHOLDER'])}}";
+        let baseUrl = "{{ route('patient.show_user_profile', ['user_id' => 'PLACEHOLDER']) }}";
         baseUrl = baseUrl.replace('PLACEHOLDER', '');
 
         specialistCard.click(e => {

@@ -157,7 +157,7 @@ class AdminController extends Controller
         $user = Auth::user();
 
         $users = User::role(['Patient']) // Only get users with Patient role
-        ->where('is_verified',1)
+        // ->where('is_verified',1)
         ->where('is_active',1)
         ->get();
 
@@ -212,7 +212,10 @@ class AdminController extends Controller
     public function show_user_profile(Request $request)
     {
         $user = User::find($request->id);
-        return view('admin.show_user_profile', compact('user'));
+        $doctorSchedule = DoctorSchedule::where('status', 1)
+    ->where('user_id', $request->id)
+    ->get();
+        return view('admin.show_user_profile', compact('user','doctorSchedule'));
         // return redirect()->route('show_prfile',with(['user_id'=>$user_id]));
     }
 

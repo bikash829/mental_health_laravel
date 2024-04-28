@@ -4,6 +4,8 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
+use function Laravel\Prompts\text;
+
 return new class extends Migration
 {
     /**
@@ -42,9 +44,9 @@ return new class extends Migration
             $table->string('is_active')->default('0')->nullable()->comment('1=active,0 or null = inactive, 2 = blocked');
             $table->string('is_verified')->default('0')->nullable()->comment('1=verified,0 or null = unverified , 2 = pending, 3 = rejected' );
             $table->integer('terms')->default('0')->nullable()->comment('0 or null = declined, 1 = accepted terms condition');
+            $table->integer('online')->default(1)->nullable()->comment('1=online,0 or null = offline');
 
-
-
+            $table->text('contact_link')->nullable();
 
 //            $table->unsignedBigInteger('blood_group_id')->nullable();
 //            $table->foreign('blood_group_id')

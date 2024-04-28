@@ -28,6 +28,6 @@
             <h1>Test Route View</h1>
             <h1>Test Route View</h1>
         </div>
-        <x-test class="text-success" ::/>
+        {{-- <x-test class="text-success" ::/> --}}
     </div>
 @endsection

@@ -4,8 +4,10 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 use \App\Http\Controllers\PatientController;
 use \App\Http\Controllers\PostController;
+use \App\Http\Controllers\AdminController;
 use App\Models\Post;
 use App\Models\User;
+
 
 Route::group(['prefix'=>'patient','name'=>'patient','as'=>'patient.'],function (){
     Route::resource('profile',UserController::class);
@@ -36,4 +38,8 @@ Route::group(['prefix'=>'patient','name'=>'patient','as'=>'patient.'],function (
     Route::get('/patient/appointment/delete/{id}',[PatientController::class,'patientAppointmentDelete'])->name('patient_appointment.delete');
     Route::get('/patient/appointment/edit/{id}',[PatientController::class,'patientAppointmentEdit'])->name('patient_appointment.edit');
     Route::post('/patient/rating/update/{id}',[PatientController::class,'AppointmentRatingUpadate'])->name('rating.update');
+
+
+    // user_feedback
+    Route::post('/user_feedback',[PatientController::class,'userFeedback'])->name('user_feedback');
 });

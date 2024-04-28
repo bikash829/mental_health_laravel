@@ -66,7 +66,7 @@
                                     class="form-check-input @error('gender')
                                         is-invalid
                                     @enderror" name="gender"
-                                    value="{{ __('female') }}  old('Doctor') " id="female" autocomplete="off"
+                                    value="{{ __('female') }} " id="female" autocomplete="off"
                                     {{ old('gender') == 'female' ? 'checked' : '' }}>
                                 <label class="form-check-label" for="female">female</label>
 
@@ -74,7 +74,7 @@
                                     class="form-check-input @error('gender')
                                         is-invalid
                                     @enderror" name="gender"
-                                    value="{{ __('other') }}  old('Counselor') " id="counselor" autocomplete="off"
+                                    value="{{ __('other') }}" id="counselor" autocomplete="off"
                                     {{ old('gender') == 'Counselor' ? 'checked' : '' }}>
                                 <label class="form-check-label" for="counselor">others</label>
 
@@ -108,7 +108,7 @@
                             <label for="blood_group" class="form-label">Blood Group</label>
                             <select name="blood_group_id" id="blood_group" class="form-select"
                                 aria-label="Default select example">
-                                <option value="null">None</option>
+                                <option value="">None</option>
 
                                 @foreach ($blood_groups as $group)
                                     <option value="{{ $group->id }}"

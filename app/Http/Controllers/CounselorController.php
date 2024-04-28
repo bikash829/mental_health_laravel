@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use App\Models\User;
 
 class CounselorController extends Controller
 {
@@ -231,16 +232,40 @@ class CounselorController extends Controller
 
 
 
-    public function request_for_verification(){
+    public function request_for_verification()
+    {
         $user = Auth::user();
         $page_title = 'Request for verification';
 
         $user->update(
             [
-                'is_verified'=> 2,
+                'is_verified' => 2,
             ]
         );
 
         return  response()->json(['success' => 'Request has been sent wait for response. Our team will let you know the decition in between next 48 hours.', 'user' => $user]);
+    }
+
+
+    // online
+    public function go_online()
+    {
+
+        $user_id = Auth::user()->id;
+        $user = User::find($user_id);
+        $user->online = 1;
+        $user->save();
+        // return  response()->json(['success' => 'You are online now.', 'user' => $user]);
+        return redirect()->back()->with('message', 'You are online now.');
+    }
+
+    //offline
+    public function go_offline()
+    {
+        $user_id = Auth::user()->id;
+        $user = User::find($user_id);
+        $user->online = 0;
+        $user->save();
+        return redirect()->back()->with('message', 'You are offline now.');
     }
 }

@@ -9,7 +9,8 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 use Spatie\Permission\Traits\HasRoles;
-
+// import UserFeedback
+use App\Models\UserFeedback;
 
 class User extends Authenticatable
 {
@@ -41,6 +42,8 @@ class User extends Authenticatable
         'pp_location',
         'is_verified',
         'is_active',
+        'contact_link',
+        'online',
         'terms',
 
     ];
@@ -158,4 +161,13 @@ class User extends Authenticatable
     public function comment(){
         return $this->hasMany(Comment::class);
     }
+
+    public function givenFeedbacks() {
+        return $this->hasMany(UserFeedback::class, 'user_id');
+    }
+
+    public function receivedFeedbacks() {
+        return $this->hasMany(UserFeedback::class, 'expert_id');
+    }
+
 }

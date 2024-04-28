@@ -4,6 +4,7 @@ namespace Database\Seeders;
 
 // use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use App\Models\User;
+use App\Models\DoctorDepartment;
 use Faker\Core\Blood;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
@@ -27,57 +28,44 @@ class DatabaseSeeder extends Seeder
         ]);
 
         $admin = User::firstOrCreate(["email" => 'admin@email.com',], [
-            "first_name" => 'Admin',
+            "first_name" => 'admin',
             // "last_name" => 'Doy',
             "email" => 'admin@email.com',
             "password" => Hash::make('admin'),
             'is_active' => 1,
         ]);
 
-        $admin->assignRole('Admin'); #assigning role
+        $admin->assignRole('admin'); #assigning role
 
-        $patient = User::firstOrCreate(
-            ["email" => 'patient@email.com',],
+        $user = User::firstOrCreate(
+            ["email" => 'user@email.com',],
             [
                 "first_name" => 'Jhon',
                 "last_name" => 'Doy',
                 "religion" => 'Muslim',
                 'gender' => 'male',
                 "date_of_birth" => Carbon::createFromDate(1990, 5, 15),
-                "email" => 'patient@email.com',
+                "email" => 'user@email.com',
                 'blood_group_id' => 5,
-                "password" => Hash::make('patient'),
+                "password" => Hash::make('user'),
                 'is_active' => 1,
 
             ],
         );
 
-        $patient->assignRole('Patient'); #assigning role
+        $user->assignRole('user'); #assigning role
 
-        $counselor = User::firstOrCreate(
-            ["email" => 'counselor@email.com',],
+        $vendor = User::firstOrCreate(
+            ["email" => 'vendor@email.com',],
             [
                 //                "first_name"=>'Counselor',
-                "email" => 'counselor@email.com',
-                "password" => Hash::make('counselor'),
+                "email" => 'vendor@email.com',
+                "password" => Hash::make('vendor'),
                 'is_active' => 1,
             ],
         );
 
-        $counselor->assignRole('Counselor'); #assigning role
-
-
-        $doctor = User::firstOrCreate(
-            ["email" => 'doctor@email.com',],
-            [
-                //                "first_name"=>'Doctor',
-                "email" => 'doctor@email.com',
-                "password" => Hash::make('doctor'),
-                'is_active' => 1,
-            ],
-        );
-
-        $doctor->assignRole('Doctor'); #assigning role
+        $vendor->assignRole('vendor'); #assigning role
 
 
 
@@ -87,6 +75,26 @@ class DatabaseSeeder extends Seeder
         //     'name' => 'Test User',
         //     'email' => 'test@example.com',
         // ]);
+
+        $event_categories = [
+            "Business & Professional",
+            "Music",
+            "Food & Drink",
+            "Catering",
+            "Performance & Visual Arts",
+            "Sports & Fitness",
+            "Charity & Causes",
+            "Venue",
+            "Decoration",
+            "Band Party",
+        ];
+
+        foreach ($event_categories as $event_category) {
+            DoctorDepartment::firstOrCreate([
+                'doctor_department' => $event_category,
+            ]);
+        }
+
 
     }
 }

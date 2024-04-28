@@ -190,7 +190,7 @@
             </div>
         </div>
 
-        <!-- Content Row -->
+        {{-- <!-- Content Row -->
         <div class="row">
 
             <!-- Content Column -->
@@ -270,7 +270,7 @@
                 </div>
 
             </div>
-        </div>
+        </div> --}}
 
     </div>
 @endsection

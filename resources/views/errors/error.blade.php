@@ -8,7 +8,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Bootstrap 5 404 Error Page</title>
     <link href="{{asset('vendor/bootstrap-5.3.0-alpha1-dist/css/bootstrap.min.css')}}" rel="stylesheet">
-    <link href="{{asset()}}" rel="stylesheet">
+    {{-- <link href="{{asset()}}" rel="stylesheet"> --}}
 </head>
 
 

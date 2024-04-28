@@ -39,17 +39,14 @@ class UserController extends Controller
      */
     public function store(Request $request)
     {
-        // if(){
 
-        // }
+        // return $request;
+
         if ($request->from_terms == 'true') {
             $user = Auth::user();
             $user->update($request->all());
             return response()->json(['message' => 'Data saved successfully']);
         }
-        // terms and condition
-
-
         $user = Auth::user();
         switch ($request->btnSaveForm) {
             case "personalInfo": //=============case personal info
@@ -78,6 +75,7 @@ class UserController extends Controller
                         // 'license_no' => ['min:6', 'max:50'],
                         'license_attachment_file' => ['mimes:jpeg,jpg,png,pdf', 'max:2048'],
                         'religion' => ['string', 'max:10'],
+                        'contact_link' => ['url'],
                     ]);
                 } else {
                     $request->validate([

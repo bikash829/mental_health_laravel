@@ -174,7 +174,7 @@
                                 {{-- email address  --}}
                                 <div class="col-md-6 col-lg-6">
                                     <label class="text-muted">Email Address: </label>
-                                    <span><a href="#" id="btnChangeEmail" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Tooltip on top">{{ $user->email }}</a> </span>
+                                    <span><a href="#" id="btnChangeEmail" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Click to change your email">{{ $user->email }}</a> </span>
 
                                 </div>
                                 @isset($user->additional_phone)
@@ -357,6 +357,7 @@
 @endsection
 
 @section('scripts')
+
     @error('profile_picture')
         <div class="toast-container position-fixed top-0 end-0 p-3">
             <div id="liveToast" class="toast" role="alert" aria-live="assertive" aria-atomic="true">

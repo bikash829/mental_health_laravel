@@ -9,8 +9,12 @@
 
         <div class="d-flex justify-content-center my-4">
             <div class="col-md-10 col-lg-10">
-                <x-user_profile :user="$user" />
+                <x-user_profile :user="$user"  :doctorSchedule="$doctorSchedule" />
             </div>
 
         </div>
-@endsection
+    @endsection
+
+    @section('scripts')
+        <x-vendor.bootstrap_js />
+    @endsection

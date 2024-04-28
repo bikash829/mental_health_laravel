@@ -220,6 +220,29 @@
                     </div>
                 </div>
 
+                <div class="accordion" id="accordionPanelsStayOpenExampleFour">
+                    <h2 class="pt-5 ms-3">Contact Link</h2>
+                    {{-- schedule  --}}
+                    <div class="accordion-item">
+                        <h2 class="accordion-header">
+                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                                data-bs-target="#contact_link" aria-expanded="false" aria-controls="contact_link">
+                                Contact Link
+                            </button>
+                        </h2>
+                        <div id="contact_link" class="accordion-collapse collapse">
+                            <div class="accordion-body">
+                                <div class="row g-2">
+
+                                   <a href="{{ $user->contact_link }}">{{$user->contact_link}}</a>
+                                </div>
+
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+
                 <h2 class="pt-5 ms-3">Skills and Experiences</h2>
 
                 {{-- education  --}}
@@ -365,6 +388,7 @@
 @endsection
 
 @section('scripts')
+<x-vendor.bootstrap_js />
     {{-- <script type="text/javascript" src="{{asset('vendor/bootstrap-5.3.0-alpha1-dist/js/bootstrap.bundle.min.js')}}"></script> --}}
     <script>
         /**

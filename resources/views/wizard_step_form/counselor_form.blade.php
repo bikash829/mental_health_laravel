@@ -374,6 +374,20 @@
                         </div>
                     @endisset
 
+                    <div class="col-12 ">
+                        <label for="contact_link" class="form-label">Add Medium Link(meet,zoom....)</label>
+                        <input type="text" class="form-control" value='{{ $user?->contact_link }}'
+                            name="contact_link" id="contact_link" placeholder="Medium Link" max="255" required>
+                        <div class="invalid-feedback">
+                            @error('contact_link')
+                                {{ $message }}
+                            @else
+                                Please provide your medium link
+                            @enderror
+                        </div>
+
+                    </div>
+
 
 
 

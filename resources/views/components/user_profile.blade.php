@@ -6,11 +6,12 @@
             </div>
         @elseif($user->is_active == 'blocked')
             <div class="alert alert-danger" role="alert">
-                <span>Account Status : <span class="strong">Blocked  <i class="fa-solid fa-user-lock"></i></span></span>
+                <span>Account Status : <span class="strong">Blocked <i class="fa-solid fa-user-lock"></i></span></span>
             </div>
         @else
             <div class="alert alert-danger" role="alert">
-                <span>Account Status : <span class="strong">Inactive <i class="fa-solid fa-user-slash"></i></span></span>
+                <span>Account Status : <span class="strong">Inactive <i
+                            class="fa-solid fa-user-slash"></i></span></span>
             </div>
         @endif
 
@@ -414,6 +415,32 @@
             </div>
         @endif
 
+        {{-- counselor link  --}}
+        @if ($user->getRoleNames()[0] == 'Counselor')
+            <div class="accordion" id="accordionPanelsStayOpenExampleFour">
+                <h2 class="pt-5 ">Contact Link</h2>
+                {{-- schedule  --}}
+                <div class="accordion-item">
+                    <h2 class="accordion-header">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                            data-bs-target="#contact_link" aria-expanded="false" aria-controls="contact_link">
+                            Contact Link
+                        </button>
+                    </h2>
+                    <div id="contact_link" class="accordion-collapse collapse">
+                        <div class="accordion-body">
+                            <div class="row g-2">
+
+                                <a href="{{ $user->contact_link }}">Request to join call</a>
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        @endif
+
         @if ($user->getRoleNames()[0] == 'Doctor')
             <div class="accordion" id="accordionPanelsStayOpenExampleTwo">
                 <h2 class="pt-5 ">Appointments Schadule</h2>
@@ -427,10 +454,43 @@
                     </h2>
                     <div id="schadule" class="accordion-collapse collapse">
                         <div class="accordion-body">
-                            <div class="row g-2">
+                            <div class="row row-cols-2 row-cols-md-3 row-cols-lg-4  row-cols-xl-4  g-2 g-lg-3">
 
-                                Schadule Info goes here
+                                @foreach ($doctorSchedule as $data)
+                                    <div class="col">
+                                        <a class="text-dark text-decoration-none"
+                                            href="{{ route('patient.appointment.set', $data->id) }}">
+                                            <div class="card">
+                                                <div class="card-body">
+                                                    {{-- <h5 class="card-title">
+                                                        {{ $data->doctor->expert->doc_title . ' ' . $data->doctor->first_name . ' ' . $data->doctor->last_name }}
+                                                    </h5> --}}
+                                                    <h6 class="">{{ $data->department->doctor_department }}</h6>
+                                                    <span>Appointment Date</span>
+                                                    <h3 class="">{{ $data->set_date }}</h3>
+
+
+                                                    <p class="">
+                                                        @if ($data->patient_qty > 0)
+                                                            Limit: {{ $data->patient_qty }}
+                                                        @else
+                                                            <span class="text-danger">Appoinment Limit: full</span>
+                                                        @endif
+                                                    </p>
+
+                                                    <h5>Fee : {{ $data->patient_fee }}</h5>
+
+
+                                                </div>
+                                            </div>
+
+
+                                        </a>
+                                    </div>
+                                @endforeach
+
                             </div>
+
 
                         </div>
                     </div>
@@ -442,6 +502,8 @@
         @if ($user->getRoleNames()[0] != 'Patient')
             <div class="accordion" id="accordionPanelsStayOpenExampleThree">
                 <h2 class="pt-5 ">User Feedback</h2>
+
+
                 {{-- schedule  --}}
                 <div class="accordion-item">
                     <h2 class="accordion-header">
@@ -452,9 +514,34 @@
                     </h2>
                     <div id="user_feedback" class="accordion-collapse collapse">
                         <div class="accordion-body">
-                            <div class="row g-2">
 
-                                Feedback Info goes here
+                            <div class="row g-2">
+                                @if (Auth::check() && Auth::user()->hasRole('Patient'))
+                                    <div class="m3-">
+                                        <!-- Button trigger modal -->
+                                        <button type="button" class="btn btn-primary" data-bs-toggle="modal"
+                                            data-bs-target="#feedbackModal">
+                                            Leave Feedback
+                                        </button>
+
+
+                                    </div>
+                                @endif
+                                <h3>User feedback</h3>
+                                {{-- {{dd($user->receivedFeedbacks)}} --}}
+                                @foreach ($user->receivedFeedbacks as $feedback)
+                                    <div class="card mt-3">
+                                        <div class="card-body">
+                                            <h5 class="card-title">{{ $feedback->user->first_name }} {{ $feedback->user->last_name }}</h5>
+                                            <h6 class="card-subtitle mb-2 text-muted">Rating:
+                                                {{ $feedback->rating_point }}</h6>
+                                            <p class="card-text">{{ $feedback->feedback }}</p>
+                                        </div>
+                                    </div>
+                                    <hr>
+                                @endforeach
+
+
                             </div>
 
                         </div>
@@ -465,8 +552,41 @@
         @endif
 
 
+    </div>
+</div>
+
+<!-- Modal -->
+<div class="modal fade" id="feedbackModal" tabindex="-1" aria-labelledby="feedbackModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="feedbackModalLabel">Leave Feedback
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <!-- Feedback form goes here -->
+                <form method="post" action="{{ route('patient.user_feedback') }}">
+                    @csrf
+                    <input type="hidden" name="user_id" value="{{ Auth::user()->id }}">
+                    <input type="hidden" name="expert_id" value="{{ $user->id }}">
+                    <div class="form-group">
+                        <label for="rating_point">Rating (0-5)</label>
+                        <input type="number" id="rating_point" name="rating_point" min="0" max="5"
+                            class="form-control" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="feedback">Feedback</label>
+                        <textarea placeholder="How was the expert" id="feedback" name="feedback" class="form-control" required></textarea>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary mt-2">Submit</button>
 
 
+                </form>
+            </div>
 
+        </div>
     </div>
 </div>

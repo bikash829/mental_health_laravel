@@ -12,20 +12,24 @@
                 </div>
                 <div class="text-end"><button class="btn btn-primary" id="btnRequestForVerification" type="button" >Request for verification</button></div> --}}
 
-            @if ($user->is_verified == 1)
-                <div class="alert alert-success"  role="alert">
+            @if ($user->is_verified == 'verified')
+                <div class="alert alert-success" role="alert">
                     Your account is verified. You can provide your service anytime.
                 </div>
-            @elseif ($user->is_verified == 0 || $user->is_verified == null)
+            @elseif ($user->is_verified == 'unverified' || $user->is_verified == null)
                 <div class="alert alert-warning" role="alert" id="verificationStatus">
                     Your account is not varified yet. Please make an approval request to the admin so that you can provide
                     your service.
                 </div>
                 <div class="text-end"><button class="btn btn-primary" id="btnRequestForVerification" type="button">Request
                         for verification</button></div>
-            @elseif ($user->is_verified == 2)
+            @elseif ($user->is_verified == 'pending')
                 <div class="alert alert-info" role="alert">
                     Your request has been sent to the admin. Please wait for the approval.
+                </div>
+            @else
+                <div class="alert alert-info" role="alert">
+                    Sorry your request has been rejected. Please contact with the admin.
                 </div>
             @endif
         @else
@@ -41,156 +45,145 @@
         <div class="row">
 
             <!-- Earnings (Monthly) Card Example -->
-            <div class="col-xl-3 col-md-6 mb-4">
+            <div class="col-xl-6 col-md-6 mb-4">
                 <div class="card border-left-primary shadow h-100 py-2">
                     <div class="card-body">
                         <div class="row no-gutters align-items-center">
                             <div class="col mr-2">
                                 <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
-                                    Earnings (Monthly)</div>
-                                <div class="h5 mb-0 font-weight-bold text-gray-800">$40,000</div>
+                                    Active Status</div>
+                                @if (Auth::user()->online == 1)
+                                    <div class="h5 mb-0 font-weight-bold text-gray-800">Online</div>
+                                @else
+                                    <div class="h5 mb-0 font-weight-bold text-gray-800">Offline</div>
+                                @endif
                             </div>
                             <div class="col-auto">
-                                <i class="fas fa-calendar fa-2x text-gray-300"></i>
+                                @if (Auth::user()->online == 1)
+                                    <i class="fa-solid fa-plug-circle-check fa-xl" style="color: #008000;"></i>
+                                @else
+                                    <i class="fa-solid fa-plug-circle-xmark fa-xl" style="color: #c0c0c0;"></i>
+                                @endif
                             </div>
+
                         </div>
+
+                    </div>
+                    <div class="card-footer text-right">
+                        @if (Auth::user()->online == 1)
+                            <a href="{{ route('counselor.go_offline') }}">Go Offline <i
+                                    class="fa-solid fa-chevron-right"></i></a>
+                        @else
+                            <a href="{{ route('counselor.go_online') }}">Go Online <i
+                                    class="fa-solid fa-chevron-right"></i></a>
+                        @endif
                     </div>
                 </div>
             </div>
 
             <!-- Earnings (Monthly) Card Example -->
-            <div class="col-xl-3 col-md-6 mb-4">
+            <div class="col-xl-6 col-md-6 mb-4">
                 <div class="card border-left-success shadow h-100 py-2">
                     <div class="card-body">
                         <div class="row no-gutters align-items-center">
                             <div class="col mr-2">
                                 <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
-                                    Earnings (Annual)</div>
-                                <div class="h5 mb-0 font-weight-bold text-gray-800">$215,000</div>
+                                    User Rating</div>
+                                <div class="h5 mb-0 font-weight-bold text-gray-800">4.5</div>
                             </div>
                             <div class="col-auto">
-                                <i class="fas fa-dollar-sign fa-2x text-gray-300"></i>
+                                <i class="fa-solid fa-medal fa-xl"></i>
                             </div>
                         </div>
+                    </div>
+                    <div class="card-footer text-right">
+                        <a href="">View Details <i class="fa-solid fa-chevron-right"></i></a>
                     </div>
                 </div>
             </div>
 
-            <!-- Earnings (Monthly) Card Example -->
-            <div class="col-xl-3 col-md-6 mb-4">
-                <div class="card border-left-info shadow h-100 py-2">
-                    <div class="card-body">
-                        <div class="row no-gutters align-items-center">
-                            <div class="col mr-2">
-                                <div class="col mr-2">
-                                    <div class="text-xs font-weight-bold text-info text-uppercase mb-1">Total Patients
-                                    </div>
-                                    <div class="h5 mb-0 font-weight-bold text-gray-800">Hre you go</div>
+
+
+            <!-- Content Row -->
+
+            <div class="row">
+
+                <!-- Area Chart -->
+                <div class="col-xl-8 col-md-7 col-lg-7">
+                    <div class="card shadow mb-4">
+                        <!-- Card Header - Dropdown -->
+                        <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+                            <h6 class="m-0 font-weight-bold text-primary">Earnings Overview</h6>
+                            <div class="dropdown no-arrow">
+                                <a class="dropdown-toggle" href="#" role="button" id="dropdownMenuLink"
+                                    data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                    <i class="fas fa-ellipsis-v fa-sm fa-fw text-gray-400"></i>
+                                </a>
+                                <div class="dropdown-menu dropdown-menu-right shadow animated--fade-in"
+                                    aria-labelledby="dropdownMenuLink">
+                                    <div class="dropdown-header">Dropdown Header:</div>
+                                    <a class="dropdown-item" href="#">Action</a>
+                                    <a class="dropdown-item" href="#">Another action</a>
+                                    <div class="dropdown-divider"></div>
+                                    <a class="dropdown-item" href="#">Something else here</a>
                                 </div>
                             </div>
+                        </div>
+                        <!-- Card Body -->
+                        <div class="card-body">
+                            <div class="chart-area">
+                                <canvas id="myAreaChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
 
+                <!-- Pie Chart -->
+                <div class="col-xl-4 col-md-5 col-lg-5">
+                    <div class="card shadow mb-4">
+                        <!-- Card Header - Dropdown -->
+                        <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+                            <h6 class="m-0 font-weight-bold text-primary">Revenue Sources</h6>
+                            <div class="dropdown no-arrow">
+                                <a class="dropdown-toggle" href="#" role="button" id="dropdownMenuLink"
+                                    data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                    <i class="fas fa-ellipsis-v fa-sm fa-fw text-gray-400"></i>
+                                </a>
+                                <div class="dropdown-menu dropdown-menu-right shadow animated--fade-in"
+                                    aria-labelledby="dropdownMenuLink">
+                                    <div class="dropdown-header">Dropdown Header:</div>
+                                    <a class="dropdown-item" href="#">Action</a>
+                                    <a class="dropdown-item" href="#">Another action</a>
+                                    <div class="dropdown-divider"></div>
+                                    <a class="dropdown-item" href="#">Something else here</a>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- Card Body -->
+                        <div class="card-body">
+                            <div class="chart-pie pt-4 pb-2">
+                                <canvas id="myPieChart"></canvas>
+                            </div>
+                            <div class="mt-4 text-center small">
+                                <span class="mr-2">
+                                    <i class="fas fa-circle text-primary"></i> Direct
+                                </span>
+                                <span class="mr-2">
+                                    <i class="fas fa-circle text-success"></i> Social
+                                </span>
+                                <span class="mr-2">
+                                    <i class="fas fa-circle text-info"></i> Referral
+                                </span>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Pending Requests Card Example -->
-            <div class="col-xl-3 col-md-6 mb-4">
-                <div class="card border-left-warning shadow h-100 py-2">
-                    <div class="card-body">
-                        <div class="row no-gutters align-items-center">
-                            <div class="col mr-2">
-                                <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
-                                    Pending Requests</div>
-                                <div class="h5 mb-0 font-weight-bold text-gray-800">18</div>
-                            </div>
-                            <div class="col-auto">
-                                <i class="fas fa-comments fa-2x text-gray-300"></i>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
 
-        <!-- Content Row -->
 
-        <div class="row">
-
-            <!-- Area Chart -->
-            <div class="col-xl-8 col-lg-7">
-                <div class="card shadow mb-4">
-                    <!-- Card Header - Dropdown -->
-                    <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
-                        <h6 class="m-0 font-weight-bold text-primary">Earnings Overview</h6>
-                        <div class="dropdown no-arrow">
-                            <a class="dropdown-toggle" href="#" role="button" id="dropdownMenuLink"
-                                data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                                <i class="fas fa-ellipsis-v fa-sm fa-fw text-gray-400"></i>
-                            </a>
-                            <div class="dropdown-menu dropdown-menu-right shadow animated--fade-in"
-                                aria-labelledby="dropdownMenuLink">
-                                <div class="dropdown-header">Dropdown Header:</div>
-                                <a class="dropdown-item" href="#">Action</a>
-                                <a class="dropdown-item" href="#">Another action</a>
-                                <div class="dropdown-divider"></div>
-                                <a class="dropdown-item" href="#">Something else here</a>
-                            </div>
-                        </div>
-                    </div>
-                    <!-- Card Body -->
-                    <div class="card-body">
-                        <div class="chart-area">
-                            <canvas id="myAreaChart"></canvas>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Pie Chart -->
-            <div class="col-xl-4 col-lg-5">
-                <div class="card shadow mb-4">
-                    <!-- Card Header - Dropdown -->
-                    <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
-                        <h6 class="m-0 font-weight-bold text-primary">Revenue Sources</h6>
-                        <div class="dropdown no-arrow">
-                            <a class="dropdown-toggle" href="#" role="button" id="dropdownMenuLink"
-                                data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                                <i class="fas fa-ellipsis-v fa-sm fa-fw text-gray-400"></i>
-                            </a>
-                            <div class="dropdown-menu dropdown-menu-right shadow animated--fade-in"
-                                aria-labelledby="dropdownMenuLink">
-                                <div class="dropdown-header">Dropdown Header:</div>
-                                <a class="dropdown-item" href="#">Action</a>
-                                <a class="dropdown-item" href="#">Another action</a>
-                                <div class="dropdown-divider"></div>
-                                <a class="dropdown-item" href="#">Something else here</a>
-                            </div>
-                        </div>
-                    </div>
-                    <!-- Card Body -->
-                    <div class="card-body">
-                        <div class="chart-pie pt-4 pb-2">
-                            <canvas id="myPieChart"></canvas>
-                        </div>
-                        <div class="mt-4 text-center small">
-                            <span class="mr-2">
-                                <i class="fas fa-circle text-primary"></i> Direct
-                            </span>
-                            <span class="mr-2">
-                                <i class="fas fa-circle text-success"></i> Social
-                            </span>
-                            <span class="mr-2">
-                                <i class="fas fa-circle text-info"></i> Referral
-                            </span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Content Row -->
-        <div class="row">
+            <!-- Content Row -->
+            {{-- <div class="row">
 
             <!-- Content Column -->
             <div class="col-lg-6 mb-4">
@@ -335,52 +328,52 @@
                 </div>
 
             </div>
+        </div> --}}
+
         </div>
-
-    </div>
-@endsection
+    @endsection
 
 
-@section('scripts')
-    <script>
-        $(document).ready(function() {
+    @section('scripts')
+        <script>
+            $(document).ready(function() {
 
-            const verificationStatus = $('#verificationStatus');
-            const btnRequestForVerification = $('#btnRequestForVerification');
-            console.log(verificationStatus);
-            console.log(btnRequestForVerification);
-
-
-            $('#btnRequestForVerification').click(function(e) {
-                axios.post('{{ route('counselor.request_for_verification') }}')
-                    .then(function(response) {
-                        console.log(response.data.success);
-                        if (response.status == 200) {
-                            Swal.fire({
-                                icon: 'success',
-                                title: 'Success',
-                                text: response.data.success,
-                            });
+                const verificationStatus = $('#verificationStatus');
+                const btnRequestForVerification = $('#btnRequestForVerification');
+                console.log(verificationStatus);
+                console.log(btnRequestForVerification);
 
 
-                            btnRequestForVerification.hide();
-                            $(verificationStatus).text(
-                                'Your request has been sent to the admin. Please wait for the approval.'
+                $('#btnRequestForVerification').click(function(e) {
+                    axios.post('{{ route('counselor.request_for_verification') }}')
+                        .then(function(response) {
+                            console.log(response.data.success);
+                            if (response.status == 200) {
+                                Swal.fire({
+                                    icon: 'success',
+                                    title: 'Success',
+                                    text: response.data.success,
+                                });
+
+
+                                btnRequestForVerification.hide();
+                                $(verificationStatus).text(
+                                    'Your request has been sent to the admin. Please wait for the approval.'
                                 );
-                            $(verificationStatus).removeClass('alert-warning').addClass('alert-info');
+                                $(verificationStatus).removeClass('alert-warning').addClass('alert-info');
 
-                        } else {
-                            Swal.fire({
-                                icon: 'error',
-                                title: 'Oops...',
-                                text: response.data.message,
-                            });
-                        }
-                    })
-                    .catch(function(error) {
-                        console.log(error);
-                    });
+                            } else {
+                                Swal.fire({
+                                    icon: 'error',
+                                    title: 'Oops...',
+                                    text: response.data.message,
+                                });
+                            }
+                        })
+                        .catch(function(error) {
+                            console.log(error);
+                        });
+                });
             });
-        });
-    </script>
-@endsection
+        </script>
+    @endsection

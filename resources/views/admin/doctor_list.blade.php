@@ -76,6 +76,8 @@
 
 
 @section('scripts')
+<x-vendor.bootstrap_js/>
+
     <script>
         $(document).ready(function() {
             $('#dataTable').DataTable({

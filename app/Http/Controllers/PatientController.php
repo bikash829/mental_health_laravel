@@ -11,6 +11,8 @@ use Illuminate\Validation\Rule;
 use App\Models\DoctorDepartment;
 use App\Models\DoctorSchedule;
 use App\Models\DoctorAppointment;
+// import model userFeedback
+use App\Models\UserFeedback;
 use Session;
 
 class PatientController extends Controller
@@ -58,19 +60,19 @@ class PatientController extends Controller
         return redirect()->route('show_prfile',with(['user_id'=>$user_id]));
     }
 
-//  appointmet set 
+//  appointmet set
     function appointmentSet($id){
         $doctorSchedule = DoctorSchedule::findOrFail($id);
 
 
-        
+
 
         return view('patient.appointmentSet',compact('doctorSchedule'));
 
     }
 
 
-// appointment add  
+// appointment add
     function appointmentAdd(Request $request){
         $userId= Auth::user()->id;
         $request->validate([
@@ -92,7 +94,7 @@ class PatientController extends Controller
             'address' => 'required',
             'patient_name' => 'required',
             'phone' => 'required|numeric|digits:11',
-            
+
         ],
         [
             'time.required' => 'Time select is required',
@@ -101,7 +103,7 @@ class PatientController extends Controller
             'address.required' => 'Address is required',
             'patient_name.required' => 'Patient Name is required',
             'phone.required' => 'Phone Name is required',
-            
+
         ]);
         $appointmentId =DoctorAppointment::insertGetId([
             'patient_id' => $request->patient_id,
@@ -118,11 +120,11 @@ class PatientController extends Controller
             'address' => $request->address,
             'patient_problem' => $request->patient_problem,
             'description' => $request->description,
-        ]);   
+        ]);
 
         if($appointmentId){
             Session::put('appointmentId',$appointmentId);
-         
+
             return redirect('patient/doctor/appoinment/payment')->with('success', 'Appoinment Data Saved and now please pay your payment');
 
         }
@@ -141,17 +143,17 @@ class PatientController extends Controller
         $request->validate([
             'payment_method' => 'required',
             'tarms_checbox' => 'required',
-            
+
         ],
         [
             'payment_method.required' => 'Select your payment method',
             'tarms_checbox.required' => 'Tranm\' and condition is required',
-            
+
         ]);
 
         $data =DoctorAppointment::findOrFail($id);
         $paymentMethod = $request->payment_method;
-        $scheduleId = $request->scheduleId;   
+        $scheduleId = $request->scheduleId;
 
 
         if($paymentMethod =='cash'){
@@ -165,7 +167,7 @@ class PatientController extends Controller
                 $schedule->update();
 
             }
-            
+
             return view('patient.appointmentMsg');
         }
         elseif($paymentMethod =='bkash'){
@@ -192,7 +194,7 @@ class PatientController extends Controller
                 $schedule->patient_qty =($schedule->patient_qty- 1);
                 $schedule->update();
 
-            }            
+            }
             return view('patient.appointmentMsg');
         }
         elseif($paymentMethod =='roket'){
@@ -212,7 +214,7 @@ class PatientController extends Controller
 
     }
 
-// Appointment Rating 
+// Appointment Rating
     function AppointmentRatingUpadate(Request $request,$id){
         $request->validate([
             'appointment_rating' => [
@@ -221,11 +223,11 @@ class PatientController extends Controller
                 'max:10',
                 'min:1',
             ]
-            
+
         ],
         [
             'appointment_rating.required' => 'Appointment Rating is required',
-            
+
         ]);
 
         $data =DoctorAppointment::findOrFail($id);
@@ -246,7 +248,7 @@ class PatientController extends Controller
     function patientAppointment(){
         $id = Auth::user()->id;
         $patientData =DoctorAppointment::where('patient_id',$id)->orderBy('id', 'DESC')->get();
-        
+
         return view('patient.patientappointmentManage',compact('patientData'));
 
     }
@@ -276,7 +278,34 @@ class PatientController extends Controller
 
 
     }
-   
+
+
+    // userFeedback
+    function userFeedback(Request $request){
+
+       //createor update data
+        $request->validate([
+            'user_id' => 'required',
+            'expert_id' => 'required',
+            'feedback' => 'required',
+            'rating_point' => 'required',
+        ]);
+
+        $userFeedback = UserFeedback::updateOrCreate($request->only('user_id', 'expert_id', 'feedback', 'rating_point'));
+
+
+
+        if($userFeedback){
+            return redirect()->back()->with('success', 'Successfully You Submited Feedback');
+
+        }
+        else{
+            return redirect()->back()->with('error', 'opps! Feedback not added');
+
+        }
+
+    }
+
 
 
 }

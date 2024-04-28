@@ -4,6 +4,7 @@ namespace Database\Seeders;
 
 // use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use App\Models\User;
+use App\Models\DoctorDepartment;
 use Faker\Core\Blood;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
@@ -34,59 +35,61 @@ class DatabaseSeeder extends Seeder
             'is_active' => 1,
         ]);
 
-        $admin->assignRole('Admin'); #assigning role
+        $admin->assignRole('admin'); #assigning role
 
-        $patient = User::firstOrCreate(
-            ["email" => 'patient@email.com',],
+        $vendor = User::firstOrCreate(
+            ["email" => 'vendor@email.com',],
             [
                 "first_name" => 'Jhon',
                 "last_name" => 'Doy',
                 "religion" => 'Muslim',
                 'gender' => 'male',
                 "date_of_birth" => Carbon::createFromDate(1990, 5, 15),
-                "email" => 'patient@email.com',
+                "email" => 'vendor@email.com',
                 'blood_group_id' => 5,
-                "password" => Hash::make('patient'),
+                "password" => Hash::make('vendor'),
                 'is_active' => 1,
 
             ],
         );
 
-        $patient->assignRole('Patient'); #assigning role
+        $vendor->assignRole('vendor'); #assigning role
 
-        $counselor = User::firstOrCreate(
-            ["email" => 'counselor@email.com',],
+        $user = User::firstOrCreate(
+            ["email" => 'user@email.com',],
             [
-                //                "first_name"=>'Counselor',
-                "email" => 'counselor@email.com',
-                "password" => Hash::make('counselor'),
+                "email" => 'user@email.com',
+                "password" => Hash::make('user'),
                 'is_active' => 1,
             ],
         );
 
-        $counselor->assignRole('Counselor'); #assigning role
+        $user->assignRole('user'); #assigning role
 
+        $doctor_departments = [
+            "Clinical Psychology",
+            "Counseling Psychology",
+            "School Psychology",
+            "Industrial-Organizational Psychology",
+            "Health Psychology",
+            "Forensic Psychology",
+            "Sports Psychology",
+            "Neuropsychology",
+            "Social Psychology",
+            "Developmental Psychology",
+            "Experimental Psychology",
+            "Cognitive Psychology",
+            "Positive Psychology",
+            "Environmental Psychology",
+            "Consumer Psychology",
+        ];
 
-        $doctor = User::firstOrCreate(
-            ["email" => 'doctor@email.com',],
-            [
-                //                "first_name"=>'Doctor',
-                "email" => 'doctor@email.com',
-                "password" => Hash::make('doctor'),
-                'is_active' => 1,
-            ],
-        );
+        foreach ($doctor_departments as $doctor_department) {
+            DoctorDepartment::firstOrCreate([
+                'doctor_department' => $doctor_department,
+            ]);
+        }
 
-        $doctor->assignRole('Doctor'); #assigning role
-
-
-
-        //        \App\Models\User::factory(10)->create();
-
-        // \App\Models\User::factory()->create([
-        //     'name' => 'Test User',
-        //     'email' => 'test@example.com',
-        // ]);
 
     }
 }

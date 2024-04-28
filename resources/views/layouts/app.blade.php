@@ -54,7 +54,7 @@
             <!-- site logo  -->
             <div class="nav__logo-container">
                 <a href="{{ route('home') }}"><img data-href="{% url 'home' %}" class="nav__logo" id="nav__logo"
-                        src="{{ asset('images/logo/logo_.png') }} " alt="Logo"></a>
+                        src="{{ asset('images/logo/logo.png') }} " alt="Logo"></a>
             </div>
 
             <!-- navigation menu bar  -->

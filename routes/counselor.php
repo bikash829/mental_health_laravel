@@ -18,6 +18,9 @@ Route::group(['prefix'=>'counselor','name'=>'counselor','as'=>'counselor.'],func
     // change_email
     Route::post('/change_email/',[UserController::class,'change_email'])->name('change_email');
 
+    // online and offline
+    Route::get('online/',[CounselorController::class,'go_online'])->name('go_online');
+    Route::get('offline/',[CounselorController::class,'go_offline'])->name('go_offline');
 
 
 

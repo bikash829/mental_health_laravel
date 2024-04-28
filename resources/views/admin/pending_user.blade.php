@@ -34,15 +34,18 @@
                         <td>{{ ucfirst($user->gender) }}</td>
                         <td>{{ $user?->address?->country }}</td>
                         <td>
+
                             <div class="dropdown">
+
                                 <button class="btn btn-warning dropdown-toggle" type="button" data-bs-toggle="dropdown"
                                     aria-expanded="false">
-                                    {{-- <i class="fa-solid fa-angle-down" style="color: #ffffff;"> --}}
+
                                 </button>
                                 <ul class="dropdown-menu">
-                                    <li><a class="dropdown-item btnViewProfile" href="{{ route('admin.show_user_profile', ['id' => $user->id]) }}" ><i class="fa-solid fa-eye"
-                                                style="color: #008000;"></i> View</a></li>
-                                    <li><a class="dropdown-item btnVerifyUser" href="#{{-- route('admin.verify_user',['user_id' => $user->id]) --}}"
+                                    <li><a class="dropdown-item btnViewProfile"
+                                            href="{{ route('admin.show_user_profile', ['id' => $user->id]) }}"><i
+                                                class="fa-solid fa-eye" style="color: #008000;"></i> View</a></li>
+                                    <li><a class="dropdown-item btnVerifyUser" href="#"
                                             data-url="{{ route('admin.verify_user', ['id' => $user->id]) }}"><i
                                                 class="fa-solid fa-circle-check" style="color: #008000;"></i> Accept</a>
                                     </li>
@@ -63,8 +66,8 @@
 
 
 @section('scripts')
-{{-- <x-vendor.bootstrap_js/> --}}
-{{-- <x-vendor.bootstrap_bundle_js/> --}}
+    <x-vendor.bootstrap_js/>
+    {{-- <x-vendor.bootstrap_bundle_js/> --}}
     <script>
         $(document).ready(function() {
             $('#dataTable').DataTable({

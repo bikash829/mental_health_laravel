@@ -15,7 +15,7 @@
 @section('content')
     <div class="container">
         <div class="row justify-content-center m-5">
-            <div class="col-md-8">
+            <div class="col-12 col-lg-8 col-xl-12 col-md-8">
                 <div class="card">
                     <div class="card-header">{{ __('Login') }}</div>
 
@@ -108,7 +108,7 @@
 
                     </div>
                     <div class="card-footer text-body-secondary">
-                        <div class="d-grid gap-2 col-6 mx-auto">
+                        <div class="d-grid gap-2 col-md-8 col-lg-6 col-xl-6 col-12 mx-auto">
                             <button onclick="window.location.href='{{ route('register') }}'" class="btn btn-success" type="button">Create New Account</button>
                         </div>
                     </div>

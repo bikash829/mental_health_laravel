@@ -30,8 +30,7 @@
                     @foreach ($users as $data)
                         @if ($data->hasRole('vendor'))
                             <div class="col">
-                                <a class="text-dark text-decoration-none"
-                                    href="{{ route('show_expert_profile', ['id' => $data->id]) }}">
+                                <a class="text-dark text-decoration-none" href="{{ route('booking.service.show', $data) }}">
                                     <div class="card">
                                         <img src="{{ $data->pp_location . '/' . $data->pp_name }}" class="card-img-top"
                                             alt="...">

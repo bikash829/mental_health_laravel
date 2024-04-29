@@ -8,6 +8,8 @@ use App\Models\User;
 use Spatie\Permission\Traits\HasRoles;
 use Illuminate\Http\Request;
 
+use App\Http\Controllers\ServiceBooking;
+
 
 
 /*
@@ -61,9 +63,11 @@ Route::get('upcoming_appointments/', function () {
 
 Route::get('community-forum/', function () {
     $user = Auth::user();
-    $posts = Post::with(['comments' => function ($query) {
-        $query->orderBy('id', 'desc');
-    }])
+    $posts = Post::with([
+        'comments' => function ($query) {
+            $query->orderBy('id', 'desc');
+        }
+    ])
         ->orderBy('id', 'desc')
         ->get();
     $data = ['community' => 'active',];
@@ -105,10 +109,14 @@ Route::get('experts-profile/', function (Request $request) {
 
     $user = User::find($request->id);
     $doctorSchedule = App\Models\DoctorSchedule::where('status', 1)
-    ->where('user_id', $request->id)
-    ->get();
-    return view('pages.experts_profile',compact('user','doctorSchedule'));
+        ->where('user_id', $request->id)
+        ->get();
+    return view('pages.experts_profile', compact('user', 'doctorSchedule'));
 })->name('show_expert_profile');
 
 
 // service booking
+
+Route::group(['middleware' => ['auth', 'role:user'], 'prefix' => 'booking', 'name' => 'booking', 'as' => 'booking.'], function () {
+    Route::resource('service', ServiceBooking::class);
+});

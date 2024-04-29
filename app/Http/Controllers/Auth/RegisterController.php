@@ -83,7 +83,7 @@ class RegisterController extends Controller
 
         $this->validator($request->all())->validate();
         $request->merge(['pp_location' => 'images/avatar', 'pp_name' => 'blank-profile-picture.png','is_active' => 1,'terms' => 0,]);
-        // $request->merge(['is_active' => 1,]);
+       
         event(new Registered($user = $this->create($request->except('role'))));
         $user->assignRole($request->role); #==============================assigning role
 

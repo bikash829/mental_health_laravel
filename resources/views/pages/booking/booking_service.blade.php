@@ -56,7 +56,8 @@ use App\Models\DoctorAppointment;
 
                         </div>
 
-                        <form action="{{ route('patient.appointment.add') }}" method="POST">
+                        {{-- <form action="{{ route('patient.appointment.add') }}" method="POST"> --}}
+                        <form action="{{ route('booking.service.bookServicePayment') }}" method="POST">
                             @csrf
 
                             <input type="hidden" name="doctor_id" value="{{ $doctorSchedule->doctor->id }}">
@@ -212,7 +213,7 @@ use App\Models\DoctorAppointment;
                                     </div>
                                 </div>
 
-                                <div class="col-md-6 col-12 pb-3">
+                                <div class="col-md-12 col-12 pb-3">
                                     @php
                                         $address =
                                             Auth::user()?->address?->address .

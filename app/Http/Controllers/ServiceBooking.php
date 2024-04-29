@@ -3,10 +3,12 @@
 namespace App\Http\Controllers;
 
 
-
+use App\Models\DoctorAppointment;
 use App\Models\DoctorSchedule;
 use Illuminate\Http\Request;
 use Auth;
+use Illuminate\Validation\Rule;
+use Session;
 
 class ServiceBooking extends Controller
 {
@@ -93,14 +95,78 @@ class ServiceBooking extends Controller
         return 'hello destory';
     }
 
-    //  appointment set
-    // function appointmentSet(DoctorSchedule $id){
-    //     $doctorSchedule = DoctorSchedule::findOrFail($id);
+    function bookServicePayment(Request $request)
+    {
+        $userId = Auth::user()->id;
 
 
+        $request->validate(
+            [
+                'time' => [
+                    'required',
+                    Rule::unique('doctor_appointments')->where(function ($query) use ($userId, $request) {
+                        return $query->where('patient_id', $userId)
+                            ->where('appointment_date', $request->appointment_date)
+                            ->where('time', $request->time);
+                    }),
+                ],
+                'age' => [
+                    'required',
+                    'integer',
+                    'max:100',
+                    'min:1',
+                ],
+                'email' => 'required|email',
+                'address' => 'required',
+                'patient_name' => 'required',
+                'phone' => 'required|numeric|digits:11',
 
+            ],
+            [
+                'time.required' => 'Time select is required',
+                'age.required' => 'Age is required',
+                'email.required' => 'Age is required',
+                'address.required' => 'Address is required',
+                'patient_name.required' => 'Name is required',
+                'phone.required' => 'Phone Name is required',
 
-    //     return view('patient.appointmentSet',compact('doctorSchedule'));
+            ]
+        );
+        $appointmentId = DoctorAppointment::insertGetId([
+            'patient_id' => $request->patient_id,
+            'doctor_id' => $request->doctor_id,
+            'doctor_schedule_id' => $request->doctor_schedule_id,
+            'department' => $request->department,
+            'appointment_date' => $request->appointment_date,
+            'time' => $request->time,
+            'fee' => $request->fee,
+            'patient_name' => $request->patient_name,
+            'age' => $request->age,
+            'email' => $request->email,
+            'phone' => $request->phone,
+            'address' => $request->address,
+            'patient_problem' => $request->patient_problem,
+            'description' => $request->description,
+        ]);
 
-    // }
+        if ($appointmentId) {
+            Session::put('appointmentId', $appointmentId);
+
+            return redirect('patient/doctor/appoinment/payment')->with('success', 'Booking Data Saved and now please pay your payment');
+
+        } else {
+            return redirect()->back()->with('error', 'Opps! Your Appointment Not saved, please try again');
+
+        }
+    }
+
+    function servicePaymentMethod()
+    {
+
+        $data = DoctorAppointment::findOrFail(Session::get('appointmentId'));
+
+        // return view('patient.appoinmentPayment', compact('data'));
+        return view('patient.appoinmentPayment', compact('data'));
+
+    }
 }

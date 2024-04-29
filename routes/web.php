@@ -120,5 +120,7 @@ Route::get('experts-profile/', function (Request $request) {
 Route::group(['middleware' => ['auth', 'role:user'], 'prefix' => 'booking', 'name' => 'booking', 'as' => 'booking.'], function () {
     Route::resource('service', ServiceBooking::class);
     Route::get('/service/booking/{service}', [ServiceBooking::class, 'bookService'])->name('service.bookService');
+    Route::POST('/service/booking/payment', [ServiceBooking::class, 'bookServicePayment'])->name('service.bookServicePayment');
+    Route::POST('/service/booking/payment-method', [ServiceBooking::class, 'servicePaymentMethod'])->name('service.servicePaymentMethod');
 
 });

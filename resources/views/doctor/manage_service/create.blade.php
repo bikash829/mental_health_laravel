@@ -1,10 +1,4 @@
 @extends('layouts.admin.app')
-
-{{-- @section('link')
-    <x-vendor.bootstrap_css />
-    <link rel="stylesheet" href="{{ asset('css/community.css') }}">
-@endsection --}}
-
 @section('content')
     <div class="m-3">
         {{-- <h2>{{Auth::user()->is_verified}}</h2> --}}

@@ -1,12 +1,15 @@
 <?php
 
 use App\Http\Controllers\UserController;
+use App\Http\Controllers\ServiceController;
+use App\Http\Controllers\ServiceCategoryController;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 use App\Models\Post;
 use App\Models\User;
 
 use App\Models\Events\ServiceCategory;
+use App\Models\Events\Service;
 use Spatie\Permission\Traits\HasRoles;
 use Illuminate\Http\Request;
 
@@ -119,10 +122,13 @@ Route::get('experts-profile/', function (Request $request) {
 
 
 
-// Route::group(['prefix' => 'service', 'name' => 'service', 'as' => 'service.'], function () {
+Route::group(['prefix' => 'service', 'name' => 'service', 'as' => 'service.'], function () {
 
-//     Route::resource('service-category', ServiceCategory::class);
+    // Route::get('/service', [ServiceController::class, 'index'])->name('createService');
+    Route::resource('service-category', ServiceCategoryController::class);
+    Route::resource('/manage-service', ServiceController::class);
 
 
 
-// })->middleware(['auth']);
+
+})->middleware(['auth']);

@@ -34,39 +34,18 @@
                         </div>
                     </div>
                 @endif
-                <h2 class="text-center text-danger pb-5">Create Service </h2>
+                <h2 class="text-center text-danger pb-5">Add Service Items </h2>
 
-                {{-- add department --}}
-                {{-- <div class="col-md-12 col-sm-12 col-12 col-lg-12 col-xl-12   rounded py-3 "
-                    style="box-sizing: border-box; ">
-
-                    <form action="{{  }}" method="POST">
-                        @csrf
-                        <div class="form-group ">
-                            <label for="doctor_department">If don't match your service category enter here and add new
-                            </label>
-                            <input type="text" name="doctor_department" class="form-control" id=""
-                                value="{{ old('doctor_department') }}" placeholder=" Add your service">
-                            @error('doctor_department')
-                                <p class="text-danger ">{{ $message }}</p>
-                            @enderror
-                        </div>
-                        <div class="text-right">
-                            <button class="btn btn-sm btn-success">Add</button>
-
-                        </div>
-                    </form>
-                </div> --}}
-
+               
                 {{-- <div class="col-12 col-md-1 col-xl-1 col-lg-1"></div> --}}
                 <div class=" col-md-12 col-sm-12 col-12 col-lg-12 col-xl-12  bg-gray rounded py-3"
                     style="border: 1px solid #ddd">
 
-                    <form class="row g-3" action="{{ route('service.manage-service.store') }}" method="POST">
+                    <form class="row g-3" action="{{ '' }}" method="POST">
                         @csrf
                         <div class="col-12">
-                            <label for="category" class="form-label">Select Service Category</label>
-                            <select required id="category" name="service_category_id" class="form-select"
+                            <label for="service_item" class="form-label">Select Service Category</label>
+                            <select required id="service_item" name="service_category_id" class="form-select"
                                 aria-label="Default select example">
                                 <option selected>Open this select menu</option>
                                 @foreach ($categories as $category)
@@ -75,6 +54,12 @@
 
                             </select>
                         </div>
+                        {{-- 
+
+                        <div class="col">
+                            <label for="service_name" class="form-label">Service Name</label>
+                            <input type="text" placeholder="Service Name" class="form-control" name="service_name" id="service_name">
+                        </div> --}}
 
 
                         <div class="col-12">
@@ -98,7 +83,8 @@
                         <div class="col-12">
                             <label for="description">Service Description</label>
 
-                            <textarea name="description" class="form-control @if ($errors->has('description')) is-invalid @endif " id="description">{{ old('description') }}</textarea>
+                            <textarea required name="description" class="form-control @if ($errors->has('description')) is-invalid @endif "
+                                id="description">{{ old('description') }}</textarea>
                             @if ($errors->has('description'))
                                 <div class="invalid-feedback">{{ $errors->first('description') }}</div>
                             @endif

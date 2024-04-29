@@ -16,7 +16,7 @@ return new class extends Migration {
             $table->text('description');
             $table->decimal('price', 10, 2)->default(0);
             $table->integer('quantity')->default(0);
-            $table->foreignId('service_category_id')->constrained()->onDelete('cascade');
+            // $table->foreignId('service_category_id')->constrained()->onDelete('cascade');
             $table->foreignId('service_id')->constrained()->onDelete('cascade');
             $table->softDeletes();
             $table->timestamps();

@@ -27,85 +27,94 @@ class PatientController extends Controller
 //    }
 
 
-    public function show_profile(){
+    public function show_profile()
+    {
         $user = Auth::user();
-        return view('patient.profile',compact('user'));
+        return view('patient.profile', compact('user'));
     }
 
     //editing
-    public function edit_address(){
+    public function edit_address()
+    {
         $user = Auth::user();
-        return view('patient.edit_address',compact('user'));
+        return view('patient.edit_address', compact('user'));
     }
 
-    public function edit_basic_info(){
+    public function edit_basic_info()
+    {
         $user = Auth::user();
         $blood_groups = BloodGroup::all();
-        return view('patient.edit_basic_info',compact('user','blood_groups'));
+        return view('patient.edit_basic_info', compact('user', 'blood_groups'));
     }
 
-   public function edit_contact(){
-       $user = Auth::user();
-       return view('patient.edit_contact',compact('user'));
-   }
-//
+    public function edit_contact()
+    {
+        $user = Auth::user();
+        return view('patient.edit_contact', compact('user'));
+    }
+    //
 //    public function edit_medical_info(){
 //        $user = Auth::user();
 //        return view('patient.edit_medical_info',compact('user'));
 //    }
 
 
-    public function show_user_profile($user_id){
+    public function show_user_profile($user_id)
+    {
         // $user_details = User::find($user_id);
-        return redirect()->route('show_prfile',with(['user_id'=>$user_id]));
+        return redirect()->route('show_prfile', with(['user_id' => $user_id]));
     }
 
-//  appointmet set
-    function appointmentSet($id){
+    //  appointmet set
+    function appointmentSet($id)
+    {
         $doctorSchedule = DoctorSchedule::findOrFail($id);
 
 
 
 
-        return view('patient.appointmentSet',compact('doctorSchedule'));
+        return view('patient.appointmentSet', compact('doctorSchedule'));
 
     }
 
 
-// appointment add
-    function appointmentAdd(Request $request){
-        $userId= Auth::user()->id;
-        $request->validate([
-            'time' => [
-                'required',
-                Rule::unique('doctor_appointments')->where(function ($query) use ($userId, $request) {
-                    return $query->where('patient_id', $userId)
-                        ->where('appointment_date', $request->appointment_date)
-                        ->where('time', $request->time);
-                }),
-            ],
-            'age' => [
-                'required',
-                'integer',
-                'max:100',
-                'min:1',
-            ],
-            'email' => 'required|email',
-            'address' => 'required',
-            'patient_name' => 'required',
-            'phone' => 'required|numeric|digits:11',
+    // appointment add
+    function appointmentAdd(Request $request)
+    {
+        $userId = Auth::user()->id;
+        $request->validate(
+            [
+                'time' => [
+                    'required',
+                    Rule::unique('doctor_appointments')->where(function ($query) use ($userId, $request) {
+                        return $query->where('patient_id', $userId)
+                            ->where('appointment_date', $request->appointment_date)
+                            ->where('time', $request->time);
+                    }),
+                ],
+                'age' => [
+                    'required',
+                    'integer',
+                    'max:100',
+                    'min:1',
+                ],
+                'email' => 'required|email',
+                'address' => 'required',
+                'patient_name' => 'required',
+                'phone' => 'required|numeric|digits:11',
 
-        ],
-        [
-            'time.required' => 'Time select is required',
-            'age.required' => 'Age is required',
-            'email.required' => 'Age is required',
-            'address.required' => 'Address is required',
-            'patient_name.required' => 'Patient Name is required',
-            'phone.required' => 'Phone Name is required',
+            ],
+            [
+                'time.required' => 'Time select is required',
+                'age.required' => 'Age is required',
+                'email.required' => 'Age is required',
+                'address.required' => 'Address is required',
+                'patient_name.required' => 'Patient Name is required',
+                'phone.required' => 'Phone Name is required',
 
-        ]);
-        $appointmentId =DoctorAppointment::insertGetId([
+            ]
+        );
+        $appointmentId = DoctorAppointment::insertGetId([
             'patient_id' => $request->patient_id,
             'doctor_id' => $request->doctor_id,
             'doctor_schedule_id' => $request->doctor_schedule_id,
@@ -122,89 +131,89 @@ class PatientController extends Controller
             'description' => $request->description,
         ]);
 
-        if($appointmentId){
-            Session::put('appointmentId',$appointmentId);
+        if ($appointmentId) {
+            Session::put('appointmentId', $appointmentId);
 
             return redirect('patient/doctor/appoinment/payment')->with('success', 'Appoinment Data Saved and now please pay your payment');
 
-        }
-        else{
+        } else {
             return redirect()->back()->with('error', 'opps! Your Appoinment Not saved, please try again');
 
         }
     }
-    function paymentMethod(){
-        $data =DoctorAppointment::findOrFail(Session::get('appointmentId'));
+    function paymentMethod()
+    {
+        $data = DoctorAppointment::findOrFail(Session::get('appointmentId'));
 
-        return view('patient.appoinmentPayment',compact('data'));
+        return view('patient.appoinmentPayment', compact('data'));
 
     }
-    function paymentMethodUpdate(Request $request, $id){
-        $request->validate([
-            'payment_method' => 'required',
-            'tarms_checbox' => 'required',
+    function paymentMethodUpdate(Request $request, $id)
+    {
+        $request->validate(
+            [
+                'payment_method' => 'required',
+                'tarms_checbox' => 'required',
 
-        ],
-        [
-            'payment_method.required' => 'Select your payment method',
-            'tarms_checbox.required' => 'Tranm\' and condition is required',
+            ],
+            [
+                'payment_method.required' => 'Select your payment method',
+                'tarms_checbox.required' => 'Tranm\' and condition is required',
 
-        ]);
+            ]
+        );
 
-        $data =DoctorAppointment::findOrFail($id);
+        $data = DoctorAppointment::findOrFail($id);
         $paymentMethod = $request->payment_method;
         $scheduleId = $request->scheduleId;
 
 
-        if($paymentMethod =='cash'){
-            $data->payment_status ='Cash On';
-            $data->status = 1 ;
-            $data->payment_method = $paymentMethod ;
+        if ($paymentMethod == 'cash') {
+            $data->payment_status = 'Cash On';
+            $data->status = 1;
+            $data->payment_method = $paymentMethod;
             $savedata = $data->update();
-            if($savedata){
-                $schedule =DoctorSchedule::findOrFail($scheduleId);
-                $schedule->patient_qty =($schedule->patient_qty- 1);
+            if ($savedata) {
+                $schedule = DoctorSchedule::findOrFail($scheduleId);
+                $schedule->patient_qty = ($schedule->patient_qty - 1);
                 $schedule->update();
 
             }
 
             return view('patient.appointmentMsg');
-        }
-        elseif($paymentMethod =='bkash'){
-            $data->payment_status ='Paid';
-            $data->status = 1 ;
-            $data->payment_method = $paymentMethod ;
+        } elseif ($paymentMethod == 'bkash') {
+            $data->payment_status = 'Paid';
+            $data->status = 1;
+            $data->payment_method = $paymentMethod;
             $savedata = $data->update();
-            if($savedata){
-                $schedule =DoctorSchedule::findOrFail($scheduleId);
-                $schedule->patient_qty =($schedule->patient_qty- 1);
+            if ($savedata) {
+                $schedule = DoctorSchedule::findOrFail($scheduleId);
+                $schedule->patient_qty = ($schedule->patient_qty - 1);
                 $schedule->update();
 
             }
 
             return view('patient.appointmentMsg');
-        }
-        elseif($paymentMethod =='nagod'){
-            $data->payment_status ='Paid';
-            $data->status = 1 ;
-            $data->payment_method = $paymentMethod ;
+        } elseif ($paymentMethod == 'nagod') {
+            $data->payment_status = 'Paid';
+            $data->status = 1;
+            $data->payment_method = $paymentMethod;
             $savedata = $data->update();
-            if($savedata){
-                $schedule =DoctorSchedule::findOrFail($scheduleId);
-                $schedule->patient_qty =($schedule->patient_qty- 1);
+            if ($savedata) {
+                $schedule = DoctorSchedule::findOrFail($scheduleId);
+                $schedule->patient_qty = ($schedule->patient_qty - 1);
                 $schedule->update();
 
             }
             return view('patient.appointmentMsg');
-        }
-        elseif($paymentMethod =='roket'){
-            $data->payment_status ='Paid';
-            $data->status = 1 ;
-            $data->payment_method = $paymentMethod ;
+        } elseif ($paymentMethod == 'roket') {
+            $data->payment_status = 'Paid';
+            $data->status = 1;
+            $data->payment_method = $paymentMethod;
             $savedata = $data->update();
-            if($savedata){
-                $schedule =DoctorSchedule::findOrFail($scheduleId);
-                $schedule->patient_qty =($schedule->patient_qty- 1);
+            if ($savedata) {
+                $schedule = DoctorSchedule::findOrFail($scheduleId);
+                $schedule->patient_qty = ($schedule->patient_qty - 1);
                 $schedule->update();
 
             }
@@ -214,30 +223,32 @@ class PatientController extends Controller
 
     }
 
-// Appointment Rating
-    function AppointmentRatingUpadate(Request $request,$id){
-        $request->validate([
-            'appointment_rating' => [
-                'required',
-                'integer',
-                'max:10',
-                'min:1',
+    // Appointment Rating
+    function AppointmentRatingUpadate(Request $request, $id)
+    {
+        $request->validate(
+            [
+                'appointment_rating' => [
+                    'required',
+                    'integer',
+                    'max:10',
+                    'min:1',
+                ]
+
+            ],
+            [
+                'appointment_rating.required' => 'Appointment Rating is required',
+
             ]
+        );
 
-        ],
-        [
-            'appointment_rating.required' => 'Appointment Rating is required',
-
-        ]);
-
-        $data =DoctorAppointment::findOrFail($id);
-        $data->appointment_rating =$request->appointment_rating;
+        $data = DoctorAppointment::findOrFail($id);
+        $data->appointment_rating = $request->appointment_rating;
         $msg = $data->update();
-        if($msg){
+        if ($msg) {
             return redirect()->back()->with('success', 'Successfully You Submited Appointment Rating');
 
-        }
-        else{
+        } else {
             return redirect()->back()->with('error', 'opps! Appointment Rating not added');
 
         }
@@ -245,45 +256,49 @@ class PatientController extends Controller
     }
 
 
-    function patientAppointment(){
+    function patientAppointment()
+    {
         $id = Auth::user()->id;
-        $patientData =DoctorAppointment::where('patient_id',$id)->orderBy('id', 'DESC')->get();
+        $patientData = DoctorAppointment::where('patient_id', $id)->orderBy('id', 'DESC')->get();
 
-        return view('patient.patientappointmentManage',compact('patientData'));
+        return view('patient.patientappointmentManage', compact('patientData'));
 
     }
-    function patientAppointmentDelete($id){
-        $patientData =DoctorAppointment::findOrfail($id);
+    function patientAppointmentDelete($id)
+    {
+        $patientData = DoctorAppointment::findOrfail($id);
         $msg = $patientData->delete();
-        if($msg){
+        if ($msg) {
             return redirect()->back()->with('success', 'Data successfully delete');
-        }
-        else{
+        } else {
             return redirect()->back()->with('error', 'opps! data not delete');
 
         }
 
     }
-    function patientAppointmentEdit($id){
-        $data =DoctorAppointment::findOrFail($id);
+    function patientAppointmentEdit($id)
+    {
+        $data = DoctorAppointment::findOrFail($id);
 
-        return view('patient.appoinmentPayment',compact('data'));
+        return view('patient.appoinmentPayment', compact('data'));
 
 
     }
-    function patientAppointmentView($id){
-        $data =DoctorAppointment::findOrFail($id);
+    function patientAppointmentView($id)
+    {
+        $data = DoctorAppointment::findOrFail($id);
 
-        return view('patient.appointmentDetails',compact('data'));
+        return view('patient.appointmentDetails', compact('data'));
 
 
     }
 
 
     // userFeedback
-    function userFeedback(Request $request){
+    function userFeedback(Request $request)
+    {
 
-       //createor update data
+        //createor update data
         $request->validate([
             'user_id' => 'required',
             'expert_id' => 'required',
@@ -295,11 +310,10 @@ class PatientController extends Controller
 
 
 
-        if($userFeedback){
+        if ($userFeedback) {
             return redirect()->back()->with('success', 'Successfully You Submited Feedback');
 
-        }
-        else{
+        } else {
             return redirect()->back()->with('error', 'opps! Feedback not added');
 
         }
@@ -309,3 +323,6 @@ class PatientController extends Controller
 
 
 }
+
+
+?>

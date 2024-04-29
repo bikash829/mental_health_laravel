@@ -14,7 +14,7 @@ return new class extends Migration {
             $table->id();
             $table->string('service_name', 100);
             $table->text('description');
-            $table->enum('is_available', ['yes', 'no'])->default('no');
+            $table->enum('is_available', ['yes', 'no'])->default('yes');
             $table->foreignId('user_id')->constrained()->onDelete('cascade');
             $table->foreignId('service_category_id')->constrained()->onDelete('cascade');
             $table->softDeletes();

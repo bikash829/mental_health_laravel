@@ -3,6 +3,9 @@
 namespace App\Http\Controllers;
 
 use App\Models\Events\Service;
+use App\Models\Events\ServiceCategory;
+use App\Models\TrainingInfo;
+use App\Models\User;
 use Illuminate\Http\Request;
 
 class ServiceController extends Controller
@@ -13,6 +16,17 @@ class ServiceController extends Controller
     public function index()
     {
         //
+        $services = Service::find(1);
+        $categories = ServiceCategory::find(1);
+        dd($categories);
+
+
+        dd($services->category);
+        foreach ($services as $value) {
+
+            dd($value);
+        }
+        return view('admin.manage_service.index', compact('services'));
     }
 
     /**
@@ -21,6 +35,8 @@ class ServiceController extends Controller
     public function create()
     {
         //
+        $categories = ServiceCategory::all();
+        return view('admin.manage_service/create_service', compact('categories'));
     }
 
     /**
@@ -28,7 +44,16 @@ class ServiceController extends Controller
      */
     public function store(Request $request)
     {
-        //
+        $request->validate([
+            'service_name' => 'required|unique:services|max:100',
+            'description' => 'required|string',
+            'user_id' => 'required',
+            'service_category_id' => 'required',
+
+        ]);
+
+        $service = Service::create($request->all());
+        return redirect()->route('service.manage-service.index')->with('success', "Service $request->service_name has been created");
     }
 
     /**

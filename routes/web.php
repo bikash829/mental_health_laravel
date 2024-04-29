@@ -5,6 +5,8 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 use App\Models\Post;
 use App\Models\User;
+
+use App\Models\Events\ServiceCategory;
 use Spatie\Permission\Traits\HasRoles;
 use Illuminate\Http\Request;
 
@@ -61,9 +63,11 @@ Route::get('upcoming_appointments/', function () {
 
 Route::get('community-forum/', function () {
     $user = Auth::user();
-    $posts = Post::with(['comments' => function ($query) {
-        $query->orderBy('id', 'desc');
-    }])
+    $posts = Post::with([
+        'comments' => function ($query) {
+            $query->orderBy('id', 'desc');
+        }
+    ])
         ->orderBy('id', 'desc')
         ->get();
     $data = ['community' => 'active',];
@@ -105,7 +109,20 @@ Route::get('experts-profile/', function (Request $request) {
 
     $user = User::find($request->id);
     $doctorSchedule = App\Models\DoctorSchedule::where('status', 1)
-    ->where('user_id', $request->id)
-    ->get();
-    return view('pages.experts_profile',compact('user','doctorSchedule'));
+        ->where('user_id', $request->id)
+        ->get();
+    return view('pages.experts_profile', compact('user', 'doctorSchedule'));
 })->name('show_expert_profile');
+
+
+//|======================================== Services 
+
+
+
+// Route::group(['prefix' => 'service', 'name' => 'service', 'as' => 'service.'], function () {
+
+//     Route::resource('service-category', ServiceCategory::class);
+
+
+
+// })->middleware(['auth']);

@@ -54,6 +54,15 @@ class ServiceBooking extends Controller
 
 
     }
+    public function bookService(DoctorSchedule $doctorSchedule, $service_id)
+    {
+
+        $doctorSchedule = $doctorSchedule->where('id', $service_id)->first();
+
+
+
+        return view('pages.booking.booking_service', compact('doctorSchedule'));
+    }
 
 
     /**
@@ -83,4 +92,15 @@ class ServiceBooking extends Controller
         //
         return 'hello destory';
     }
+
+    //  appointment set
+    // function appointmentSet(DoctorSchedule $id){
+    //     $doctorSchedule = DoctorSchedule::findOrFail($id);
+
+
+
+
+    //     return view('patient.appointmentSet',compact('doctorSchedule'));
+
+    // }
 }

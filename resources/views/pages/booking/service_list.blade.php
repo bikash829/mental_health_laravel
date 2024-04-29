@@ -18,11 +18,9 @@
     <section class="specialist segment-margin">
         <div class="section-heading">
             <h3 class="section-heading__title">
-                Our Specialists
+                Our Service and Packages
             </h3>
-            <p class="section-heading__para">
-                Book an Appointment and Meet Our Specialists Online
-            </p>
+
         </div>
 
 
@@ -33,11 +31,12 @@
 
                     <div class="card-body text-center">
                         <h5 class="card-title">{{ $data->department->doctor_department }}</h5>
-                        <p class="">{{ $data->set_date }}</p>
+                        <p class="">{{ date('j F Y', strtotime($data->set_date)) }}</p>
                         <p class="text-muted">{{ $data->specialist }}</p>
                         <p class="card-text">{{ $data->description }}</p>
                         <h3 class="text-muted">Price: {{ $data->patient_fee }}</h3>
-                        <a href="{{ route('patient.appointment.set', $data->id) }}" class="btn btn-primary">Book Service</a>
+                        <a href="{{ route('booking.service.bookService', $data) }}" class="btn btn-secondary">Book
+                            Service</a>
                     </div>
                 </div>
             @endforeach

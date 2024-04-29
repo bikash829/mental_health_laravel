@@ -64,7 +64,7 @@
     <!-- Divider -->
     <hr class="sidebar-divider">
 
-   
+
 
     <!-- Nav Item - schadule -->
     <div class="sidebar-heading">
@@ -84,14 +84,14 @@
             <i class="fas fa-fw fa-table"></i>
             <span>Service List</span></a>
     </li>
-    <li class="nav-item">
+    {{-- <li class="nav-item">
         <a class="nav-link" href="{{ route('doctor.schedule.manage') }}">
             <i class="fas fa-fw fa-table"></i>
             <span>Manage Service</span></a>
-    </li>
+    </li> --}}
 
-     <!-- Heading -->
-     <div class="sidebar-heading">
+    <!-- Heading -->
+    <div class="sidebar-heading">
         Blog Post
     </div>
 

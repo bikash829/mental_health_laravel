@@ -28,6 +28,8 @@ Route::group(['prefix' => 'doctor', 'name' => 'doctor', 'as' => 'doctor.'], func
     Route::get('/service/status/{id}', [DoctorController::class, 'serviceStatus'])->name('serviceStatus'); // service status
     Route::get('/service/edit/{id}', [DoctorController::class, 'serviceEdit'])->name('serviceEdit'); // service edit
     Route::post('/service/store', [DoctorController::class, 'serviceStore'])->name('serviceStore'); // service store
+    Route::post('/service/update/{id}', [DoctorController::class, 'serviceUpdate'])->name('serviceUpdate'); // service Update
+    Route::post('/service/delete/{id}', [DoctorController::class, 'serviceDelete'])->name('serviceDelete'); // service Delete
 
     Route::get('/doctor/schedule/manage', [DoctorController::class, 'doctorScheduleManage'])->name('schedule.manage');
     Route::get('/doctor/schedule/status/{id}', [DoctorController::class, 'changestatus'])->name('schedule.status');

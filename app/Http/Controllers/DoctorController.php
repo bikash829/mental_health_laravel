@@ -688,5 +688,122 @@ class DoctorController extends Controller
 
     }
 
+    //service update 
+    public function serviceUpdate(Request $request, DoctorSchedule $id)
+    {
+
+        $userId = Auth::user()->id;
+
+        $request->validate(
+            [
+                'set_date' => [
+                    'required',
+                    'date',
+                    Rule::unique('doctor_schedules')->where(function ($query) use ($userId) {
+                        return $query->where('user_id', $userId);
+                    })->ignore($id),
+                    'after_or_equal:today',
+                    'after:' . Carbon::now(),
+
+                ],
+                'set_time' => ['required'],
+                'patient_qty' => [
+                    'required',
+                    'integer',
+                    'min:1',
+                ],
+                'patient_fee' => [
+                    'required',
+                    'integer',
+                    'min:1',
+                ],
+                'specialist' => [
+                    'required',
+                    'string',
+                    'max:255'
+                ],
+                'meeting_link' => [
+                    'required',
+                    'url'
+                ],
+                'department_id' => ['required'],
+                'description' => [
+                    'required',
+                    'string',
+                ],
+
+            ],
+            [
+                'set_date.required' => 'Date Select is required',
+                'set_date.unique' => 'This date already exist',
+                'set_date.before' => 'this date must be accepted for 30 days',
+                'set_date.after' => 'please select tomorrow data',
+                'set_time.required' => 'Time select is required',
+                'patient_qty.required' => 'Venue Capacity limit is required',
+                'patient_qty.max' => 'maximum 15 required',
+                'patient_fee.required' => 'Fee is required',
+                'specialist.required' => 'Location Address is Required',
+                'department_id.required' => 'Department select is required',
+                'description.required' => 'Description is required',
+
+
+            ]
+        );
+        $doctorSchedule = new DoctorSchedule;
+        // $doctorSchedule->user_id = $request->user_id;
+        $doctorSchedule->department_id = $request->department_id;
+        $doctorSchedule->set_date = $request->set_date;
+        $doctorSchedule->patient_qty = $request->patient_qty;
+        $doctorSchedule->patient_fee = $request->patient_fee;
+        $doctorSchedule->specialist = $request->specialist;
+        $doctorSchedule->meeting_link = $request->meeting_link;
+        $doctorSchedule->description = $request->description;
+
+
+
+        $times = array();
+        $set_time = $request->set_time;
+        foreach ($set_time as $time) {
+            $times[] = $time;
+        }
+
+
+        $request['set_time'] = implode("|", $times);
+
+
+
+        $msg = $id->update($request->all());
+
+
+        if ($msg) {
+            return redirect()->route('doctor.serviceIndex')->with('success', 'Service Updated successfully');
+
+        } else {
+            return redirect()->back()->with('error', 'Opps! couldn\'t update service. Please try again.');
+
+        }
+
+    }
+
+
+    // service delete 
+    // function serviceDelete($id)
+    // {
+    //     // Check if there are related appointments
+    //     $appointmentsCount = DoctorAppointment::where('doctor_schedule_id', $id)->count();
+
+    //     if ($appointmentsCount > 0) {
+    //         return redirect()->back()->with('error', 'Cannot delete the schedule because it has related appointments.');
+    //     }
+
+    //     // No related appointments, proceed with deletion
+    //     DoctorSchedule::destroy($id);
+
+    //     return redirect()->back()->with('success', 'Schedule deleted successfully');
+    // }
+
+
+
+
 }
 

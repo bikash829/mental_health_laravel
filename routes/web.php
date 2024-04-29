@@ -79,6 +79,10 @@ Route::get('about-us/', function () {
     $data = ['about' => 'active',];
     return view('pages.about', $data);
 })->name('about');
+Route::get('faq/', function () {
+    $data = ['faq' => 'active',];
+    return view('pages.faq', $data);
+})->name('faq');
 
 Route::get('contact-us/', function () {
     $data = ['contact' => 'active',];

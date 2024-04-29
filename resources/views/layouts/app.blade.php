@@ -82,7 +82,7 @@
                         href="{{ route('community') }}">Blog</a></li>
                 <li class="nav__item"><a class="nav__link {{ $about ?? '' }}" href="{{ route('about') }}">About</a>
                 </li>
-                <li class="nav__item"><a class="nav__link {{ $faq ?? '' }}" href="{{ '' }}">FAQ</a>
+                <li class="nav__item"><a class="nav__link {{ $faq ?? '' }}" href="{{ route('faq') }}">FAQ</a>
                 </li>
                 <li class="nav__item"><a class="nav__link {{ $contact ?? '' }}"
                         href="{{ route('contact') }}">Contact</a></li>

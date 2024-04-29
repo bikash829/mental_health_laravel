@@ -102,19 +102,7 @@ use Carbon\Carbon;
                                                     <a href="{{ $data->doctorSchedule->meeting_link }}"
                                                         target="blank">Meeting Link</a>
                                                 </div>
-                                            {{-- @elseif($dateToCheck->isPast())
-                                                @if ($data->appointment_rating == null)
-                                                    <div class="text-center">
-                                                        <button data-bs-toggle="modal"
-                                                            data-bs-target="#appointmentRating_{{ $data->id }}"
-                                                            class="btn btn-info btn-sm ">Click For Rating</button>
-                                                    </div>
-                                                @else
-                                                    <p class="text-gray text-center">Link Expired</p>
-                                                @endif
-                                            @else
-                                                <span>Meeting link will open according to your schedule date</span>
-                                            @endif --}}
+                                           
                                         </td>
 
                                         <td>
@@ -125,14 +113,6 @@ use Carbon\Carbon;
                                             @if ($data->appointment_rating == null)
                                                 <span>no rating</span>
                                             @endif
-
-
-
-
-
-
-
-
                                         </td>
 
 
@@ -180,7 +160,7 @@ use Carbon\Carbon;
 
                                                     <div class="modal-body ">
                                                         <div class="form-group ">
-                                                            <label for="appointment_rating">Appointment Rating </label>
+                                                            <label for="appointment_rating">Event Rating </label>
                                                             <input type="text" class="form-control"
                                                                 value="{{ old('appointment_rating') }}"
                                                                 name="appointment_rating" id="appointment_rating"

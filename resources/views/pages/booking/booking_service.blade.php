@@ -4,13 +4,13 @@ use App\Models\DoctorAppointment;
 @extends('layouts.app')
 
 @section('title')
-    Doctor Appointment
+    Booking Service
 @endsection
 
 @section('banner')
     <div class="banner ">
-        <h1 class="banner__title">Doctor Appointment</h1>
-        <img class="banner__img" src="{{ asset('images/banner/banner3.jpg') }}" alt="{{ __('Community Forum') }}">
+        <h1 class="banner__title">Booking Service</h1>
+        <img class="banner__img" src="{{ asset('images/banner/banner3.jpg') }}" alt="{{ __('booking') }}">
     </div>
 @endsection
 

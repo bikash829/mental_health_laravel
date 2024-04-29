@@ -8,7 +8,7 @@
 @section('content')
     <div class="m-3">
         {{-- <h2>{{Auth::user()->is_verified}}</h2> --}}
-        @if(Auth::user()->is_verified == 'verified')
+        @if (Auth::user()->is_verified == 'verified')
             <div class=" ">
 
                 @if (session('success'))
@@ -34,17 +34,19 @@
                         </div>
                     </div>
                 @endif
-                <h2 class="text-center text-danger pb-5">Doctor Schedule </h2>
+                <h2 class="text-center text-danger pb-5">Create Service </h2>
 
                 {{-- add department --}}
-                <div class="col-md-12 col-sm-12 col-12 col-lg-12 col-xl-12   rounded py-3 " style="box-sizing: border-box; ">
+                <div class="col-md-12 col-sm-12 col-12 col-lg-12 col-xl-12   rounded py-3 "
+                    style="box-sizing: border-box; ">
 
                     <form action="{{ route('doctor.department.add') }}" method="POST">
                         @csrf
                         <div class="form-group ">
-                            <label for="doctor_department">If don't match your department enter here and add new </label>
+                            <label for="doctor_department">If don't match your service category enter here and add new
+                            </label>
                             <input type="text" name="doctor_department" class="form-control" id=""
-                                value="{{ old('doctor_department') }}" placeholder=" Add your department">
+                                value="{{ old('doctor_department') }}" placeholder=" Add your service">
                             @error('doctor_department')
                                 <p class="text-danger ">{{ $message }}</p>
                             @enderror
@@ -75,10 +77,11 @@
                             </div>
                             <div class="col-md-6 col-12">
                                 <div class="form-group ">
-                                    <label for="department_id">Select Your Department</label>
+                                    <label for="department_id">Select Your Service Category</label>
                                     <select name="department_id" id="" class="form-control form-select">
 
-                                        <option disabled value="{{ old('department_id') }}" selected>Select Department</option>
+                                        <option disabled value="{{ old('department_id') }}" selected>Select Category
+                                        </option>
 
 
                                         @foreach ($department as $item)
@@ -99,21 +102,24 @@
 
                                     <div class="checkbox_item pb-3 " style="display: flex; justify-content: space-around;">
                                         <div class="form-check">
-                                            <input name="set_time[]" class="form-check-input" type="checkbox" value="10-11 AM"
+                                            <input name="set_time[]" class="form-check-input" type="checkbox"
+                                                value="10-11 AM"
                                                 {{ in_array('10-11 AM', old('set_time', [])) ? 'checked' : '' }}
                                                 id="set_time_1" />
                                             <label class="form-check-label" for="set_time_1"><span
                                                     class="btn border-info btn-sm">10-11 AM</span></label>
                                         </div>
                                         <div class="form-check">
-                                            <input name="set_time[]" class="form-check-input" type="checkbox" value="11-12 PM"
+                                            <input name="set_time[]" class="form-check-input" type="checkbox"
+                                                value="11-12 PM"
                                                 {{ in_array('11-12 PM', old('set_time', [])) ? 'checked' : '' }}
                                                 id="set_time_2" />
                                             <label class="form-check-label" for="set_time_2"><span
                                                     class="btn border-info btn-sm">11-12 PM</span></label>
                                         </div>
                                         <div class="form-check ">
-                                            <input name="set_time[]" class="form-check-input" type="checkbox" value="12-01 PM"
+                                            <input name="set_time[]" class="form-check-input" type="checkbox"
+                                                value="12-01 PM"
                                                 {{ in_array('12-01 PM', old('set_time', [])) ? 'checked' : '' }}
                                                 id="set_time_3" />
                                             <label class="form-check-label" for="set_time_3"><span
@@ -122,14 +128,16 @@
                                     </div>
                                     <div class="checkbox_item pb-3 " style="display: flex; justify-content: space-around;">
                                         <div class="form-check">
-                                            <input name="set_time[]" class="form-check-input" type="checkbox" value="01-02 PM"
+                                            <input name="set_time[]" class="form-check-input" type="checkbox"
+                                                value="01-02 PM"
                                                 {{ in_array('01-02 PM', old('set_time', [])) ? 'checked' : '' }}
                                                 id="set_time_4" />
                                             <label class="form-check-label" for="set_time_4"><span
                                                     class="btn border-info btn-sm">01-02 PM</span></label>
                                         </div>
                                         <div class="form-check">
-                                            <input name="set_time[]" class="form-check-input" type="checkbox" value="02-03 PM"
+                                            <input name="set_time[]" class="form-check-input" type="checkbox"
+                                                value="02-03 PM"
                                                 {{ in_array('02-03 PM', old('set_time', [])) ? 'checked' : '' }}
                                                 id="set_time_5" />
                                             <label class="form-check-label" for="set_time_5"><span
@@ -241,20 +249,16 @@
             </div>
         @else
             <div class="alert alert-danger text-center">
-            <h2 class="text-danger">Your account is not verified yet</h2>
+                <h2 class="text-danger">Your account is not verified yet</h2>
 
-            @if (Auth::user()->is_verified == 'pending')
-            <p class="text-danger">Your request is pending for review. Please wait for varification </p>
-
-
-
-            @elseif (Auth::user()->is_verified == 'rejected')
-            <p class="text-danger">Your account is rejected</p>
-            @elseif (Auth::user()->is_verified == 'unverified')
-                <p class="text-danger">Your account is unverified please complete your profile with valid information and send a account verification request.</p>
-
-            @endif
-
+                @if (Auth::user()->is_verified == 'pending')
+                    <p class="text-danger">Your request is pending for review. Please wait for varification </p>
+                @elseif (Auth::user()->is_verified == 'rejected')
+                    <p class="text-danger">Your account is rejected</p>
+                @elseif (Auth::user()->is_verified == 'unverified')
+                    <p class="text-danger">Your account is unverified please complete your profile with valid information
+                        and send a account verification request.</p>
+                @endif
         @endif
 
     </div>

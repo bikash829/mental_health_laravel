@@ -22,6 +22,13 @@ Route::group(['prefix' => 'doctor', 'name' => 'doctor', 'as' => 'doctor.'], func
     Route::get('/doctor/schedule/', [DoctorController::class, 'doctorSchedule'])->name('schedule');
     Route::post('/doctor/department/add', [DoctorController::class, 'doctorDepartmentAdd'])->name('department.add');
     Route::post('/doctor/schedule/add', [DoctorController::class, 'doctorScheduleAdd'])->name('schedule.add');
+    // Services manager 
+    Route::get('/service/index', [DoctorController::class, 'serviceIndex'])->name('serviceIndex'); // service create
+    Route::get('/service/create', [DoctorController::class, 'serviceCreate'])->name('serviceCreate'); // service create
+    Route::get('/service/status/{id}', [DoctorController::class, 'serviceStatus'])->name('serviceStatus'); // service status
+    Route::get('/service/edit/{id}', [DoctorController::class, 'serviceEdit'])->name('serviceEdit'); // service edit
+    Route::post('/service/store', [DoctorController::class, 'serviceStore'])->name('serviceStore'); // service store
+
     Route::get('/doctor/schedule/manage', [DoctorController::class, 'doctorScheduleManage'])->name('schedule.manage');
     Route::get('/doctor/schedule/status/{id}', [DoctorController::class, 'changestatus'])->name('schedule.status');
     Route::get('/doctor/schedule/edit/{id}', [DoctorController::class, 'doctorScheduleEdit'])->name('schedule.edit');

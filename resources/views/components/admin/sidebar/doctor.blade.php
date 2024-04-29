@@ -1,11 +1,11 @@
 <ul class="navbar-nav bg-gradient-primary sidebar sidebar-dark accordion" id="accordionSidebar">
 
     <!-- Sidebar - Brand -->
-    <a class="sidebar-brand d-flex align-items-center justify-content-center" href="{{route('doctor.dashboard')}}">
+    <a class="sidebar-brand d-flex align-items-center justify-content-center" href="{{ route('doctor.dashboard') }}">
         <div class="sidebar-brand-icon rotate-n-15">
             <i class="fas fa-laugh-wink"></i>
         </div>
-        <div class="sidebar-brand-text mx-3">{{Auth::user()->getRoleNames()[0]}}</div>
+        <div class="sidebar-brand-text mx-3">{{ Auth::user()->getRoleNames()[0] }}</div>
     </a>
 
     <!-- Divider -->
@@ -13,7 +13,7 @@
 
     <!-- Nav Item - Dashboard -->
     <li class="nav-item active">
-        <a class="nav-link" href="{{route('doctor.dashboard')}}">
+        <a class="nav-link" href="{{ route('doctor.dashboard') }}">
             <i class="fas fa-fw fa-tachometer-alt"></i>
             <span>Dashboard</span></a>
     </li>
@@ -64,8 +64,34 @@
     <!-- Divider -->
     <hr class="sidebar-divider">
 
-    <!-- Heading -->
+   
+
+    <!-- Nav Item - schadule -->
     <div class="sidebar-heading">
+        Manage Services
+    </div>
+    <li class="nav-item">
+        {{-- <a class="nav-link" href="{{route('doctor.schedule')}}">
+            <i class="fas fa-fw fa-table"></i>
+            <span>Create Service</span></a> --}}
+        <a class="nav-link" href="{{ route('doctor.serviceCreate') }}">
+            <i class="fas fa-fw fa-table"></i>
+            <span>Create Service</span></a>
+    </li>
+    <li class="nav-item">
+
+        <a class="nav-link" href="{{ route('doctor.serviceIndex') }}">
+            <i class="fas fa-fw fa-table"></i>
+            <span>Service List</span></a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link" href="{{ route('doctor.schedule.manage') }}">
+            <i class="fas fa-fw fa-table"></i>
+            <span>Manage Service</span></a>
+    </li>
+
+     <!-- Heading -->
+     <div class="sidebar-heading">
         Blog Post
     </div>
 
@@ -92,7 +118,7 @@
 
 
     <li class="nav-item">
-        <a class="nav-link" href="{{route('doctor.community.index',['community'=>'doctor'])}}">
+        <a class="nav-link" href="{{ route('doctor.community.index', ['community' => 'doctor']) }}">
             <i class="fa-solid fa-users"></i>
             <span>Blog Post</span></a>
     </li>
@@ -101,21 +127,6 @@
             <i class="fas fa-fw fa-chart-area"></i>
             <span>Charts</span></a>
     </li> --}}
-
-    <!-- Nav Item - schadule -->
-    <div class="sidebar-heading">
-        Doctor Schedule
-    </div>
-    <li class="nav-item">
-        <a class="nav-link" href="{{route('doctor.schedule')}}">
-            <i class="fas fa-fw fa-table"></i>
-            <span>Create Service</span></a>
-    </li>
-    <li class="nav-item">
-        <a class="nav-link" href="{{route('doctor.schedule.manage')}}">
-            <i class="fas fa-fw fa-table"></i>
-            <span>Manage Service</span></a>
-    </li>
 
     <!-- Divider -->
     <hr class="sidebar-divider d-none d-md-block">

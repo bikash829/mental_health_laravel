@@ -371,6 +371,8 @@ class DoctorController extends Controller
     }
 
 
+
+
     // doctor Schedule edit part 
 
     function doctorScheduleEdit($id)
@@ -546,11 +548,145 @@ class DoctorController extends Controller
 
     }
 
+    //| services fresh controller ============================================|
+    // serviceIndex
+    public function serviceIndex()
+    {
+        $services = DoctorSchedule::where('user_id', Auth::user()->id)->orderBy('id', 'DESC')->get();
+
+        return view('doctor.manage_service.index', compact('services'));
+    }
+
+    // service create 
+    public function serviceCreate(Request $request)
+    {
+        $department = DoctorDepartment::where('status', 1)->get();
+        return view('doctor.manage_service.create', compact('department'));
+
+    }
+
+    // serviceStore
+    public function serviceStore(Request $request)
+    {
+
+        $userId = Auth::user()->id;
+
+        $request->validate(
+            [
+                'set_date' => [
+                    'required',
+                    'date',
+                    Rule::unique('doctor_schedules')->where(function ($query) use ($userId) {
+                        return $query->where('user_id', $userId);
+                    }),
+                    'date',
+                    'after_or_equal:today',
+                    'after:' . Carbon::now(),
+
+                ],
+                'set_time' => ['required'],
+                'patient_qty' => [
+                    'required',
+                    'integer',
+                    'min:1',
+                ],
+                'patient_fee' => [
+                    'required',
+                    'integer',
+                    'min:1',
+                ],
+                'specialist' => [
+                    'required',
+                    'string',
+                    'max:255'
+                ],
+                'meeting_link' => [
+                    'required',
+                    'url'
+                ],
+                'department_id' => ['required'],
+                'description' => [
+                    'required',
+                    'string',
+                ],
+
+            ],
+            [
+                'set_date.required' => 'Date Select is required',
+                'set_date.unique' => 'This date already exist',
+                'set_date.before' => 'this date must be accepted for 30 days',
+                'set_date.after' => 'please select tomorrow data',
+                'set_time.required' => 'Time select is required',
+                'patient_qty.required' => 'Venue Capacity limit is required',
+                'patient_qty.max' => 'maximum 15 required',
+                'patient_fee.required' => 'Fee is required',
+                'specialist.required' => 'Location Address is Required',
+                'department_id.required' => 'Department select is required',
+                'description.required' => 'Description is required',
+
+
+            ]
+        );
+        $doctorSchedule = new DoctorSchedule;
+        $doctorSchedule->user_id = $request->user_id;
+        $doctorSchedule->department_id = $request->department_id;
+        $doctorSchedule->set_date = $request->set_date;
+        $doctorSchedule->patient_qty = $request->patient_qty;
+        $doctorSchedule->patient_fee = $request->patient_fee;
+        $doctorSchedule->specialist = $request->specialist;
+        $doctorSchedule->meeting_link = $request->meeting_link;
+        $doctorSchedule->description = $request->description;
 
 
 
+        $times = array();
+        $set_time = $request->set_time;
+        foreach ($set_time as $time) {
+            $times[] = $time;
+        }
+
+        $doctorSchedule->set_time = implode("|", $times);
 
 
+
+        $msg = $doctorSchedule->save();
+
+
+        if ($msg) {
+            return redirect()->route('doctor.serviceIndex')->with('success', 'Service created successfully');
+
+        } else {
+            return redirect()->back()->with('error', 'Opps! couldn\'t create service. Please try again.');
+
+        }
+
+
+    }
+
+
+    // service status 
+    function serviceStatus($id)
+    {
+        $status = DoctorSchedule::find($id);
+        if ($status->status == 1) {
+            $status->update(['status' => 0]);
+            return redirect()->back()->with('success', 'Service Inactive successfully Done');
+        } else {
+            $status->update(['status' => 1]);
+            return redirect()->back()->with('success', 'Service Active successfully done');
+        }
+    }
+
+    // service edit
+    function serviceEdit($id)
+    {
+        $scheduleData = DoctorSchedule::findOrFail($id);
+        $category = DoctorDepartment::where('status', 1)->get();
+
+        return view('doctor.manage_service.edit', compact('scheduleData', 'category'));
+
+
+    }
 
 }
 

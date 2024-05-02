@@ -81,6 +81,7 @@ class PatientController extends Controller
     // appointment add
     function appointmentAdd(Request $request)
     {
+
         $userId = Auth::user()->id;
         $request->validate(
             [
@@ -150,6 +151,7 @@ class PatientController extends Controller
     }
     function paymentMethodUpdate(Request $request, $id)
     {
+
         $request->validate(
             [
                 'payment_method' => 'required',

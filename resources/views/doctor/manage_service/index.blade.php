@@ -97,7 +97,8 @@
                                             {{-- <a href="{{ route('doctor.schedule.delete', $data->id) }}"
                                                 class="btn btn-sm btn-danger text-white "><i class="fa fa-trash"></i></a> --}}
                                             <a href="{{ route('doctor.serviceEdit', $data->id) }}"
-                                                class="btn btn-sm btn-info text-white"><i class="fa fa-edit"></i></a>
+                                                class="btn btn-sm btn-info text-white"><i class="fa fa-edit"></i> Edit
+                                            </a>
 
                                         </td>
                                     </tr>

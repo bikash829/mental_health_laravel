@@ -149,7 +149,7 @@
 
                                 <div class="col-md-6 col-12">
                                     <div class="form-group ">
-                                        <label for="patient_fee">Total Cost</label>
+                                        <label for="patient_fee">Price Per Time Slot</label>
                                         <input type="number" class="form-control" value="{{ old('patient_fee') }}"
                                             name="patient_fee" id="patient_fee" placeholder="Charge Per Time Slot">
                                         @error('patient_fee')

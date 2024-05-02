@@ -97,9 +97,10 @@ class ServiceBooking extends Controller
 
     function bookServicePayment(Request $request)
     {
+        // dd('book_service_payment');
         $userId = Auth::user()->id;
 
-
+        // dd($request);
         $request->validate(
             [
                 'time' => [
@@ -151,8 +152,11 @@ class ServiceBooking extends Controller
 
         if ($appointmentId) {
             Session::put('appointmentId', $appointmentId);
+            // dd('here you are');
 
-            return redirect('patient/doctor/appoinment/payment')->with('success', 'Booking Data Saved and now please pay your payment');
+
+            return redirect()->route('booking.service.paymentMethod')->with('success', 'Booking Data Saved and now please pay your payment');
+            // return redirect('patient/doctor/appoinment/payment')->with('success', 'Booking Data Saved and now please pay your payment');
 
         } else {
             return redirect()->back()->with('error', 'Opps! Your Appointment Not saved, please try again');
@@ -160,13 +164,101 @@ class ServiceBooking extends Controller
         }
     }
 
-    function servicePaymentMethod()
-    {
 
+    function paymentMethod()
+    {
+        // dd('here you are');
         $data = DoctorAppointment::findOrFail(Session::get('appointmentId'));
 
         // return view('patient.appoinmentPayment', compact('data'));
-        return view('patient.appoinmentPayment', compact('data'));
+        return view('pages.booking.payment_method', compact('data'));
 
     }
+
+
+    // finalizing the payment
+    function confirmingOrderForPayment(Request $request, $id)
+    {
+
+        $request->validate(
+            [
+                'payment_method' => 'required',
+                'tarms_checbox' => 'required',
+
+            ],
+            [
+                'payment_method.required' => 'Select your payment method',
+                'tarms_checbox.required' => 'Tranm\' and condition is required',
+
+            ]
+        );
+
+        $data = DoctorAppointment::findOrFail($id);
+        $paymentMethod = $request->payment_method;
+        $scheduleId = $request->scheduleId;
+
+
+        if ($paymentMethod == 'cash') {
+            $data->payment_status = 'Cash On';
+            $data->status = 1;
+            $data->payment_method = $paymentMethod;
+            $savedata = $data->update();
+            if ($savedata) {
+                $schedule = DoctorSchedule::findOrFail($scheduleId);
+                $schedule->patient_qty = ($schedule->patient_qty - 1);
+                $schedule->update();
+
+            }
+
+            return view('pages.booking.confirming_order');
+        } elseif ($paymentMethod == 'bkash') {
+            $data->payment_status = 'Paid';
+            $data->status = 1;
+            $data->payment_method = $paymentMethod;
+            $savedata = $data->update();
+            if ($savedata) {
+                $schedule = DoctorSchedule::findOrFail($scheduleId);
+                $schedule->patient_qty = ($schedule->patient_qty - 1);
+                $schedule->update();
+
+            }
+
+            return view('pages/booking/payment_success');
+        } elseif ($paymentMethod == 'nagod') {
+            $data->payment_status = 'Paid';
+            $data->status = 1;
+            $data->payment_method = $paymentMethod;
+            $savedata = $data->update();
+            if ($savedata) {
+                $schedule = DoctorSchedule::findOrFail($scheduleId);
+                $schedule->patient_qty = ($schedule->patient_qty - 1);
+                $schedule->update();
+
+            }
+            return view('pages/booking/payment_success');
+        } elseif ($paymentMethod == 'roket') {
+            $data->payment_status = 'Paid';
+            $data->status = 1;
+            $data->payment_method = $paymentMethod;
+            $savedata = $data->update();
+            if ($savedata) {
+                $schedule = DoctorSchedule::findOrFail($scheduleId);
+                $schedule->patient_qty = ($schedule->patient_qty - 1);
+                $schedule->update();
+
+            }
+            return view('pages/booking/payment_success');
+        }
+
+
+    }
+    // function servicePaymentMethod()
+    // {
+
+    //     $data = DoctorAppointment::findOrFail(Session::get('appointmentId'));
+
+    //     // return view('patient.appoinmentPayment', compact('data'));
+    //     return view('pages.booking.payment_method', compact('data'));
+
+    // }
 }

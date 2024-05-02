@@ -49,7 +49,7 @@ use App\Models\DoctorAppointment;
                     <div class="card-body">
                         <div class="col-12 pb-3">
                             <div class="text-center bg-info py-2">
-                                <h4>Fee &#2547;{{ $doctorSchedule->patient_fee }}</h4>
+                                <h4>Fee &#2547;{{ $doctorSchedule?->patient_fee }}</h4>
                                 <p>Pay Online payment method </p>
                             </div>
 
@@ -60,10 +60,10 @@ use App\Models\DoctorAppointment;
                         <form action="{{ route('booking.service.bookServicePayment') }}" method="POST">
                             @csrf
 
-                            <input type="hidden" name="doctor_id" value="{{ $doctorSchedule->doctor->id }}">
-                            <input type="hidden" name="doctor_schedule_id" value="{{ $doctorSchedule->id }}">
+                            <input type="hidden" name="doctor_id" value="{{ $doctorSchedule?->doctor->id }}">
+                            <input type="hidden" name="doctor_schedule_id" value="{{ $doctorSchedule?->id }}">
                             <input type="hidden" name="patient_id" value="{{ Auth::user()->id }}">
-                            <input type="hidden" name="fee" value="{{ $doctorSchedule->patient_fee }}">
+                            <input type="hidden" name="fee" value="{{ $doctorSchedule?->patient_fee }}">
 
 
                             <div class="row">
@@ -73,9 +73,9 @@ use App\Models\DoctorAppointment;
                                     <div class="form-group ">
                                         <label for="appointment_date">Event Date</label>
                                         <input type="date" name="" disabled class="form-control" id=""
-                                            value="{{ $doctorSchedule->set_date }}">
+                                            value="{{ $doctorSchedule?->set_date }}">
                                         <input type="hidden" name="appointment_date" class="form-control" id=""
-                                            value="{{ $doctorSchedule->set_date }}">
+                                            value="{{ $doctorSchedule?->set_date }}">
 
                                     </div>
                                 </div>
@@ -83,9 +83,9 @@ use App\Models\DoctorAppointment;
                                     <div class="form-group ">
                                         <label for="department">Event Category</label>
                                         <input type="text" name="" disabled class="form-control" id=""
-                                            value="{{ $doctorSchedule->department->doctor_department }}">
+                                            value="{{ $doctorSchedule?->department->doctor_department }}">
                                         <input type="hidden" name="department" id=""
-                                            value="{{ $doctorSchedule->department->doctor_department }}">
+                                            value="{{ $doctorSchedule?->department->doctor_department }}">
 
                                     </div>
                                 </div>
@@ -93,7 +93,7 @@ use App\Models\DoctorAppointment;
                                     <div class="form-group ">
                                         <label for="patient_qty">Audiance Capacity</label>
                                         <input type="text" name="patient_qty" disabled class="form-control"
-                                            id="patient_qty" value="{{ $doctorSchedule->patient_qty }}">
+                                            id="patient_qty" value="{{ $doctorSchedule?->patient_qty }}">
 
 
                                     </div>
@@ -110,15 +110,15 @@ use App\Models\DoctorAppointment;
 
 
                                         <div class="radio_item pb-3 flex-wrap pt-2 " style="display: flex; ">
-                                            @foreach (explode('|', $doctorSchedule->set_time) as $tdata)
+                                            @foreach (explode('|', $doctorSchedule?->set_time) as $tdata)
                                                 <div class="form-radio mr-1 ">
                                                     <input name="time" class="form-radio-input" type="radio"
                                                         value="{{ $tdata }}"
                                                         {{ old('time') == $tdata ? 'checked' : '' }}
                                                         id="time_{{ $ts = $sl++ }}"
-                                                        {{ DoctorAppointment::where('appointment_date', $doctorSchedule->set_date)->where('time', $tdata)->where('patient_id', Auth::user()->id)->first()? 'disabled ': '' }} />
+                                                        {{ DoctorAppointment::where('appointment_date', $doctorSchedule?->set_date)->where('time', $tdata)->where('patient_id', Auth::user()->id)->first()? 'disabled ': '' }} />
                                                     <label class="form-radio-label " for="time_{{ $ts }}"><span
-                                                            class="btn border-info btn-sm  {{ DoctorAppointment::where('appointment_date', $doctorSchedule->set_date)->where('time', $tdata)->where('patient_id', Auth::user()->id)->first()? 'btn-danger ': '' }}">{{ $tdata }}</span></label>
+                                                            class="btn border-info btn-sm  {{ DoctorAppointment::where('appointment_date', $doctorSchedule?->set_date)->where('time', $tdata)->where('patient_id', Auth::user()->id)->first()? 'btn-danger ': '' }}">{{ $tdata }}</span></label>
 
                                                 </div>
                                             @endforeach
@@ -135,7 +135,7 @@ use App\Models\DoctorAppointment;
                                     <div class="form-group ">
                                         <label for="specialist">Venue Address</label>
                                         <input type="text" name="specialist" disabled class="form-control"
-                                            id="specialist" value="{{ $doctorSchedule->specialist }}">
+                                            id="specialist" value="{{ $doctorSchedule?->specialist }}">
 
 
                                     </div>
@@ -144,7 +144,7 @@ use App\Models\DoctorAppointment;
                                     <div class="form-group ">
                                         <label for="meeting_link">Live Map</label>
                                         <input type="text" name="meeting_link" disabled class="form-control"
-                                            id="meeting_link" value="{{ $doctorSchedule->meeting_link }}">
+                                            id="meeting_link" value="{{ $doctorSchedule?->meeting_link }}">
 
 
                                     </div>
@@ -152,7 +152,7 @@ use App\Models\DoctorAppointment;
                                 <div class="col-md-12 col-12 pb-3">
                                     <div class="form-group ">
                                         <label for="description">Event Desciption</label>
-                                        <textarea name="" disabled class="form-control" id="description">{{ $doctorSchedule->description }}
+                                        <textarea name="" disabled class="form-control" id="description">{{ $doctorSchedule?->description }}
                                         </textarea>
                                     </div>
                                 </div>
@@ -215,13 +215,18 @@ use App\Models\DoctorAppointment;
 
                                 <div class="col-md-12 col-12 pb-3">
                                     @php
-                                        $address =
-                                            Auth::user()?->address?->address .
-                                                ', ' .
-                                                Auth::user()?->address?->city .
-                                                '-' .
-                                                Auth::user()?->address?->zip_code ??
-                                            old('address');
+                                        if (isset(Auth::user()->address)) {
+                                            $address =
+                                                Auth::user()?->address?->address .
+                                                    ', ' .
+                                                    Auth::user()?->address?->city .
+                                                    '-' .
+                                                    Auth::user()?->address?->zip_code ??
+                                                old('address');
+                                        } else {
+                                            $address = old('address');
+                                        }
+
                                     @endphp
                                     <div class="form-group ">
                                         <label for="address">Address</label>
@@ -260,7 +265,7 @@ use App\Models\DoctorAppointment;
 
                             <div class="">
                                 <input type="hidden" name="user_id" value="{{ Auth::user()->id }}">
-                                @if ($doctorSchedule->patient_qty > 0)
+                                @if ($doctorSchedule?->patient_qty > 0)
                                     <button class="btn btn-lg btn-success">Submit Your Schedule</button>
                                 @else
                                     <h4 class="btn btn-warning">Patient appointment Limit fill up</h4>

@@ -125,6 +125,8 @@ Route::group(['middleware' => ['auth', 'role:user'], 'prefix' => 'booking', 'nam
     Route::resource('service', ServiceBooking::class);
     Route::get('/service/booking/{service}', [ServiceBooking::class, 'bookService'])->name('service.bookService');
     Route::POST('/service/booking/payment', [ServiceBooking::class, 'bookServicePayment'])->name('service.bookServicePayment');
-    Route::POST('/service/booking/payment-method', [ServiceBooking::class, 'servicePaymentMethod'])->name('service.servicePaymentMethod');
+    // Route::get('/service/booking/{service}', [ServiceBooking::class, 'bookService'])->name('service.bookService');
+    Route::get('/service/booking/payment/method', [ServiceBooking::class, 'paymentMethod'])->name('service.paymentMethod');
+    Route::post('/service/booking/processed-to-pay/{id}', [ServiceBooking::class, 'confirmingOrderForPayment'])->name('service.confirmingOrderForPayment');
 
 });

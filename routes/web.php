@@ -9,6 +9,8 @@ use Spatie\Permission\Traits\HasRoles;
 use Illuminate\Http\Request;
 
 use App\Http\Controllers\ServiceBooking;
+use App\Http\Controllers\SslCommerzPaymentController;
+
 
 
 
@@ -130,3 +132,18 @@ Route::group(['middleware' => ['auth', 'role:user'], 'prefix' => 'booking', 'nam
     Route::post('/service/booking/processed-to-pay/{id}', [ServiceBooking::class, 'confirmingOrderForPayment'])->name('service.confirmingOrderForPayment');
 
 });
+
+
+// SSLCOMMERZ Start
+Route::get('/example1', [SslCommerzPaymentController::class, 'easyCheckout'])->name('easyCheckout');
+Route::get('/example2', [SslCommerzPaymentController::class, 'hostedCheckout'])->name('hostedCheckout');
+
+Route::post('/pay', [SslCommerzPaymentController::class, 'index']);
+Route::post('/pay-via-ajax', [SslCommerzPaymentController::class, 'payViaAjax']);
+
+Route::post('/success', [SslCommerzPaymentController::class, 'success']);
+Route::post('/fail', [SslCommerzPaymentController::class, 'fail']);
+Route::post('/cancel', [SslCommerzPaymentController::class, 'cancel']);
+
+Route::post('/ipn', [SslCommerzPaymentController::class, 'ipn']);
+//SSLCOMMERZ END

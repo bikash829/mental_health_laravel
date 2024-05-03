@@ -57,8 +57,11 @@ use App\Models\DoctorAppointment;
                         </div>
 
                         {{-- <form action="{{ route('patient.appointment.add') }}" method="POST"> --}}
-                        <form action="{{ route('booking.service.bookServicePayment') }}" method="POST">
+                        {{-- <form action="{{ route('booking.service.bookServicePayment') }}" method="POST"> --}}
+                        {{-- second updated code --}}
+                        <form action="{{ route('pay') }}" method="POST">
                             @csrf
+                            {{-- @method('GET') --}}
 
                             <input type="hidden" name="doctor_id" value="{{ $doctorSchedule?->doctor->id }}">
                             <input type="hidden" name="doctor_schedule_id" value="{{ $doctorSchedule?->id }}">
@@ -267,6 +270,13 @@ use App\Models\DoctorAppointment;
                                 <input type="hidden" name="user_id" value="{{ Auth::user()->id }}">
                                 @if ($doctorSchedule?->patient_qty > 0)
                                     <button class="btn btn-lg btn-success">Submit Your Schedule</button>
+                                    <button class="your-button-class" id="sslczPayBtn"
+                                        token="if you have any token validation"
+                                        postdata="your javascript arrays or objects which requires in backend"
+                                        order="If you already have the transaction generated for current order"
+                                        endpoint="An URL where backend code will initiate the payment to SSLCOMMERZ"> Pay
+                                        Now
+                                    </button>
                                 @else
                                     <h4 class="btn btn-warning">Patient appointment Limit fill up</h4>
                                 @endif
@@ -277,9 +287,6 @@ use App\Models\DoctorAppointment;
                     </div>
 
                 </div>
-
-
-
             </div>
 
         </div>

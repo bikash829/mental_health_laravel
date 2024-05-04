@@ -100,7 +100,7 @@ use Carbon\Carbon;
                                             {{-- @if ($data->appointment_date . ' ' . $data->time == $currentDate . ' ' . $AppointmentTime) --}}
                                                 <div class="text-center">
                                                     <a href="{{ $data->doctorSchedule->meeting_link }}"
-                                                        target="blank">Meeting Link</a>
+                                                        target="blank">Live Map</a>
                                                 </div>
                                            
                                         </td>
@@ -133,9 +133,6 @@ use Carbon\Carbon;
                                                 class="btn btn-sm btn-primary text-white"><i class="fa fa-edit"></i></a>
                                             <a href="{{ route('patient.patient_appointment.view', $data->id) }}"
                                                 class="btn btn-sm btn-success text-white"><i class="fa fa-eye"></i></a>
-
-
-
                                         </td>
                                     </tr>
 

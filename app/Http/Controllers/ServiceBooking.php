@@ -153,7 +153,8 @@ class ServiceBooking extends Controller
         if ($appointmentId) {
             Session::put('appointmentId', $appointmentId);
             // dd('here you are');
-            $request['appointmentId'] = $appointmentId;
+            $request['id'] = $appointmentId;
+            // $request['appointmentId'] = $appointmentId;
             $data = $request;
 
 

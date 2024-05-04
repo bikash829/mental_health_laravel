@@ -49,6 +49,7 @@
                         </li>
                     </ul>
                 </div>
+
                 <div class="col-md-8 order-md-1">
                     <h4 class="mb-3">Billing address</h4>
                     <form action="{{ url('/pay') }}" method="POST" class="needs-validation">
@@ -56,7 +57,7 @@
                         {{-- hidden field  --}}
 
                         <input type="hidden" name="total_amount" value="{{ $data->fee }}">
-                        <input type="hidden" name="appointment_id" value="{{ $data->appointmentId }}">
+                        <input type="hidden" name="appointment_id" value="{{ $data->id }}">
                         {{-- <input type="hidden" name="" value="">
                         <input type="hidden" name="" value=""> --}}
 

@@ -67,13 +67,10 @@ class PatientController extends Controller
         return redirect()->route('show_prfile', with(['user_id' => $user_id]));
     }
 
-//  appointmet set
-    function appointmentSet($id){
     //  appointmet set
     function appointmentSet($id)
     {
         $doctorSchedule = DoctorSchedule::findOrFail($id);
-
 
 
 
@@ -83,44 +80,9 @@ class PatientController extends Controller
     }
 
 
-// appointment add
-    function appointmentAdd(Request $request){
-        $userId= Auth::user()->id;
-        $request->validate([
-            'time' => [
-                'required',
-                Rule::unique('doctor_appointments')->where(function ($query) use ($userId, $request) {
-                    return $query->where('patient_id', $userId)
-                        ->where('appointment_date', $request->appointment_date)
-                        ->where('time', $request->time);
-                }),
-            ],
-            'age' => [
-                'required',
-                'integer',
-                'max:100',
-                'min:1',
-            ],
-            'email' => 'required|email',
-            'address' => 'required',
-            'patient_name' => 'required',
-            'phone' => 'required|numeric|digits:11',
-
-        ],
-        [
-            'time.required' => 'Time select is required',
-            'age.required' => 'Age is required',
-            'email.required' => 'Age is required',
-            'address.required' => 'Address is required',
-            'patient_name.required' => 'Patient Name is required',
-            'phone.required' => 'Phone Name is required',
-
-        ]);
-        $appointmentId =DoctorAppointment::insertGetId([
     // appointment add
     function appointmentAdd(Request $request)
     {
-
         $userId = Auth::user()->id;
         $request->validate(
             [
@@ -170,10 +132,6 @@ class PatientController extends Controller
             'patient_problem' => $request->patient_problem,
             'description' => $request->description,
         ]);
-        ]);
-
-        if($appointmentId){
-            Session::put('appointmentId',$appointmentId);
 
         if ($appointmentId) {
             Session::put('appointmentId', $appointmentId);
@@ -192,20 +150,8 @@ class PatientController extends Controller
         return view('patient.appoinmentPayment', compact('data'));
 
     }
-    function paymentMethodUpdate(Request $request, $id){
-        $request->validate([
-            'payment_method' => 'required',
-            'tarms_checbox' => 'required',
-
-        ],
-        [
-            'payment_method.required' => 'Select your payment method',
-            'tarms_checbox.required' => 'Tranm\' and condition is required',
-
-        ]);
     function paymentMethodUpdate(Request $request, $id)
     {
-
         $request->validate(
             [
                 'payment_method' => 'required',
@@ -282,21 +228,6 @@ class PatientController extends Controller
 
     }
 
-// Appointment Rating
-    function AppointmentRatingUpadate(Request $request,$id){
-        $request->validate([
-            'appointment_rating' => [
-                'required',
-                'integer',
-                'max:10',
-                'min:1',
-            ]
-
-        ],
-        [
-            'appointment_rating.required' => 'Appointment Rating is required',
-
-        ]);
     // Appointment Rating
     function AppointmentRatingUpadate(Request $request, $id)
     {
@@ -333,9 +264,6 @@ class PatientController extends Controller
     function patientAppointment()
     {
         $id = Auth::user()->id;
-        $patientData =DoctorAppointment::where('patient_id',$id)->orderBy('id', 'DESC')->get();
-
-        return view('patient.patientappointmentManage',compact('patientData'));
         $patientData = DoctorAppointment::where('patient_id', $id)->orderBy('id', 'DESC')->get();
 
         return view('patient.patientappointmentManage', compact('patientData'));
@@ -356,10 +284,8 @@ class PatientController extends Controller
     function patientAppointmentEdit($id)
     {
         $data = DoctorAppointment::findOrFail($id);
-        // dd($data);
 
-        return view('pages.booking.confirming_order', compact('data'));
-        // return view('patient.appoinmentPayment', compact('data'));
+        return view('patient.appoinmentPayment', compact('data'));
 
 
     }
@@ -371,34 +297,6 @@ class PatientController extends Controller
 
 
     }
-
-
-    // userFeedback
-    function userFeedback(Request $request){
-
-       //createor update data
-        $request->validate([
-            'user_id' => 'required',
-            'expert_id' => 'required',
-            'feedback' => 'required',
-            'rating_point' => 'required',
-        ]);
-
-        $userFeedback = UserFeedback::updateOrCreate($request->only('user_id', 'expert_id', 'feedback', 'rating_point'));
-
-
-
-        if($userFeedback){
-            return redirect()->back()->with('success', 'Successfully You Submited Feedback');
-
-        }
-        else{
-            return redirect()->back()->with('error', 'opps! Feedback not added');
-
-        }
-
-    }
-
 
 
     // userFeedback
@@ -430,3 +328,6 @@ class PatientController extends Controller
 
 
 }
+
+
+?>

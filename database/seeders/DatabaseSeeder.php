@@ -5,6 +5,8 @@ namespace Database\Seeders;
 // use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use App\Models\User;
 use App\Models\DoctorDepartment;
+use App\Models\EventCategory;
+use App\Models\Events\ServiceCategory;
 use Faker\Core\Blood;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
@@ -89,9 +91,16 @@ class DatabaseSeeder extends Seeder
             "Band Party",
         ];
 
+
+
         foreach ($event_categories as $event_category) {
             DoctorDepartment::firstOrCreate([
                 'doctor_department' => $event_category,
+            ]);
+        }
+        foreach ($event_categories as $event_category) {
+            ServiceCategory::firstOrCreate([
+                'category_name' => $event_category,
             ]);
         }
 

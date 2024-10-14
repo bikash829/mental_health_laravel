@@ -128,6 +128,30 @@
             <span>Charts</span></a>
     </li> --}}
 
+    <!-- Nav Item - schadule -->
+    <div class="sidebar-heading">
+        Manage Services
+    </div>
+    <li class="nav-item">
+
+        <a class="nav-link" href="{{ route('service.manage-service.index') }}">
+            <i class="fas fa-fw fa-table"></i>
+            <span>Service List</span></a>
+    </li>
+    <li class="nav-item">
+        {{-- <a class="nav-link" href="{{ route('service.createService') }}"> --}}
+        <a class="nav-link" href="{{ route('service.manage-service.create') }}">
+            <i class="fas fa-fw fa-table"></i>
+            <span>Create Service</span></a>
+    </li>
+
+
+    <li class="nav-item">
+        <a class="nav-link" href="{{ route('doctor.schedule.manage') }}">
+            <i class="fas fa-fw fa-table"></i>
+            <span>Manage Service</span></a>
+    </li>
+
     <!-- Divider -->
     <hr class="sidebar-divider d-none d-md-block">
 

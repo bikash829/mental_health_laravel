@@ -1,10 +1,15 @@
 <?php
 
 use App\Http\Controllers\UserController;
+use App\Http\Controllers\ServiceController;
+use App\Http\Controllers\ServiceCategoryController;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 use App\Models\Post;
 use App\Models\User;
+
+use App\Models\Events\ServiceCategory;
+use App\Models\Events\Service;
 use Spatie\Permission\Traits\HasRoles;
 use Illuminate\Http\Request;
 
@@ -121,29 +126,17 @@ Route::get('experts-profile/', function (Request $request) {
 })->name('show_expert_profile');
 
 
-// service booking
-
-Route::group(['middleware' => ['auth', 'role:user'], 'prefix' => 'booking', 'name' => 'booking', 'as' => 'booking.'], function () {
-    Route::resource('service', ServiceBooking::class);
-    Route::get('/service/booking/{service}', [ServiceBooking::class, 'bookService'])->name('service.bookService');
-    Route::POST('/service/booking/payment', [ServiceBooking::class, 'bookServicePayment'])->name('service.bookServicePayment');
-    // Route::get('/service/booking/{service}', [ServiceBooking::class, 'bookService'])->name('service.bookService');
-    Route::get('/service/booking/payment/method', [ServiceBooking::class, 'paymentMethod'])->name('service.paymentMethod');
-    Route::post('/service/booking/processed-to-pay/{id}', [ServiceBooking::class, 'confirmingOrderForPayment'])->name('service.confirmingOrderForPayment');
-
-});
+//|======================================== Services 
 
 
-// SSLCOMMERZ Start
-Route::get('/example1', [SslCommerzPaymentController::class, 'exampleEasyCheckout'])->name('easyCheckout');
-Route::get('/example2', [SslCommerzPaymentController::class, 'exampleHostedCheckout'])->name('hostedCheckout');
 
-Route::post('/pay', [SslCommerzPaymentController::class, 'index'])->name('pay');
-Route::post('/pay-via-ajax', [SslCommerzPaymentController::class, 'payViaAjax']);
+Route::group(['prefix' => 'service', 'name' => 'service', 'as' => 'service.'], function () {
 
-Route::post('/success', [SslCommerzPaymentController::class, 'success']);
-Route::post('/fail', [SslCommerzPaymentController::class, 'fail']);
-Route::post('/cancel', [SslCommerzPaymentController::class, 'cancel']);
+    // Route::get('/service', [ServiceController::class, 'index'])->name('createService');
+    Route::resource('service-category', ServiceCategoryController::class);
+    Route::resource('/manage-service', ServiceController::class);
 
-Route::post('/ipn', [SslCommerzPaymentController::class, 'ipn']);
-//SSLCOMMERZ END
+
+
+
+})->middleware(['auth']);

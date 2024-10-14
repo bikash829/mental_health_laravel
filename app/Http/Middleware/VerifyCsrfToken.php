@@ -12,10 +12,10 @@ class VerifyCsrfToken extends Middleware
      * @var array<int, string>
      */
     protected $except = [
+        '/pay-via-ajax',
         '/success',
         '/cancel',
         '/fail',
-        '/ipn',
-        '/pay-via-ajax', // only required to run example codes. Please see bellow.
+        '/ipn'
     ];
 }

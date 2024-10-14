@@ -13,6 +13,7 @@ use App\Http\Controllers\SslCommerzPaymentController;
 
 
 
+
 /*
 |--------------------------------------------------------------------------
 | Web Routes
@@ -129,19 +130,15 @@ Route::group(['middleware' => ['auth', 'role:user'], 'prefix' => 'booking', 'nam
     // Route::get('/service/booking/{service}', [ServiceBooking::class, 'bookService'])->name('service.bookService');
     Route::get('/service/booking/payment/method', [ServiceBooking::class, 'paymentMethod'])->name('service.paymentMethod');
     Route::post('/service/booking/processed-to-pay/{id}', [ServiceBooking::class, 'confirmingOrderForPayment'])->name('service.confirmingOrderForPayment');
-    Route::get('/service/booing/payment-success', [ServiceBooking::class, 'paymentSuccess'])->name('service.paymentSuccess');
-
-
 
 });
 
 
-
 // SSLCOMMERZ Start
-Route::get('/example1', [SslCommerzPaymentController::class, 'exampleEasyCheckout']);
-Route::get('/example2', [SslCommerzPaymentController::class, 'exampleHostedCheckout']);
+Route::get('/example1', [SslCommerzPaymentController::class, 'exampleEasyCheckout'])->name('easyCheckout');
+Route::get('/example2', [SslCommerzPaymentController::class, 'exampleHostedCheckout'])->name('hostedCheckout');
 
-Route::post('/pay', [SslCommerzPaymentController::class, 'index']);
+Route::post('/pay', [SslCommerzPaymentController::class, 'index'])->name('pay');
 Route::post('/pay-via-ajax', [SslCommerzPaymentController::class, 'payViaAjax']);
 
 Route::post('/success', [SslCommerzPaymentController::class, 'success']);

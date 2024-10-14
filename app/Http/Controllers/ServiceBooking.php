@@ -97,10 +97,9 @@ class ServiceBooking extends Controller
 
     function bookServicePayment(Request $request)
     {
-        // dd('book_service_payment');
+
         $userId = Auth::user()->id;
 
-        // dd($request);
         $request->validate(
             [
                 'time' => [
@@ -158,7 +157,7 @@ class ServiceBooking extends Controller
             $data = $request;
 
 
-            return view('pages/booking/confirming_order', compact('data'));
+            return redirect()->route('booking.service.paymentMethod')->with('success', 'Booking Data Saved and now please pay your payment');
             // return redirect()->route('booking.service.paymentMethod')->with('success', 'Booking Data Saved and now please pay your payment');
             // return redirect('patient/doctor/appoinment/payment')->with('success', 'Booking Data Saved and now please pay your payment');
 

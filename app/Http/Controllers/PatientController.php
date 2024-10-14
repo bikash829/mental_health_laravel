@@ -356,8 +356,10 @@ class PatientController extends Controller
     function patientAppointmentEdit($id)
     {
         $data = DoctorAppointment::findOrFail($id);
+        // dd($data);
 
-        return view('patient.appoinmentPayment', compact('data'));
+        return view('pages.booking.confirming_order', compact('data'));
+        // return view('patient.appoinmentPayment', compact('data'));
 
 
     }

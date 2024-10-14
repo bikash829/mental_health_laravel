@@ -153,9 +153,13 @@ class ServiceBooking extends Controller
         if ($appointmentId) {
             Session::put('appointmentId', $appointmentId);
             // dd('here you are');
+            $request['id'] = $appointmentId;
+            // $request['appointmentId'] = $appointmentId;
+            $data = $request;
 
 
-            return redirect()->route('booking.service.paymentMethod')->with('success', 'Booking Data Saved and now please pay your payment');
+            return view('pages/booking/confirming_order', compact('data'));
+            // return redirect()->route('booking.service.paymentMethod')->with('success', 'Booking Data Saved and now please pay your payment');
             // return redirect('patient/doctor/appoinment/payment')->with('success', 'Booking Data Saved and now please pay your payment');
 
         } else {
@@ -251,6 +255,12 @@ class ServiceBooking extends Controller
         }
 
 
+    }
+
+
+    function paymentSuccess()
+    {
+        return view('pages.booking.payment_success');
     }
     // function servicePaymentMethod()
     // {

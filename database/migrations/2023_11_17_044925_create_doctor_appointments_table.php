@@ -4,8 +4,7 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-return new class extends Migration
-{
+return new class extends Migration {
     /**
      * Run the migrations.
      */
@@ -13,7 +12,7 @@ return new class extends Migration
     {
         Schema::create('doctor_appointments', function (Blueprint $table) {
             $table->id();
-            $table->unsignedBigInteger('patient_id');         
+            $table->unsignedBigInteger('patient_id');
             $table->unsignedBigInteger('doctor_id');
             $table->unsignedBigInteger('doctor_schedule_id');
 
@@ -26,6 +25,7 @@ return new class extends Migration
             $table->string('time');
             $table->string('payment_method')->nullable();
             $table->string('payment_status')->default('unpaid');
+            $table->string('transaction_id')->nullable();
             $table->float('fee');
             $table->string('patient_name');
             $table->string('age');

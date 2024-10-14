@@ -181,7 +181,7 @@
                 <li class="f-bdy__content"><a href="./doctor_appointment.php" class="f-bdy__content-link">Get
                         Help</a></li>
                 <li class="f-bdy__content"><a href="{{ route('community') }}"
-                        class="f-bdy__content-link">Community</a></li>
+                        class="f-bdy__content-link">Blogs</a></li>
                 <li class="f-bdy__content"><a href="{{ route('contact') }}" class="f-bdy__content-link">Contact
                         Us</a></li>
                 <li class="f-bdy__content"><a href="{{ route('about') }}" class="f-bdy__content-link">About</a>
@@ -192,11 +192,11 @@
         <div class="f-bdy__segment">
             <h3 class="f-bdy__title">Get Involved</h3>
             <ul class="f-bdy__contents">
-                <li class="f-bdy__content"><a href="councilor_reg.php" class="f-bdy__content-link">Join as
-                        counselor</a></li>
+                <li class="f-bdy__content"><a href="{{ route('register') }}" class="f-bdy__content-link">Join as
+                        a vendor</a></li>
                 <li class="f-bdy__content"><a href="contact_us.php" class="f-bdy__content-link">Browse and
                         contact </a></li>
-                <li class="f-bdy__content"><a href="doc_reg.php" class="f-bdy__content-link">Become a doctor </a>
+
                 </li>
                 <li class="f-bdy__content"><a href="index.php" class="f-bdy__content-link">Work with us</a></li>
             </ul>
@@ -223,6 +223,20 @@
 
     </div>
 </footer>
+<script>
+    (function(window, document) {
+        var loader = function() {
+            var script = document.createElement("script"),
+                tag = document.getElementsByTagName("script")[0];
+            script.src = "https://sandbox.sslcommerz.com/embed.min.js?" + Math.random().toString(36).substring(
+                7);
+            tag.parentNode.insertBefore(script, tag);
+        };
+
+        window.addEventListener ? window.addEventListener("load", loader, false) : window.attachEvent("onload",
+            loader);
+    })(window, document);
+</script>
 
 {{-- ||||||||||||Modal |||||||||| --}}
 

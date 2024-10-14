@@ -33,10 +33,10 @@
         <section>
         @endsection
 
-        <script type="text/javascript">
+        {{-- <script type="text/javascript">
             // Hide the template after a few seconds
             setTimeout(function() {
 
                 window.location.href = '/';
             }, 5000);
-        </script>
+        </script> --}}

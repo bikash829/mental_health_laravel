@@ -105,15 +105,17 @@
                         </li>
                         <ul class="dropdown-menu">
                             @role('user')
-                                <li><a class="dropdown-item" href="{{ route('patient.profile') }}">View Profile</a></li>
-                                <li><a class="dropdown-item" href="{{ route('patient.profile') }}">Edit Profile</a></li>
-                                <li><a class="dropdown-item" href="{{ route('patient.patient_appointment') }}">My
+                                <li><a class="dropdown-item" href="{{ route('user.profile') }}">View Profile</a></li>
+                                <li><a class="dropdown-item" href="{{ route('user.profile') }}">Edit Profile</a></li>
+                                <li><a class="dropdown-item" href="{{ route('user.patient_appointment') }}">My
                                         Appointments</a></li>
                             @endrole
                             @role('vendor')
                                 <li><a class="dropdown-item" href="{{ route('doctor.dashboard') }}">Dashboard</a></li>
                             @endrole
-
+                            @role('vendor')
+                                <li><a class="dropdown-item" href="{{ route('vendor.dashboard') }}">Dashboard</a></li>
+                            @endrole
                             @role('admin')
                                 <li><a class="dropdown-item" href="{{ route('admin.dashboard') }}">Dashboard</a></li>
                             @endrole

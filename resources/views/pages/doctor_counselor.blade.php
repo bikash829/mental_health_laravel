@@ -27,22 +27,79 @@
             <div class="card-body">
                 <div class="row row-cols-2 row-cols-md-3 row-cols-lg-4  row-cols-xl-4  g-2 g-lg-3">
 
+                            @foreach ($users as $data)
+                                @if ($data->hasRole('Doctor'))
+                                    <div class="col">
+                                        <a class="text-dark text-decoration-none"
+                                            href="{{ route('show_expert_profile', ['id' => $data->id]) }}">
+                                            <div class="card">
+                                                <img src="{{ $data->pp_location . '/' . $data->pp_name }}" class="card-img-top"
+                                                    alt="...">
+                                                <div class="card-body">
+                                                    <h5 class="card-title">
+                                                        {{ $data->expert->doc_title . ' ' . $data->first_name . ' ' . $data->last_name }}
+                                                    </h5>
+
+
+                                                    @foreach ($data->experience as $item)
+                                                        @if ($item->job_status == 'true')
+                                                            <h5>Working At</h5>
+                                                            <h6>{{ $item->org_name }} <br> <span
+                                                                    class="text-muted">{{ $item->position }}</span></h6>
+                                                        @break
+
+                                                    @else
+                                                        <h5>Worked At</h5>
+                                                        <h6>{{ $item->org_name }} <br> <span
+                                                                class="text-muted">{{ $item->position }}</span></h6>
+                                                    @break
+                                                @endif
+                                            @endforeach
+                                            <h6 class="text-muted">Rating : </h6>
+                                        </div>
+                                    </div>
+
+
+                                </a>
+                            </div>
+                        @endif
+                    @endforeach
+
+                </div>
+
+    </div>
+
+            </div>
+        </div>
+    </div>
+    <!--\\\\\\\\\\\\\\\\\\ councilor list  ////////////////-->
+    <div class="accordion-item">
+        <h2 class="accordion-header " id="panelsStayOpen-headingTwo">
+            <button class="accordion-button collapsed accordion-button--custom" type="button"
+                data-bs-toggle="collapse" data-bs-target="#panelsStayOpen-collapseTwo" aria-expanded="false"
+                aria-controls="panelsStayOpen-collapseTwo">
+                Counselors
+            </button>
+        </h2>
+        <div id="panelsStayOpen-collapseTwo" class="accordion-collapse collapse"
+            aria-labelledby="panelsStayOpen-headingTwo">
+            <div class="accordion-body">
+                <div class="row row-cols-2 row-cols-md-3 row-cols-lg-4  row-cols-xl-4  g-2 g-lg-3">
+
                     @foreach ($users as $data)
-                        @if ($data->hasRole('vendor'))
+                        @if ($data->hasRole('Counselor') && $data->online == 1)
                             <div class="col">
-                                <a class="text-dark text-decoration-none" href="{{ route('booking.service.show', $data) }}">
+                                <a class="text-dark text-decoration-none"
+                                    href="{{ route('show_expert_profile', ['id' => $data->id]) }}">
                                     <div class="card">
                                         <img src="{{ $data->pp_location . '/' . $data->pp_name }}" class="card-img-top"
                                             alt="...">
                                         <div class="card-body">
-                                            <h5 class="card-title">
-                                                {{ $data->first_name . ' ' . $data->last_name }}
+                                            <h5 class="card-title">{{ $data->first_name . ' ' . $data->last_name }}
                                             </h5>
-
-
                                             @foreach ($data->experience as $item)
                                                 @if ($item->job_status == 'true')
-                                                    <h5>Working for</h5>
+                                                    <h5>Working At</h5>
                                                     <h6>{{ $item->org_name }} <br> <span
                                                             class="text-muted">{{ $item->position }}</span></h6>
                                                 @break
@@ -54,6 +111,7 @@
                                             @break
                                         @endif
                                     @endforeach
+
                                     <h6 class="text-muted">Rating : </h6>
                                 </div>
                             </div>
@@ -65,11 +123,8 @@
             @endforeach
 
         </div>
-
     </div>
-
 </div>
-
 </div>
 
 
@@ -90,7 +145,7 @@
 
     const specialistCard = $('.specialist__card');
 
-    let baseUrl = "{{ route('patient.show_user_profile', ['user_id' => 'PLACEHOLDER']) }}";
+    let baseUrl = "{{ route('user.show_user_profile', ['user_id' => 'PLACEHOLDER']) }}";
     baseUrl = baseUrl.replace('PLACEHOLDER', '');
 
     specialistCard.click(e => {

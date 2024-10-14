@@ -5,12 +5,12 @@ use Carbon\Carbon;
 @extends('layouts.app')
 
 @section('title')
-    My Events
+    My Appointment
 @endsection
 
 @section('banner')
     <div class="banner ">
-        <h1 class="banner__title">My Events</h1>
+        <h1 class="banner__title">My Appointment</h1>
         <img class="banner__img" src="{{ asset('images/banner/banner3.jpg') }}" alt="{{ __('Community Forum') }}">
     </div>
 @endsection
@@ -29,7 +29,7 @@ use Carbon\Carbon;
                         <div class="alert alert-success alert-dismissible show fade">
                             <div class="alert-body">
                                 <button class="close" data-dismiss="alert">
-                                    <span>X</span>
+                                    <span>×</span>
                                 </button>
                                 {{ session('success') }}
                             </div>
@@ -40,7 +40,7 @@ use Carbon\Carbon;
                         <div class="alert alert-success alert-dismissible show fade">
                             <div class="alert-body">
                                 <button class="close" data-dismiss="alert">
-                                    <span>X</span>
+                                    <span>×</span>
                                 </button>
                                 {{ session('error') }}
                             </div>
@@ -97,12 +97,24 @@ use Carbon\Carbon;
                                                 $currentDate = $currentDate->format('Y-m-d');
 
                                             @endphp
-                                            {{-- @if ($data->appointment_date . ' ' . $data->time == $currentDate . ' ' . $AppointmentTime) --}}
+                                            @if ($data->appointment_date . ' ' . $data->time == $currentDate . ' ' . $AppointmentTime)
                                                 <div class="text-center">
                                                     <a href="{{ $data->doctorSchedule->meeting_link }}"
                                                         target="blank">Meeting Link</a>
                                                 </div>
-                                           
+                                            @elseif($dateToCheck->isPast())
+                                                @if ($data->appointment_rating == null)
+                                                    <div class="text-center">
+                                                        <button data-bs-toggle="modal"
+                                                            data-bs-target="#appointmentRating_{{ $data->id }}"
+                                                            class="btn btn-info btn-sm ">Click For Rating</button>
+                                                    </div>
+                                                @else
+                                                    <p class="text-gray text-center">Link Expired</p>
+                                                @endif
+                                            @else
+                                                <span>Meeting link will open according to your schedule date</span>
+                                            @endif
                                         </td>
 
                                         <td>
@@ -113,6 +125,14 @@ use Carbon\Carbon;
                                             @if ($data->appointment_rating == null)
                                                 <span>no rating</span>
                                             @endif
+
+
+
+
+
+
+
+
                                         </td>
 
 
@@ -127,11 +147,11 @@ use Carbon\Carbon;
                                             @endif
                                         </td>
                                         <td>
-                                            <a href="{{ route('patient.patient_appointment.delete', $data->id) }}"
+                                            <a href="{{ route('user.patient_appointment.delete', $data->id) }}"
                                                 class="btn btn-sm btn-danger text-white "><i class="fa fa-trash"></i></a>
-                                            <a href="{{ route('patient.patient_appointment.edit', $data->id) }}"
+                                            <a href="{{ route('user.patient_appointment.edit', $data->id) }}"
                                                 class="btn btn-sm btn-primary text-white"><i class="fa fa-edit"></i></a>
-                                            <a href="{{ route('patient.patient_appointment.view', $data->id) }}"
+                                            <a href="{{ route('user.patient_appointment.view', $data->id) }}"
                                                 class="btn btn-sm btn-success text-white"><i class="fa fa-eye"></i></a>
 
 
@@ -154,13 +174,12 @@ use Carbon\Carbon;
                                                         <span aria-hidden="true">&times;</span>
                                                     </button>
                                                 </div>
-                                                <form action="{{ route('patient.rating.update', $data->id) }}"
-                                                    method="POST">
+                                                <form action="{{ route('user.rating.update', $data->id) }}" method="POST">
                                                     @csrf
 
                                                     <div class="modal-body ">
                                                         <div class="form-group ">
-                                                            <label for="appointment_rating">Event Rating </label>
+                                                            <label for="appointment_rating">Appointment Rating </label>
                                                             <input type="text" class="form-control"
                                                                 value="{{ old('appointment_rating') }}"
                                                                 name="appointment_rating" id="appointment_rating"

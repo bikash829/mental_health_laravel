@@ -1,16 +1,17 @@
 @extends('layouts.app')
 
-@section('title') Blog @endsection
+@section('title')
+    Community forum
+@endsection
 
 @section('banner')
     <div class="banner ">
-        <h1 class="banner__title">Blog Post</h1>
-        <img class="banner__img" src="{{asset('images/banner/banner3.jpg')}}" alt="{{__('Community Forum')}}">
+        <h1 class="banner__title">Community Forum</h1>
+        <img class="banner__img" src="{{ asset('images/banner/banner3.jpg') }}" alt="{{ __('Community Forum') }}">
     </div>
 @endsection
 
 @section('content')
-
     <div class="toast-container position-fixed top-0 end-0 p-3">
         <div id="toastError" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
             <div class="toast-header">
@@ -47,7 +48,6 @@
 
 @section('scripts')
     <script>
-
         // let btnComment;
 
         // btnComment = document.querySelectorAll('.btn-comment');
@@ -83,7 +83,7 @@
 
         console.log(postCardClone);
 
-        function latestReply(data,author){
+        function latestReply(data, author) {
             let replyCard;
 
 
@@ -126,7 +126,7 @@
 
                         if (formData.get('frmPost') == 'article') {
 
-                            axios.post("{{ route('patient.community.store') }}", formData)
+                            axios.post("{{ route('user.community.store') }}", formData)
                                 .then(function(response) {
                                     console.log(response);
                                     if (response.status == 200) {
@@ -149,17 +149,20 @@
 
                                     toastErrorShow(errorList);
                                 });
-                        }else if(formData.get('frmComment') == 'comment'){
-                            axios.post("{{ route('patient.store_comment') }}", formData)
+                        } else if (formData.get('frmComment') == 'comment') {
+                            axios.post("{{ route('user.store_comment') }}", formData)
                                 .then(function(response) {
                                     console.log(response);
                                     if (response.status == 200) {
-                                        const originalDate = new Date(response.data.comment['created_at']);
-                                        let formatDateTime = `${originalDate.getFullYear()}-${originalDate.getMonth()}-${originalDate.getDate()} ${originalDate.getHours()}:${originalDate.getMinutes()}:${originalDate.getSeconds()}`;
+                                        const originalDate = new Date(response.data.comment[
+                                            'created_at']);
+                                        let formatDateTime =
+                                            `${originalDate.getFullYear()}-${originalDate.getMonth()}-${originalDate.getDate()} ${originalDate.getHours()}:${originalDate.getMinutes()}:${originalDate.getSeconds()}`;
 
                                         response.data.comment['created_at'] = formatDateTime;
 
-                                        $(form).after(latestReply(response.data.comment,currentUser));
+                                        $(form).after(latestReply(response.data.comment,
+                                            currentUser));
 
                                         form.reset();
                                         toastSuccessShow(response.data.success);
@@ -178,7 +181,7 @@
 
                                     toastErrorShow(errorList);
                                 });
-                        }else{
+                        } else {
                             alert('something went wrong');
                         }
 
@@ -193,7 +196,7 @@
         /**
          * toast success function
          */
-            function toastSuccessShow(message) {
+        function toastSuccessShow(message) {
             toastContentSuccess.empty();
             toastContainer = toastContainer.text(message);
 
@@ -227,10 +230,10 @@
             const toastLiveExample = document.getElementById('liveToast')
 
             if (toastTrigger) {
-            const toastBootstrap = bootstrap.Toast.getOrCreateInstance(toastLiveExample)
-            toastTrigger.addEventListener('click', () => {
-                toastBootstrap.show()
-            })
+                const toastBootstrap = bootstrap.Toast.getOrCreateInstance(toastLiveExample)
+                toastTrigger.addEventListener('click', () => {
+                    toastBootstrap.show()
+                })
             }
 
 
@@ -245,6 +248,5 @@
                 });
             });
         });
-
     </script>
 @endsection

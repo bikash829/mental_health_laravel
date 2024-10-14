@@ -20,7 +20,7 @@
 
             <div class="row  justify-content-center">
                 <div class="col-md-8 col-lg-8">
-                    <form method="POST" action="{{ route('patient.profile.update', [$user, 'form' => 'basic_info']) }}"
+                    <form method="POST" action="{{ route('user.profile.update', [$user, 'form' => 'basic_info']) }}"
                         class="row g-3 needs-validation" novalidate>
                         @csrf
                         @method('PUT')
@@ -57,24 +57,24 @@
                                 <input type="radio" required @checked($user->gender == 'male')
                                     class="form-check-input @error('gender')
                                         is-invalid
-                                    @enderror" name="gender"
-                                    value="{{ __('male') }}" id="male" autocomplete="off"
+                                    @enderror"
+                                    name="gender" value="{{ __('male') }}" id="male" autocomplete="off"
                                     {{ old('gender') == 'male' ? 'checked' : '' }}>
                                 <label class="form-check-label" for="male">Male</label>
 
                                 <input type="radio" required @checked($user->gender == 'female')
                                     class="form-check-input @error('gender')
                                         is-invalid
-                                    @enderror" name="gender"
-                                    value="{{ __('female') }} " id="female" autocomplete="off"
+                                    @enderror"
+                                    name="gender" value="{{ __('female') }} " id="female" autocomplete="off"
                                     {{ old('gender') == 'female' ? 'checked' : '' }}>
                                 <label class="form-check-label" for="female">female</label>
 
                                 <input type="radio" required @checked($user->gender == 'other')
                                     class="form-check-input @error('gender')
                                         is-invalid
-                                    @enderror" name="gender"
-                                    value="{{ __('other') }}" id="counselor" autocomplete="off"
+                                    @enderror"
+                                    name="gender" value="{{ __('other') }}" id="counselor" autocomplete="off"
                                     {{ old('gender') == 'Counselor' ? 'checked' : '' }}>
                                 <label class="form-check-label" for="counselor">others</label>
 

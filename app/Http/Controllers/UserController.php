@@ -227,9 +227,9 @@ class UserController extends Controller
     public function edit(Request $request, User $user)
     {
         return match ($request->data) {
-            'basic_info' => redirect()->route('patient.edit_basic_info'),
-            'address_info' => redirect()->route('patient.edit_address'),
-            'contact_info' => redirect()->route('patient.edit_contact_info'),
+            'basic_info' => redirect()->route('user.edit_basic_info'),
+            'address_info' => redirect()->route('user.edit_address'),
+            'contact_info' => redirect()->route('user.edit_contact_info'),
             default => redirect()->back(),
         };
     }
@@ -254,7 +254,7 @@ class UserController extends Controller
 
                 $request->merge(['is_verified' => 1]);
                 if ($user->update($request->all())) {
-                    return redirect(route('patient.profile'));
+                    return redirect(route('user.profile'));
                 } else {
                     return redirect(route('error404'));
                 }
@@ -268,7 +268,7 @@ class UserController extends Controller
                     'user_id' => ['required', 'max:20']
                 ]);
                 if ($user->address()->updateOrCreate([], $request->all())) {
-                    return redirect(route('patient.profile'));
+                    return redirect(route('user.profile'));
                 } else {
                     return redirect(route('error404'));
                 }
@@ -294,8 +294,10 @@ class UserController extends Controller
                         return redirect(route('admin.profile'));
                     } elseif ($user->hasRole('vendor')) {
                         return redirect(route('doctor.profile'));
-                    }elseif ($user->hasRole('user')) {
-                        return redirect(route('patient.profile'));
+                    } elseif ($user->hasRole('vendor')) {
+                        return redirect(route('vendor.profile'));
+                    } elseif ($user->hasRole('user')) {
+                        return redirect(route('user.profile'));
                     } else {
                         return redirect(route('error404'));
                     }
@@ -303,11 +305,11 @@ class UserController extends Controller
                     return redirect(route('error404'));
                 }
                 break;
-                //                dd($file->extension());
-                //                $hash_name = $file->hashName();
-                //                $file_extension = $file->getClientOriginalExtension();
-                //                $original_file_name = $file->getClientOriginalName();
-                //                dd($file->getClientOriginalName());
+            //                dd($file->extension());
+            //                $hash_name = $file->hashName();
+            //                $file_extension = $file->getClientOriginalExtension();
+            //                $original_file_name = $file->getClientOriginalName();
+            //                dd($file->getClientOriginalName());
 
             case 'contact_info':
                 $request->validate([
@@ -325,16 +327,18 @@ class UserController extends Controller
                     return redirect(route('admin.profile'));
                 } elseif ($user->hasRole('vendor')) {
                     return redirect(route('doctor.profile'));
-                }  elseif ($user->hasRole('user')) {
-                    return redirect(route('patient.profile'))->with('success', 'Contact info updated successfully');
+                } elseif ($user->hasRole('vendor')) {
+                    return redirect(route('counselor.profile'));
+                } elseif ($user->hasRole('user')) {
+                    return redirect(route('user.profile'))->with('success', 'Contact info updated successfully');
                 } else {
                     return redirect(route('error404'));
                 }
 
                 break;
-                //            case 'medical_info':
-                //                continue;
-                //                break;
+            //            case 'medical_info':
+            //                continue;
+            //                break;
 
             default:
                 return redirect(route('error404'));

@@ -20,7 +20,7 @@
 
             <div class="row  justify-content-center">
                 <div class="col-md-8 col-lg-8">
-                    <form method="POST" action="{{ route('patient.profile.update', [$user, 'form' => 'contact_info']) }}"
+                    <form method="POST" action="{{ route('user.profile.update', [$user, 'form' => 'contact_info']) }}"
                         class="row g-3 needs-validation" novalidate>
                         @csrf
                         @method('PUT')
@@ -83,7 +83,7 @@
                                 <span class="text-danger">{{ $message }}</span>
                             @else
                                 <div class="invalid-feedback">
-                                    Select your  phone code
+                                    Select your phone code
                                 </div>
                             @enderror
                         </div>
@@ -114,7 +114,7 @@
                         </div>
                     </form>
 
-                    {{-- <form action="{{ route('patient.profile.update', [$user, 'form' => 'contact_info']) }}"
+                    {{-- <form action="{{ route('user.profile.update', [$user, 'form' => 'contact_info']) }}"
                         class="row g-3 needs-validation" novalidate>
                         @csrf
                         @method('PUT')

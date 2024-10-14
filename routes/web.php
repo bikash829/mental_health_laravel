@@ -8,6 +8,8 @@ use App\Models\User;
 use Spatie\Permission\Traits\HasRoles;
 use Illuminate\Http\Request;
 
+use App\Http\Controllers\ServiceBooking;
+
 
 
 /*
@@ -41,7 +43,7 @@ Route::get('/', function () {
 Route::get('doctor&counselor/', function () {
 
     // $users  = User::where('is_verified', 1)->get();
-    $users = User::role(['Counselor', 'Doctor']) // Using Spatie's role method
+    $users = User::role(['vendor']) // Using Spatie's role method
         ->where('is_verified', 1)
         ->where('is_active', 1)
         ->get();
@@ -61,9 +63,11 @@ Route::get('upcoming_appointments/', function () {
 
 Route::get('community-forum/', function () {
     $user = Auth::user();
-    $posts = Post::with(['comments' => function ($query) {
-        $query->orderBy('id', 'desc');
-    }])
+    $posts = Post::with([
+        'comments' => function ($query) {
+            $query->orderBy('id', 'desc');
+        }
+    ])
         ->orderBy('id', 'desc')
         ->get();
     $data = ['community' => 'active',];
@@ -75,6 +79,10 @@ Route::get('about-us/', function () {
     $data = ['about' => 'active',];
     return view('pages.about', $data);
 })->name('about');
+Route::get('faq/', function () {
+    $data = ['faq' => 'active',];
+    return view('pages.faq', $data);
+})->name('faq');
 
 Route::get('contact-us/', function () {
     $data = ['contact' => 'active',];
@@ -105,7 +113,20 @@ Route::get('experts-profile/', function (Request $request) {
 
     $user = User::find($request->id);
     $doctorSchedule = App\Models\DoctorSchedule::where('status', 1)
-    ->where('user_id', $request->id)
-    ->get();
-    return view('pages.experts_profile',compact('user','doctorSchedule'));
+        ->where('user_id', $request->id)
+        ->get();
+    return view('pages.experts_profile', compact('user', 'doctorSchedule'));
 })->name('show_expert_profile');
+
+
+// service booking
+
+Route::group(['middleware' => ['auth', 'role:user'], 'prefix' => 'booking', 'name' => 'booking', 'as' => 'booking.'], function () {
+    Route::resource('service', ServiceBooking::class);
+    Route::get('/service/booking/{service}', [ServiceBooking::class, 'bookService'])->name('service.bookService');
+    Route::POST('/service/booking/payment', [ServiceBooking::class, 'bookServicePayment'])->name('service.bookServicePayment');
+    // Route::get('/service/booking/{service}', [ServiceBooking::class, 'bookService'])->name('service.bookService');
+    Route::get('/service/booking/payment/method', [ServiceBooking::class, 'paymentMethod'])->name('service.paymentMethod');
+    Route::post('/service/booking/processed-to-pay/{id}', [ServiceBooking::class, 'confirmingOrderForPayment'])->name('service.confirmingOrderForPayment');
+
+});

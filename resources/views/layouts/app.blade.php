@@ -54,27 +54,35 @@
             <!-- site logo  -->
             <div class="nav__logo-container">
                 <a href="{{ route('home') }}"><img data-href="{% url 'home' %}" class="nav__logo" id="nav__logo"
-                        src="{{ asset('images/logo/logo.png') }} " alt="Logo"></a>
+                        src="{{ asset('images/logo/logo.jpg') }} " style="height: 30px; width:30px;" alt="Logo"></a>
             </div>
 
             <!-- navigation menu bar  -->
             <ul class="nav__menu">
                 <li class="nav__item"><a class="nav__link {{ $home ?? '' }}" href="{{ route('home') }}">Home</a></li>
-                <li class="nav__item nav__dropdown--item"><a class="nav__link {{ $doctor_counselor ?? '' }}"
+                <li class="nav__item nav__dropdown--item d-none"><a class="nav__link {{ $doctor_counselor ?? '' }}"
                         href="{{ route('doctor_counselor') }}">Services <i class="fa-solid fa-caret-down"></i></a>
 
                     <ul class="nav__dropdown">
                         <li class="nav__item"><a class="nav__link {{ $doctor_counselor ?? '' }}"
-                                href="{{ route('doctor_counselor') }}">Doctor & Counselor</a></li>
-                        <li class="nav__item"><a class="nav__link" href="#">Mental Disorder</a></li>
+                                href="{{ route('doctor_counselor') }}">Services</a></li>
+                        <li class="nav__item"><a class="nav__link" href="#">Events</a></li>
                         <li class="nav__item"><a class="nav__link" href="#">Appointment</a></li>
-                        <li class="nav__item"><a class="nav__link" href="#">Call Counselor</a></li>
+                        {{-- <li class="nav__item"><a class="nav__link" href="#">Call Counselor</a></li> --}}
                     </ul>
 
                 </li>
+                <li class="nav__item "><a class="nav__link {{ $doctor_counselor ?? '' }}"
+                        href="{{ route('doctor_counselor') }}">Services </a>
+
+
+
+                </li>
                 <li class="nav__item"><a class="nav__link {{ $community ?? '' }}"
-                        href="{{ route('community') }}">Community Forum</a></li>
+                        href="{{ route('community') }}">Blog</a></li>
                 <li class="nav__item"><a class="nav__link {{ $about ?? '' }}" href="{{ route('about') }}">About</a>
+                </li>
+                <li class="nav__item"><a class="nav__link {{ $faq ?? '' }}" href="{{ route('faq') }}">FAQ</a>
                 </li>
                 <li class="nav__item"><a class="nav__link {{ $contact ?? '' }}"
                         href="{{ route('contact') }}">Contact</a></li>
@@ -96,18 +104,17 @@
                             @endisset
                         </li>
                         <ul class="dropdown-menu">
-                            @role('Patient')
+                            @role('user')
                                 <li><a class="dropdown-item" href="{{ route('patient.profile') }}">View Profile</a></li>
-                                <li><a class="dropdown-item" href="./edit_user.php">Edit Profile</a></li>
-                                <li><a class="dropdown-item" href="{{route('patient.patient_appointment')}}">My Appointments</a></li>
+                                <li><a class="dropdown-item" href="{{ route('patient.profile') }}">Edit Profile</a></li>
+                                <li><a class="dropdown-item" href="{{ route('patient.patient_appointment') }}">My
+                                        Appointments</a></li>
                             @endrole
-                            @role('Doctor')
+                            @role('vendor')
                                 <li><a class="dropdown-item" href="{{ route('doctor.dashboard') }}">Dashboard</a></li>
                             @endrole
-                            @role('Counselor')
-                                <li><a class="dropdown-item" href="{{ route('counselor.dashboard') }}">Dashboard</a></li>
-                            @endrole
-                            @role('Admin')
+
+                            @role('admin')
                                 <li><a class="dropdown-item" href="{{ route('admin.dashboard') }}">Dashboard</a></li>
                             @endrole
                             <li>
@@ -208,8 +215,9 @@
         </div>
     </div>
     <div class="footer__bottom f-btm">
-        <p class="f-btm__content">Copyright ©2022 All rights reserved | This template is made with &#128420; by
-            Bikash Chowdhury</p>
+        <p class="f-btm__content">Copyright ©2022 All rights reserved | This site is made with &#128420; by
+
+            Rayhan</p>
 
     </div>
 </footer>
@@ -242,15 +250,13 @@
 <!-- custom js -->
 <script src="{{ asset('js/main.js') }}" type="text/javascript"></script>
 {{-- <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script> --}}
-<script src="{{asset('vendor/sweetaltert2/sweetalert2@11.min.js')}}"></script>
+<script src="{{ asset('vendor/sweetaltert2/sweetalert2@11.min.js') }}"></script>
 
 
 @yield('scripts')
 
 
 <script type="text/javascript">
-
-
     // tooltip code
     const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]')
     const tooltipList = [...tooltipTriggerList].map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl))

@@ -34,7 +34,7 @@
     <li class="nav-item">
         <a class="nav-link" href="{{route('admin.active_appointment')}}">
 
-            <span><i class="fa-solid fa-calendar-check"></i> Active Patient Appointments</span></a>
+            <span><i class="fa-solid fa-calendar-check"></i> Active Customer Appointments</span></a>
     </li>
     <li class="nav-item">
         <a class="nav-link" href="{{ route('admin.past_appointment') }}">
@@ -46,40 +46,15 @@
 
     <!-- Heading -->
     <div class="sidebar-heading">
-        Doctor Schedules
+        Service Schedules
     </div>
     <!-- Nav Item - Community forum -->
     <li class="nav-item">
         <a class="nav-link" href="{{route('admin.active_schedule')}}">
 
-            <span><i class="fa-solid fa-calendar-check"></i> Doctor Appointment Schedules</span></a>
+            <span><i class="fa-solid fa-calendar-check"></i> Service Booked Schedules</span></a>
     </li>
-    {{-- <li class="nav-item">
-        <a class="nav-link" href="{{ route('admin.past_appointment') }}">
-
-            <span><i class="fa-solid fa-hourglass"></i> Past Appointments</span></a>
-    </li> --}}
-
-    <!-- Nav Item - Pages Collapse Menu -->
-    {{-- <li class="nav-item">
-        <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#collapsePages"
-            aria-expanded="true" aria-controls="collapsePages">
-            <i class="fas fa-fw fa-folder"></i>
-            <span>Pages</span>
-        </a>
-        <div id="collapsePages" class="collapse" aria-labelledby="headingPages" data-parent="#accordionSidebar">
-            <div class="bg-white py-2 collapse-inner rounded">
-                <h6 class="collapse-header">Login Screens:</h6>
-                <a class="collapse-item" href="login.html">Login</a>
-                <a class="collapse-item" href="register.html">Register</a>
-                <a class="collapse-item" href="forgot-password.html">Forgot Password</a>
-                <div class="collapse-divider"></div>
-                <h6 class="collapse-header">Other Pages:</h6>
-                <a class="collapse-item" href="404.html">404 Page</a>
-                <a class="collapse-item" href="blank.html">Blank Page</a>
-            </div>
-        </div>
-    </li> --}}
+    
 
     {{-- user management  --}}
     <div class="sidebar-heading">
@@ -93,12 +68,12 @@
         </a>
         <div id="collapsePages" class="collapse" aria-labelledby="headingPages" data-parent="#accordionSidebar">
             <div class="bg-white py-2 collapse-inner rounded">
-                <h6 class="collapse-header">Counselor</h6>
-                <a class="collapse-item" href="{{route('admin.pending_user')}}"><i class="fa-solid fa-hourglass-end"></i> Pending Experts</a>
+                
+                <a class="collapse-item" href="{{route('admin.pending_user')}}"><i class="fa-solid fa-hourglass-end"></i> Pending Vendor</a>
                 <a class="collapse-item" href="{{route('admin.blocked_user')}}"><i class="fa-solid fa-ban"></i> Blocked User</a>
-                <a class="collapse-item" href="{{route('admin.doctor_list')}}"><i class="fa-solid fa-user-doctor"></i> Doctors</a>
-                <a class="collapse-item" href="{{route('admin.counselor_list')}}"><i class="fa-solid fa-headset"></i> Counselors</a>
-                <a class="collapse-item" href="{{route('admin.patient_list')}}"><i class="fa-solid fa-bed-pulse"></i> Patients</a>
+                <a class="collapse-item" href="{{route('admin.doctor_list')}}"><i class="fa-solid fa-user-doctor"></i> Vendors</a>
+{{--                <a class="collapse-item" href="{{route('admin.counselor_list')}}"><i class="fa-solid fa-headset"></i> Counselors</a>--}}
+                <a class="collapse-item" href="{{route('admin.patient_list')}}"><i class="fa-solid fa-bed-pulse"></i> Customers</a>
                 <a class="collapse-item" href="{{route('admin.all_users')}}"><i class="fa-solid fa-user-group"></i> All User</a>
 
             </div>
@@ -112,7 +87,7 @@
     <li class="nav-item">
         <a class="nav-link" href="{{ route('admin.community.index', ['community' => 'admin']) }}">
             <i class="fa-solid fa-users"></i>
-            <span>Community Forum</span></a>
+            <span>Blog Post</span></a>
     </li>
 
 

@@ -37,9 +37,7 @@
             <h2 class="contact-frm__artcle-title">Feel Free To Message Us</h2>
             <p class="contact-frm__artcle">Message us for any information and queries</p>
 
-            <div class="contact-frm__artcle-img-con">
-                <img src="{{ asset('images/img/who-we-are.jpg') }}" alt="" class="contact-frm__artcle-img">
-            </div>
+
 
         </div>
         <div class="contact-form d-flex align-items-center">

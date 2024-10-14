@@ -46,17 +46,14 @@
         <!-- Sidebar -->
 
         {{--    @yield('sidebar') --}}
-        @hasrole('Admin')
+        @hasrole('admin')
             <x-admin.sidebar.admin />
         @endhasrole
 
-        @hasrole('Doctor')
+        @hasrole('vendor')
             <x-admin.sidebar.doctor />
         @endhasrole
 
-        @hasrole('Counselor')
-            <x-admin.sidebar.counselor />
-        @endhasrole
 
         <!-- End of Sidebar -->
 
@@ -183,13 +180,11 @@
                                 aria-labelledby="userDropdown">
                                 <a class="dropdown-item"
                                     href="
-                            @hasrole('Admin')
+                            @hasrole('admin')
                                 {{ route('admin.profile') }}
                             @endhasrole
-                            @hasrole('Counselor')
-                                {{ route('counselor.profile') }}
-                            @endhasrole
-                            @hasrole('Doctor')
+
+                            @hasrole('vendor')
                                 {{ route('doctor.profile') }}
                             @endhasrole
                             ">

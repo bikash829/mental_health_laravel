@@ -33,8 +33,8 @@
                         <div class="row no-gutters align-items-center">
                             <div class="col mr-2">
                                 <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
-                                    Total Counselor</div>
-                                <div class="h5 mb-0 font-weight-bold text-gray-800">{{ $counselorCount }}</div>
+                                    Total Successful Work</div>
+                                <div class="h5 mb-0 font-weight-bold text-gray-800">100</div>
                             </div>
 
                         </div>
@@ -45,9 +45,9 @@
             <!-- Doctors Count -->
             @php
 
-                $doctorCount = $users
+                $vendorCount = $users
                     ->filter(function ($user) {
-                        return $user->hasRole('Doctor')  && $user->is_verified == 'verified';
+                        return $user->hasRole('vendor')  && $user->is_verified == 'verified';
                     })
                     ->count();
             @endphp
@@ -57,8 +57,8 @@
                         <div class="row no-gutters align-items-center">
                             <div class="col mr-2">
                                 <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
-                                    Total Doctors</div>
-                                <div class="h5 mb-0 font-weight-bold text-gray-800">{{ $doctorCount }}</div>
+                                    Total Vendor</div>
+                                <div class="h5 mb-0 font-weight-bold text-gray-800">{{ $vendorCount }}</div>
                             </div>
                             {{-- <div class="col-auto">
                                 <i class="fas fa-dollar-sign fa-2x text-gray-300"></i>
@@ -71,9 +71,9 @@
             <!-- Patient Count -->
             @php
 
-                $patientCount = $users
+                $customerCount = $users
                     ->filter(function ($user) {
-                        return $user->hasRole('Patient');
+                        return $user->hasRole('user');
                     })
                     ->count();
             @endphp
@@ -82,9 +82,9 @@
                     <div class="card-body">
                         <div class="row no-gutters align-items-center">
                             <div class="col mr-2">
-                                <div class="text-xs font-weight-bold text-info text-uppercase mb-1">Total Patients
+                                <div class="text-xs font-weight-bold text-info text-uppercase mb-1">Total Customers
                                 </div>
-                                <div class="h5 mb-0 font-weight-bold text-gray-800">{{ $patientCount }}</div>
+                                <div class="h5 mb-0 font-weight-bold text-gray-800">{{ $customerCount }}</div>
                             </div>
 
                         </div>
@@ -94,7 +94,13 @@
 
             <!-- Pending Requests Card  -->
             @php
-                $pendingUsersCount = optional($pending_users)->count() ?? 0;
+//                $pendingUsersCount = optional($pending_users)->count() ?? 0;
+
+                $pendingUsersCount = $users
+                    ->filter(function ($user) {
+                        return $user->hasRole('vendor') && $user->is_verified === 'pending';
+                    })
+                    ->count();
             @endphp
             <div class="col-xl-3 col-md-6 mb-4">
                 <div class="card border-left-warning shadow h-100 py-2">

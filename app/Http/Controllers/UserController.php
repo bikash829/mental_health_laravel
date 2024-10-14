@@ -290,13 +290,11 @@ class UserController extends Controller
                         'pp_location' => $fileLocation,
                     ])
                 ) {
-                    if ($user->hasRole('Admin')) {
+                    if ($user->hasRole('admin')) {
                         return redirect(route('admin.profile'));
-                    } elseif ($user->hasRole('Doctor')) {
+                    } elseif ($user->hasRole('vendor')) {
                         return redirect(route('doctor.profile'));
-                    } elseif ($user->hasRole('Counselor')) {
-                        return redirect(route('counselor.profile'));
-                    } elseif ($user->hasRole('Patient')) {
+                    }elseif ($user->hasRole('user')) {
                         return redirect(route('patient.profile'));
                     } else {
                         return redirect(route('error404'));
@@ -323,13 +321,11 @@ class UserController extends Controller
 
                 // dd($request);
 
-                if ($user->hasRole('Admin')) {
+                if ($user->hasRole('admin')) {
                     return redirect(route('admin.profile'));
-                } elseif ($user->hasRole('Doctor')) {
+                } elseif ($user->hasRole('vendor')) {
                     return redirect(route('doctor.profile'));
-                } elseif ($user->hasRole('Counselor')) {
-                    return redirect(route('counselor.profile'));
-                } elseif ($user->hasRole('Patient')) {
+                }  elseif ($user->hasRole('user')) {
                     return redirect(route('patient.profile'))->with('success', 'Contact info updated successfully');
                 } else {
                     return redirect(route('error404'));

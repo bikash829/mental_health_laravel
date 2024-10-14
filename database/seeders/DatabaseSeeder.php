@@ -28,7 +28,7 @@ class DatabaseSeeder extends Seeder
         ]);
 
         $admin = User::firstOrCreate(["email" => 'admin@email.com',], [
-            "first_name" => 'Admin',
+            "first_name" => 'admin',
             // "last_name" => 'Doy',
             "email" => 'admin@email.com',
             "password" => Hash::make('admin'),
@@ -37,56 +37,61 @@ class DatabaseSeeder extends Seeder
 
         $admin->assignRole('admin'); #assigning role
 
-        $vendor = User::firstOrCreate(
-            ["email" => 'vendor@email.com',],
+        $user = User::firstOrCreate(
+            ["email" => 'user@email.com',],
             [
                 "first_name" => 'Jhon',
                 "last_name" => 'Doy',
                 "religion" => 'Muslim',
                 'gender' => 'male',
                 "date_of_birth" => Carbon::createFromDate(1990, 5, 15),
-                "email" => 'vendor@email.com',
-                'blood_group_id' => 5,
-                "password" => Hash::make('vendor'),
-                'is_active' => 1,
-
-            ],
-        );
-
-        $vendor->assignRole('vendor'); #assigning role
-
-        $user = User::firstOrCreate(
-            ["email" => 'user@email.com',],
-            [
                 "email" => 'user@email.com',
+                'blood_group_id' => 5,
                 "password" => Hash::make('user'),
                 'is_active' => 1,
+
             ],
         );
 
         $user->assignRole('user'); #assigning role
 
-        $doctor_departments = [
-            "Clinical Psychology",
-            "Counseling Psychology",
-            "School Psychology",
-            "Industrial-Organizational Psychology",
-            "Health Psychology",
-            "Forensic Psychology",
-            "Sports Psychology",
-            "Neuropsychology",
-            "Social Psychology",
-            "Developmental Psychology",
-            "Experimental Psychology",
-            "Cognitive Psychology",
-            "Positive Psychology",
-            "Environmental Psychology",
-            "Consumer Psychology",
+        $vendor = User::firstOrCreate(
+            ["email" => 'vendor@email.com',],
+            [
+                //                "first_name"=>'Counselor',
+                "email" => 'vendor@email.com',
+                "password" => Hash::make('vendor'),
+                'is_active' => 1,
+            ],
+        );
+
+        $vendor->assignRole('vendor'); #assigning role
+
+
+
+        //        \App\Models\User::factory(10)->create();
+
+        // \App\Models\User::factory()->create([
+        //     'name' => 'Test User',
+        //     'email' => 'test@example.com',
+        // ]);
+
+        $event_categories = [
+            "Business & Professional",
+            "Music",
+            "Food & Drink",
+            "Catering",
+            "Performance & Visual Arts",
+            "Sports & Fitness",
+            "Charity & Causes",
+            "Venue",
+            "Decoration",
+            "Band Party",
         ];
 
-        foreach ($doctor_departments as $doctor_department) {
+        foreach ($event_categories as $event_category) {
             DoctorDepartment::firstOrCreate([
-                'doctor_department' => $doctor_department,
+                'doctor_department' => $event_category,
             ]);
         }
 

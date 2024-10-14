@@ -165,7 +165,7 @@
         <h3 class="com-aside__title">Popular Posts</h3>
         <div class="com-aside__update aside-update">
             <h4 class="aside-update__header">&Lorem ipsum dolor, sit amet consectetur adipisicing elit.</h4>
-            <p class="aside-update__author">Posted by Mayesha</p>
+            <p class="aside-update__author">Posted by Rayhan</p>
         </div>
     </div>
 

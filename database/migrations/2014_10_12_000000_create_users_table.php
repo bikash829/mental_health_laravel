@@ -6,7 +6,8 @@ use Illuminate\Support\Facades\Schema;
 
 use function Laravel\Prompts\text;
 
-return new class extends Migration {
+return new class extends Migration
+{
     /**
      * Run the migrations.
      */
@@ -45,6 +46,11 @@ return new class extends Migration {
 
             $table->text('contact_link')->default('link');
 
+//            $table->unsignedBigInteger('blood_group_id')->nullable();
+//            $table->foreign('blood_group_id')
+//                ->references('id')
+//                ->on('blood_groups')
+//                ->onDelete('cascade');
 
             $table->foreignId('blood_group_id')->nullable()->constrained();
 

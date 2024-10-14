@@ -72,12 +72,12 @@ class AdminController extends Controller
     public function show_dashboard()
     {
         $user = Auth::user();
-        $users = User::role(['Patient','Doctor','Counselor']) // Only get users with 'Doctor' or 'Counselor' role
+        $users = User::role(['user','vendor']) // Only get users with 'Doctor' or 'Counselor' role
         // ->where('is_verified',1)
         ->where('is_active',1)
         ->get();
 
-        $pending_users = User::role(['Doctor', 'Counselor']) // Only get users with 'Doctor' or 'Counselor' role
+        $pending_users = User::role(['vendor']) // Only get users with 'Doctor' or 'Counselor' role
         ->where('is_verified',2)
         ->get();
 
@@ -105,7 +105,7 @@ class AdminController extends Controller
     {
         $user = Auth::user();
 
-        $users = User::role(['Doctor', 'Counselor']) // Only get users with 'Doctor' or 'Counselor' role
+        $users = User::role(['vendor']) // Only get users with 'Doctor' or 'Counselor' role
         ->where('is_verified',2)
         ->get();
         return view('admin.pending_user', compact('users','user'));
@@ -117,7 +117,7 @@ class AdminController extends Controller
     {
         $user = Auth::user();
 
-        $users = User::role(['Doctor', 'Counselor','Patient']) // Only get users with 'Doctor' or 'Counselor' role
+        $users = User::role(['vendor','user']) // Only get users with 'Doctor' or 'Counselor' role
         ->where('is_active',0)
         ->get();
         return view('admin.blocked_user', compact('users','user'));
@@ -129,7 +129,7 @@ class AdminController extends Controller
     {
         $user = Auth::user();
 
-        $users = User::role(['Doctor']) // Only get users with 'Doctor' or 'Counselor' role
+        $users = User::role(['vendor']) // Only get users with 'Doctor' or 'Counselor' role
         ->where('is_verified',1)
         // ->where('is_active',1)
         ->get();
@@ -156,7 +156,7 @@ class AdminController extends Controller
     {
         $user = Auth::user();
 
-        $users = User::role(['Patient']) // Only get users with Patient role
+        $users = User::role(['user']) // Only get users with Patient role
         // ->where('is_verified',1)
         ->where('is_active',1)
         ->get();
@@ -169,7 +169,7 @@ class AdminController extends Controller
     {
         $user = Auth::user();
 
-        $users = User::role(['Patient','Doctor','Counselor']) // Only get users with 'Doctor' or 'Counselor' role
+        $users = User::role(['user','vendor']) // Only get users with 'Doctor' or 'Counselor' role
         // ->where('is_verified',1)
         // ->where('is_active',1)
         ->get();

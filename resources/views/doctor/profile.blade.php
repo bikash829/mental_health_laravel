@@ -2,8 +2,7 @@
 
 @section('link')
     <x-vendor.bootstrap_css />
-       {{-- <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN" crossorigin="anonymous"> --}}
-
+    {{-- <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN" crossorigin="anonymous"> --}}
 @endsection
 
 @section('content')
@@ -24,7 +23,8 @@
                         Photo</a></p>
 
             </div>
-            <h3 class="text-center mb-3"> {{ $user?->expert?->doc_title }} {{$user?->first_name . ' ' . $user?->last_name }}</h3>
+            <h3 class="text-center mb-3"> {{ $user?->expert?->doc_title }}
+                {{ $user?->first_name . ' ' . $user?->last_name }}</h3>
 
 
 
@@ -56,10 +56,7 @@
                                         <span><strong> {{ $user?->first_name . ' ' . $user?->last_name }}</strong></span>
                                     </div>
 
-                                    <div class="col-6">
-                                        <label class="text-muted">Title </label>
-                                        <span><strong> {{ $user?->expert?->doc_title }}</strong></span>
-                                    </div>
+
 
                                     <div class="col-md-6 col-lg-6">
                                         <label class="text-muted">Date Of Birth: </label>
@@ -174,7 +171,9 @@
                                 {{-- email address  --}}
                                 <div class="col-md-6 col-lg-6">
                                     <label class="text-muted">Email Address: </label>
-                                    <span><a href="#" id="btnChangeEmail" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Click to change your email">{{ $user->email }}</a> </span>
+                                    <span><a href="#" id="btnChangeEmail" data-bs-toggle="tooltip"
+                                            data-bs-placement="top"
+                                            data-bs-title="Click to change your email">{{ $user->email }}</a> </span>
 
                                 </div>
                                 @isset($user->additional_phone)
@@ -447,5 +446,4 @@
 
         });
     </script>
-
 @endsection

@@ -25,7 +25,7 @@
             @endisset
             {{-- <p class="text-center"><a href="#" data-bs-toggle="modal" data-bs-target="#user_profile_image">Upload Photo</a></p> --}}
         </div>
-        <h3 class="text-muted text-center pt-2">{{ $user?->expert?->doc_title }}
+        <h3 class="text-muted text-center pt-2">
             {{ $user?->first_name . ' ' . $user?->last_name }}</h3>
 
 
@@ -532,7 +532,8 @@
                                 @foreach ($user->receivedFeedbacks as $feedback)
                                     <div class="card mt-3">
                                         <div class="card-body">
-                                            <h5 class="card-title">{{ $feedback->user->first_name }} {{ $feedback->user->last_name }}</h5>
+                                            <h5 class="card-title">{{ $feedback->user->first_name }}
+                                                {{ $feedback->user->last_name }}</h5>
                                             <h6 class="card-subtitle mb-2 text-muted">Rating:
                                                 {{ $feedback->rating_point }}</h6>
                                             <p class="card-text">{{ $feedback->feedback }}</p>

@@ -72,7 +72,7 @@ Route::post('message/',[\App\Http\Controllers\ContactUsController::class,'store'
 
 // ====================================error page route ..
 Route::get('error404/',function (){
-   return view('error.error.php');
+   return view('errors.error');
 })->name('error404');
 
 
